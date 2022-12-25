@@ -82,3 +82,5 @@ function math.randChance(t)
 	end
 	return win_name
 end
+
+math.tau = math.pi*2

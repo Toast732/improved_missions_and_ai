@@ -266,7 +266,7 @@ function Debugging.setDebug(d_type, peer_id)
 		[6] = "vehicle"
 	}
 
-	local ignore_all = { -- debug types to ignore from enabling and/or disabling with ?impwep debug all
+	local ignore_all = { -- debug types to ignore from enabling and/or disabling with ?imai debug all
 		[-1] = "all",
 		[4] = "enable"
 	}

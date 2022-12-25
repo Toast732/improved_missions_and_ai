@@ -22,7 +22,7 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-local ADDON_VERSION = "(0.0.1.1)"
+local ADDON_VERSION = "(0.0.1.2)"
 local IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 local just_migrated = false
@@ -129,6 +129,13 @@ function onCreate(is_world_create)
 
 	-- start the timer for when the world has started to be setup
 	local world_setup_time = s.getTimeMillisec()
+
+	comp.verify() -- backwards compatibility check
+
+	if just_migrated then
+		comp.showSaveMessage()
+		return
+	end
 
 	-- update player data
 	g_savedata.players.online = {}

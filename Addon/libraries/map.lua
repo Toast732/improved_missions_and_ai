@@ -67,10 +67,10 @@ end
 
 function Map.addMapCircle(peer_id, ui_id, center_matrix, radius, width, r, g, b, a, lines) -- credit to woe
 	peer_id, ui_id, center_matrix, radius, width, r, g, b, a, lines = peer_id or -1, ui_id or 0, center_matrix or m.translation(0, 0, 0), radius or 500, width or 0.25, r or 255, g or 0, b or 0, a or 255, lines or 16
-	local center_x, center_z, tau = center_matrix[13], center_matrix[15], math.pi*2
+	local center_x, center_z = center_matrix[13], center_matrix[15]
 	for i = 0, lines do
-		local x1, z1 = center_x+radius*math.cos(tau/lines*i), center_z+radius*math.sin(tau/lines*i)
-		local x2, z2 = center_x+radius*math.cos(tau/lines*(i+1)), center_z+radius*math.sin(tau/lines*(i+1))
+		local x1, z1 = center_x+radius*math.cos(math.tau/lines*i), center_z+radius*math.sin(math.tau/lines*i)
+		local x2, z2 = center_x+radius*math.cos(math.tau/lines*(i+1)), center_z+radius*math.sin(math.tau/lines*(i+1))
 		local start_matrix, end_matrix = m.translation(x1, 0, z1), m.translation(x2, 0, z2)
 		s.addMapLine(peer_id, ui_id, start_matrix, end_matrix, width, r, g, b, a)
 	end

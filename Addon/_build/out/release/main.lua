@@ -23,7 +23,7 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-local ADDON_VERSION = "(0.0.1.1)"
+local ADDON_VERSION = "(0.0.1.2)"
 local IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 local just_migrated = false
@@ -588,6 +588,8 @@ function math.randChance(t)
 	return win_name
 end
 
+math.tau = math.pi*2
+
 
 -- library name
 Map = {}
@@ -654,10 +656,10 @@ end
 
 function Map.addMapCircle(peer_id, ui_id, center_matrix, radius, width, r, g, b, a, lines) -- credit to woe
 	peer_id, ui_id, center_matrix, radius, width, r, g, b, a, lines = peer_id or -1, ui_id or 0, center_matrix or m.translation(0, 0, 0), radius or 500, width or 0.25, r or 255, g or 0, b or 0, a or 255, lines or 16
-	local center_x, center_z, tau = center_matrix[13], center_matrix[15], math.pi*2
+	local center_x, center_z = center_matrix[13], center_matrix[15]
 	for i = 0, lines do
-		local x1, z1 = center_x+radius*math.cos(tau/lines*i), center_z+radius*math.sin(tau/lines*i)
-		local x2, z2 = center_x+radius*math.cos(tau/lines*(i+1)), center_z+radius*math.sin(tau/lines*(i+1))
+		local x1, z1 = center_x+radius*math.cos(math.tau/lines*i), center_z+radius*math.sin(math.tau/lines*i)
+		local x2, z2 = center_x+radius*math.cos(math.tau/lines*(i+1)), center_z+radius*math.sin(math.tau/lines*(i+1))
 		local start_matrix, end_matrix = m.translation(x1, 0, z1), m.translation(x2, 0, z2)
 		s.addMapLine(peer_id, ui_id, start_matrix, end_matrix, width, r, g, b, a)
 	end
@@ -927,7 +929,7 @@ function Debugging.setDebug(d_type, peer_id)
 		[6] = "vehicle"
 	}
 
-	local ignore_all = { -- debug types to ignore from enabling and/or disabling with ?impwep debug all
+	local ignore_all = { -- debug types to ignore from enabling and/or disabling with ?imai debug all
 		[-1] = "all",
 		[4] = "enable"
 	}
@@ -1389,11 +1391,7 @@ comp = Compatibility
 ]]
 
 --# stores which versions require compatibility updates
-local version_updates = {
-	"(0.3.0.78)",
-	"(0.3.0.79)",
-	"(0.3.0.82)"
-}
+local version_updates = {}
 
 --[[
 
@@ -1768,7 +1766,7 @@ function Compatibility.update()
 		return
 	end
 
-	d.print("ICM's data is "..version_data.versions_outdated.." version"..(version_data.versions_outdated > 1 and "s" or "").." out of date!", false, 0)
+	d.print("IMAI's data is "..version_data.versions_outdated.." version"..(version_data.versions_outdated > 1 and "s" or "").." out of date!", false, 0)
 
 	-- save backup
 	local backup_saved = comp.saveBackup()
@@ -1782,51 +1780,10 @@ function Compatibility.update()
 	g_savedata.info.version_history[#g_savedata.info.version_history+1] = version_history_data
 	d.print("Successfully created new version history for "..version_data.newer_versions[1]..".", false, 0)
 
-	-- check for 0.3.0.78 changes
-	if version_data.newer_versions[1] == "(0.3.0.78)" then
-		d.print("Successfully updated ICM data to "..version_data.newer_versions[1]..", Cleaning up old data...", false, 0)
-
-		-- clean up old data
-		g_savedata.info.creation_version = nil
-		g_savedata.info.full_reload_versions = nil
-		g_savedata.info.awaiting_reload = nil
-
-		-- clean up old player_data
-		for steam_id, player_data in pairs(g_savedata.player_data) do
-			player_data.timers = nil
-			player_data.fully_reloading = nil
-			player_data.do_as_i_say = nil
-		end		
-	elseif version_data.newer_versions[1] == "(0.3.0.79)" then -- 0.3.0.79 changes
-
-		-- update the island data with the proper zones, as previously, the zone system improperly filtered out NSO compatible and incompatible zones
-		local spawn_zones = sup.spawnZones()
-		local tile_zones = sup.sortSpawnZones(spawn_zones)
-
-		for tile_name, zones in pairs(tile_zones) do
-			local island, is_success = Island.getDataFromName(tile_name)
-			island.zones = zones
-		end
-
-		if g_savedata.info.version_history[1].ticked_played then
-			g_savedata.info.version_history.ticks_played = g_savedata.info.version_history.ticked_played
-			g_savedata.info.version_history.ticked_played = nil
-		end
-
-		d.print("Successfully updated ICM data to "..version_data.newer_versions[1], false, 0)
-
-	elseif version_data.newer_versions[1] == "(0.3.0.82)" then -- 0.3.0.82 changes
-
-		for squad_index, squad in pairs(g_savedata.ai_army.squadrons) do
-			for vehicle_index, vehicle_object in pairs(squad.vehicles) do
-				vehicle_object.transform_history = {}
-			end
-		end
-
-		d.print("Successfully updated ICM data to "..version_data.newer_versions[1], false, 0)
+	-- check for  changes
+	if version_data.newer_versions[1] == "" then
 	end
-
-	d.print("ICM data is now up to date with "..version_data.newer_versions[1]..".", false, 0)
+	d.print("IMAI data is now up to date with "..version_data.newer_versions[1]..".", false, 0)
 
 	just_migrated = true
 end
@@ -1834,7 +1791,7 @@ end
 --# prints outdated message and starts update
 function Compatibility.outdated()
 	-- print that its outdated
-	d.print("ICM data is outdated! attempting to automatically update...", false, 0)
+	d.print("IMAI data is outdated! attempting to automatically update...", false, 0)
 
 	-- start update process
 	comp.update()
@@ -1842,7 +1799,7 @@ end
 
 --# verifies that the mod is currently up to date
 function Compatibility.verify()
-	d.print("verifying if ICM data is up to date...", false, 0)
+	d.print("verifying if IMAI data is up to date...", false, 0)
 	--[[
 		first, check if the versioning system is up to date
 	]]
@@ -1868,8 +1825,8 @@ end
 --# shows the message to save the game and then load the save to complete migration
 function Compatibility.showSaveMessage()
 	is_dlc_weapons = false
-	d.print("ICM Data has been migrated, to complete the process, please save the world, and then load the saved world. ICM has been disabled until this is done.", false, 0)
-	s.setPopupScreen(-1, s.getMapID(), "ICM Migration", true, "Please save world and then load save to complete data migration process. ICM has been disabled till this is complete.", 0, 0)
+	d.print("IMAI Data has been migrated, to complete the process, please save the world, and then load the saved world. IMAI has been disabled until this is done.", false, 0)
+	s.setPopupScreen(-1, s.getMapID(), "IMAI Migration", true, "Please save world and then load save to complete data migration process. IMAI has been disabled till this is complete.", 0, 0)
 end
 
  -- functions used for making the mod backwards compatible -- functions for debugging -- functions for drawing on the map -- custom math functions -- custom matrix functions
@@ -3038,6 +2995,13 @@ function onCreate(is_world_create)
 
 	-- start the timer for when the world has started to be setup
 	local world_setup_time = s.getTimeMillisec()
+
+	comp.verify() -- backwards compatibility check
+
+	if just_migrated then
+		comp.showSaveMessage()
+		return
+	end
 
 	-- update player data
 	g_savedata.players.online = {}
