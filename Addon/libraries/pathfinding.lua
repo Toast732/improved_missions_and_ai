@@ -3,6 +3,7 @@ require("libraries.debugging")
 require("libraries.ai")
 require("libraries.matrix")
 require("libraries.tags")
+require("libraries.ticks")
 
 -- library name
 Pathfinding = {}
@@ -263,5 +264,5 @@ function Pathfinding.createPathY() --this looks through all env mods to see if t
 			end
 		end
 	end
-	d.print("Got Y level of all paths\nNumber of nodes: "..total_paths.."\nTime taken: "..(millisecondsSince(start_time)/1000).."s", true, 0)
+	d.print("Got Y level of all paths\nNumber of nodes: "..total_paths.."\nTime taken: "..(Ticks.millisecondsSince(start_time)/1000).."s", true, 0)
 end

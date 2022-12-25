@@ -22,7 +22,7 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-local ADDON_VERSION = "(0.0.1.2)"
+local ADDON_VERSION = "(0.0.1.3)"
 local IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 local just_migrated = false
@@ -146,7 +146,19 @@ function onCreate(is_world_create)
 		end
 	end
 
-	d.print("Loading Script: "..s.getAddonData((s.getAddonIndex())).name.." Is Complete, Version: "..ADDON_VERSION, true, 0, -1, 3)
+	p.updatePathfinding()
+
+	if is_world_create then
+		d.print("setting up world...", true, 0)
+
+		d.print("getting y level of all graph nodes...", true, 0)
+		-- cause createPathY to execute, which will get the y level of all graph nodes
+		-- otherwise the game would freeze for a bit after the player loaded in, looking like the game froze
+		-- instead it looks like its taking a bit longer to create the world.
+		s.pathfind(m.translation(0, 0, 0), m.translation(0, 0, 0), "", "")
+	end
+
+	d.print("Loaded Script: "..s.getAddonData((s.getAddonIndex())).name..", Version: "..ADDON_VERSION, true, 0, -1, 3)
 
 	d.print(("World setup complete! took: %.3fs"):format(Ticks.millisecondsSince(world_setup_time)/1000), true, 0, -1, 4)
 end

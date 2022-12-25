@@ -23,7 +23,7 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-local ADDON_VERSION = "(0.0.1.2)"
+local ADDON_VERSION = "(0.0.1.3)"
 local IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 local just_migrated = false
@@ -1831,6 +1831,15 @@ end
 
  -- functions used for making the mod backwards compatible -- functions for debugging -- functions for drawing on the map -- custom math functions -- custom matrix functions
 -- required libraries
+-- library name
+Ticks = {}
+
+---@param start_ms number the time you want to see how long its been since (in ms)
+---@return number ms_since how many ms its been since <start_ms>
+function Ticks.millisecondsSince(start_ms)
+	return s.getTimeMillisec() - start_ms
+end
+
 
 -- library name
 Pathfinding = {}
@@ -2091,7 +2100,7 @@ function Pathfinding.createPathY() --this looks through all env mods to see if t
 			end
 		end
 	end
-	d.print("Got Y level of all paths\nNumber of nodes: "..total_paths.."\nTime taken: "..(millisecondsSince(start_time)/1000).."s", true, 0)
+	d.print("Got Y level of all paths\nNumber of nodes: "..total_paths.."\nTime taken: "..(Ticks.millisecondsSince(start_time)/1000).."s", true, 0)
 end
  -- functions for pathfinding -- functions relating to Players -- functions for script/world setup.
 -- required libraries
@@ -2248,16 +2257,7 @@ function string.removePrefix(vehicle_name, keep_caps)
 
 	return vehicle_name
 end
- -- custom string functions -- custom table functions -- functions related to getting tags from components inside of mission and environment locations
--- library name
-Ticks = {}
-
----@param start_ms number the time you want to see how long its been since (in ms)
----@return number ms_since how many ms its been since <start_ms>
-function Ticks.millisecondsSince(start_ms)
-	return s.getTimeMillisec() - start_ms
-end
- -- functions related to ticks and time
+ -- custom string functions -- custom table functions -- functions related to getting tags from components inside of mission and environment locations -- functions related to ticks and time
 -- required libraries
 
 -- library name
@@ -3012,7 +3012,19 @@ function onCreate(is_world_create)
 		end
 	end
 
-	d.print("Loading Script: "..s.getAddonData((s.getAddonIndex())).name.." Is Complete, Version: "..ADDON_VERSION, true, 0, -1, 3)
+	p.updatePathfinding()
+
+	if is_world_create then
+		d.print("setting up world...", true, 0)
+
+		d.print("getting y level of all graph nodes...", true, 0)
+		-- cause createPathY to execute, which will get the y level of all graph nodes
+		-- otherwise the game would freeze for a bit after the player loaded in, looking like the game froze
+		-- instead it looks like its taking a bit longer to create the world.
+		s.pathfind(m.translation(0, 0, 0), m.translation(0, 0, 0), "", "")
+	end
+
+	d.print("Loaded Script: "..s.getAddonData((s.getAddonIndex())).name..", Version: "..ADDON_VERSION, true, 0, -1, 3)
 
 	d.print(("World setup complete! took: %.3fs"):format(Ticks.millisecondsSince(world_setup_time)/1000), true, 0, -1, 4)
 end
