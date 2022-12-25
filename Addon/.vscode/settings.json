@@ -1,0 +1,63 @@
+{
+    "lifeboatapi.stormworks.isMicrocontrollerProject": false,
+    "lifeboatapi.stormworks.isAddonProject": true,
+    "lifeboatapi.stormworks.minimizer.removeComments": false,
+    "lifeboatapi.stormworks.minimizer.reduceAllWhitespace": false,
+    "lifeboatapi.stormworks.minimizer.reduceNewlines": false,
+    "lifeboatapi.stormworks.minimizer.removeRedundancies": false,
+    "lifeboatapi.stormworks.minimizer.shortenVariables": false,
+    "lifeboatapi.stormworks.minimizer.shortenGlobals": false,
+    "lifeboatapi.stormworks.minimizer.shortenNumbers": false,
+    "lifeboatapi.stormworks.minimizer.shortenStringDuplicates": false,
+    "lifeboatapi.stormworks.minimizer.forceNCBoilerplate": false,
+    "lifeboatapi.stormworks.minimizer.forceBoilerplate": false,
+    "Lua.diagnostics.disable": [
+        "lowercase-global",
+        "undefined-doc-name"
+    ],
+    "Lua.diagnostics.globals": [
+        "__simulator",
+        "print",
+        "simulator"
+    ],
+    "Lua.runtime.version": "Lua 5.3",
+    "Lua.runtime.builtin": {
+        "coroutine": "enable",
+        "bit32": "enable",
+        "bit": "enable",
+        "builtin": "enable",
+        "utf8": "enable",
+        "package": "enable",
+        "os": "enable",
+        "jit": "enable",
+        "io": "enable",
+        "ffi": "enable",
+        "debug": "enable",
+        "basic": "enable"
+    },
+    "Lua.workspace.ignoreDir": [
+        ".vscode",
+        "/_build/",
+        "!/_build/libs/",
+        "!/_build/_buildactions.lua"
+    ],
+    "Lua.runtime.path": [
+        "?.lua",
+        "?/init.lua"
+    ],
+    "Lua.runtime.pathStrict": true,
+    "Lua.workspace.library": [
+		"a:/Documents/GitHub/Stormworks/Addons/Improved Missions and AI/Addon/",
+		"c:/Users/liamm/.vscode/extensions/nameouschangey.lifeboatapi-0.0.32/assets/lua/Common/",
+		"c:/Users/liamm/.vscode/extensions/nameouschangey.lifeboatapi-0.0.32/assets/lua/Addon/",
+		"a:/Documents/GitHub/Stormworks/Addons/Improved Missions and AI/Addon/_build/libs/"
+	],
+	"lifeboatapi.stormworks.libs.gitLibraries": [
+		{
+			"name": "LifeBoatAPI",
+			"gitUrl": "https://github.com/nameouschangey/Stormworks_LifeBoatAPI_Addon.git"
+		}
+	],
+	"editor.maxTokenizationLineLength": 200000,
+	"Lua.diagnostics.libraryFiles": "Opened",
+}
