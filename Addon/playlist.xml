@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <playlist path_id="app_data/data/missions/Improved_Missions_and_AI" folder_path="data/missions/Improved_Missions_and_AI" file_store="4" name="Improved Missions and AI (0.0.1.dev)">
-	<locations location_id_counter="201" component_id_counter="4332">
+	<locations location_id_counter="201" component_id_counter="4348">
 		<locations>
 			<l id="1" tile="data/tiles/island_15.xml" name="CREATIVE BASE" is_env_mod="true" env_mod_spawn_num="1">
 				<components>
@@ -2868,7 +2868,7 @@
 						<graph_links/>
 					</c>
 					<c component_type="11" id="409" name="land_path,precision=0" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
-						<spawn_transform 30="306.114868" 31="5.777156" 32="-428.58136"/>
+						<spawn_transform 30="306.114868" 31="5.990835" 32="-428.58136"/>
 						<spawn_bounds>
 							<min x="-10" y="-10" z="-10"/>
 							<max x="10" y="10" z="10"/>
@@ -2897,14 +2897,6 @@
 						<graph_links>
 							<l value="408"/>
 						</graph_links>
-					</c>
-					<c component_type="10" id="420" cargo_zone_import_cargo_type="land_spawn" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
-						<spawn_transform 30="357.964661" 31="6.046768" 32="-367.775818"/>
-						<spawn_bounds>
-							<min x="-5" y="-5" z="-5"/>
-							<max x="5" y="5" z="5"/>
-						</spawn_bounds>
-						<graph_links/>
 					</c>
 					<c component_type="11" id="3082" name="ocean_path,precision=0" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
 						<spawn_transform 30="497.753784" 31="0.499997" 32="-497.986877"/>
@@ -3004,6 +2996,102 @@
 							<l value="3085"/>
 							<l value="3086"/>
 						</graph_links>
+					</c>
+					<c component_type="10" id="4333" cargo_zone_import_cargo_type="house,town=Olsen Bay,houseNumber=101" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.901188" 02="-0.433429" 20="0.433429" 22="0.901188" 30="374.542694" 31="7.147863" 32="-385.276306"/>
+						<spawn_bounds>
+							<min x="-2.980561" y="-2.026546" z="-5.552501"/>
+							<max x="2.980561" y="2.026546" z="5.552501"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4334" cargo_zone_import_cargo_type="house,town=Olsen Bay,houseNumber=102" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.970338" 02="-0.241752" 20="0.241752" 22="0.970338" 30="364.732849" 31="7.156833" 32="-407.699768"/>
+						<spawn_bounds>
+							<min x="-2.980561" y="-2.026546" z="-5.552501"/>
+							<max x="2.980561" y="2.026546" z="5.552501"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4335" cargo_zone_import_cargo_type="house,town=Olsen Bay,houseNumber=103" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.962063" 02="-0.272827" 20="0.272827" 22="0.962063" 30="361.081146" 31="6.939215" 32="-430.380249"/>
+						<spawn_bounds>
+							<min x="-2.980561" y="-2.026546" z="-5.552501"/>
+							<max x="2.980561" y="2.026546" z="5.552501"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4336" cargo_zone_import_cargo_type="house,town=Olsen Bay,houseNumber=104" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.965032" 02="-0.262134" 20="0.262134" 22="0.965032" 30="356.279114" 31="7.232818" 32="-447.111328"/>
+						<spawn_bounds>
+							<min x="-2.980561" y="-2.026546" z="-5.552501"/>
+							<max x="2.980561" y="2.026546" z="5.552501"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4337" cargo_zone_import_cargo_type="church,town=Olsen Bay" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.470649" 02="-0.882321" 20="0.882321" 22="0.470649" 30="319.298523" 31="9.092045" 32="-303.424377"/>
+						<spawn_bounds>
+							<min x="-3.962747" y="-3.183433" z="-3.630843"/>
+							<max x="3.962747" y="3.183433" z="3.630843"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4338" cargo_zone_import_cargo_type="boat_dock,town=Olsen Bay,owner=Olsen Bay 103" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.171048" 02="0.985263" 20="-0.985263" 22="0.171048" 30="453.431274" 31="0.082841" 32="-488.613525"/>
+						<spawn_bounds>
+							<min x="-6.338484" y="-5" z="-12.905028"/>
+							<max x="6.338484" y="5" z="12.905028"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4340" cargo_zone_import_cargo_type="car_park,town=Olsen Bay,owner=Olsen Bay 104" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.439658" 02="-0.898165" 20="0.898165" 22="-0.439658" 30="347.951294" 31="5.605278" 32="-385.536407"/>
+						<spawn_bounds>
+							<min x="-3.511284" y="-3.285055" z="-7.126993"/>
+							<max x="3.511284" y="3.285055" z="7.126993"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4341" cargo_zone_import_cargo_type="car_park,town=Olsen Bay,owner=Olsen Bay 102" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.435484" 02="-0.900196" 20="0.900196" 22="-0.435484" 30="353.012054" 31="5.613175" 32="-375.776855"/>
+						<spawn_bounds>
+							<min x="-3.511284" y="-3.285055" z="-7.126993"/>
+							<max x="3.511284" y="3.285055" z="7.126993"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4342" cargo_zone_import_cargo_type="car_park,town=Olsen Bay,owner=Olsen Bay 101" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.427177" 02="-0.904168" 20="0.904168" 22="-0.427177" 30="357.893799" 31="5.650208" 32="-366.479309"/>
+						<spawn_bounds>
+							<min x="-3.511284" y="-3.285055" z="-7.126993"/>
+							<max x="3.511284" y="3.285055" z="7.126993"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4345" cargo_zone_import_cargo_type="fishing_dock,town=Olsen Bay,npc_reservable" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.984864" 02="0.17333" 20="-0.17333" 22="-0.984864" 30="427.656708" 31="6.925933" 32="-490.505676"/>
+						<spawn_bounds>
+							<min x="-0.461666" y="-1.195986" z="-0.437663"/>
+							<max x="0.461666" y="1.195986" z="0.437663"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4347" cargo_zone_import_cargo_type="fishing_dock,town=Olsen Bay,npc_reservable" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.988801" 02="0.14924" 20="-0.14924" 22="-0.988801" 30="430.689148" 31="7.039005" 32="-491.117126"/>
+						<spawn_bounds>
+							<min x="-0.461666" y="-1.195986" z="-0.437663"/>
+							<max x="0.461666" y="1.195986" z="0.437663"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4348" cargo_zone_import_cargo_type="fishing_dock,town=Olsen Bay,npc_reservable" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.993608" 02="0.112887" 20="-0.112887" 22="-0.993608" 30="433.684296" 31="6.902705" 32="-491.43631"/>
+						<spawn_bounds>
+							<min x="-0.461666" y="-1.195986" z="-0.437663"/>
+							<max x="0.461666" y="1.195986" z="0.437663"/>
+						</spawn_bounds>
+						<graph_links/>
 					</c>
 				</components>
 			</l>
@@ -3244,22 +3332,6 @@
 						<graph_links>
 							<l value="446"/>
 						</graph_links>
-					</c>
-					<c component_type="10" id="448" cargo_zone_import_cargo_type="land_spawn,not_NSO" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
-						<spawn_transform 30="262.959442" 31="7.155019" 32="242.533096"/>
-						<spawn_bounds>
-							<min x="-5" y="-5" z="-5"/>
-							<max x="5" y="5" z="5"/>
-						</spawn_bounds>
-						<graph_links/>
-					</c>
-					<c component_type="10" id="3252" cargo_zone_import_cargo_type="land_spawn,NSO" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
-						<spawn_transform 00="-0.95165" 02="0.307184" 20="-0.307184" 22="-0.95165" 30="234.579285" 31="7.505817" 32="314.193878"/>
-						<spawn_bounds>
-							<min x="-5" y="-5" z="-5"/>
-							<max x="5" y="5" z="5"/>
-						</spawn_bounds>
-						<graph_links/>
 					</c>
 					<c component_type="11" id="3254" name="land_path,precision=0,NSO" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
 						<spawn_transform 30="131.098175" 31="16.217802" 32="238.112549"/>

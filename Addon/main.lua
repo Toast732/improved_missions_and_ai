@@ -22,7 +22,7 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-local ADDON_VERSION = "(0.0.1.4)"
+local ADDON_VERSION = "(0.0.1.5)"
 local IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 local just_migrated = false
@@ -52,10 +52,27 @@ g_savedata = {
 	tick_counter = 0,
 	vehicles = {
 		ai = {
-			loaded = {}, -- used to index vehicle_data, to only iterate loaded vehicles
-			unloaded = {}, -- used to index vehicle_data, to only iterate unloaded vehicles
-			vehicle_data = {}
+			loaded = {}, -- used to index data, to only iterate loaded vehicles
+			unloaded = {}, -- used to index data, to only iterate unloaded vehicles
+			data = {},
+			totals = {
+				types = {
+					land = 0,
+					sea = 0,
+					heli = 0,
+					plane = 0
+				}
+			}
 		}
+	},
+	towns = {
+		data = {} -- where the town data is stored
+	},
+	citizens = {
+		data = {} -- where the citizens are stored
+	},
+	zones = {
+		reservable = {} -- used for zones used for jobs, or recreation, so two npcs cannot use the same zone
 	},
 	info = {
 		version_history = {
@@ -130,6 +147,14 @@ function onCreate(is_world_create)
 	-- start the timer for when the world has started to be setup
 	local world_setup_time = s.getTimeMillisec()
 
+	-- setup settings
+	if not g_savedata.settings then
+		g_savedata.settings = {
+			MAX_FAMILIES_PER_TOWN = property.slider("Maximum Families Per Town", 0, 20, 1, 7),
+			MAX_OCCUPIED_HOUSES_PERCENTAGE = property.slider("Maximum percentage of houses with residents per town", 0, 100, 5, 75) * 0.01
+		}
+	end
+
 	comp.verify() -- backwards compatibility check
 
 	if just_migrated then
@@ -159,6 +184,10 @@ function onCreate(is_world_create)
 		local empty_matrix = m.identity()
 
 		s.pathfind(empty_matrix, empty_matrix, "", "")
+
+		d.print("setting up reservable zones...", true, 0)
+		
+		Zones.setup()
 	end
 
 	d.print("Loaded Script: "..s.getAddonData((s.getAddonIndex())).name..", Version: "..ADDON_VERSION, true, 0, -1, 3)

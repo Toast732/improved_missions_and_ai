@@ -13,7 +13,7 @@ d = Debugging
 ---@param requires_debug boolean if it requires <debug_type> debug to be enabled
 ---@param debug_type integer the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler) 
 ---@param peer_id integer if you want to send it to a specific player, leave empty to send to all players
-function Debugging.print(message, requires_debug, debug_type, peer_id, djkhabwjkbahwd) -- "glorious debug function" - senty, 2022
+function Debugging.print(message, requires_debug, debug_type, peer_id) -- "glorious debug function" - senty, 2022
 
 	if IS_DEVELOPMENT_VERSION or not requires_debug or requires_debug and d.getDebug(debug_type, peer_id) or requires_debug and debug_type == 2 and d.getDebug(0, peer_id) then
 		local suffix = debug_type == 1 and " Error:" or debug_type == 2 and " Profiler:" or " Debug:"
@@ -32,7 +32,7 @@ function Debugging.print(message, requires_debug, debug_type, peer_id, djkhabwjk
 		end
 		
 		if type(message) == "table" then
-			d.printTable(message, requires_debug, debug_type, peer_id, djkhabwjkbahwd)
+			d.printTable(message, requires_debug, debug_type, peer_id)
 
 		elseif requires_debug then
 			if pl.isPlayer(peer_id) and peer_id then
@@ -69,7 +69,7 @@ function Debugging.printTable(t, requires_debug, debug_type, peer_id, self_call)
 		elseif type(v) == "string" or type(v) == "number" then
 			d.print("k: "..tostring(k).." v: "..tostring(v), requires_debug, debug_type, peer_id)
 		else
-			d.print("k: "..tostring(k).." type(v): "..type(v), requires_debug, debug_type, peer_id, 2)
+			d.print("k: "..tostring(k).." type(v): "..type(v), requires_debug, debug_type, peer_id)
 		end
 	end
 end

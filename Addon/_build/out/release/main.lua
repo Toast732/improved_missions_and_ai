@@ -23,7 +23,7 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-local ADDON_VERSION = "(0.0.1.4)"
+local ADDON_VERSION = "(0.0.1.5)"
 local IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 local just_migrated = false
@@ -53,10 +53,27 @@ g_savedata = {
 	tick_counter = 0,
 	vehicles = {
 		ai = {
-			loaded = {}, -- used to index vehicle_data, to only iterate loaded vehicles
-			unloaded = {}, -- used to index vehicle_data, to only iterate unloaded vehicles
-			vehicle_data = {}
+			loaded = {}, -- used to index data, to only iterate loaded vehicles
+			unloaded = {}, -- used to index data, to only iterate unloaded vehicles
+			data = {},
+			totals = {
+				types = {
+					land = 0,
+					sea = 0,
+					heli = 0,
+					plane = 0
+				}
+			}
 		}
+	},
+	towns = {
+		data = {} -- where the town data is stored
+	},
+	citizens = {
+		data = {} -- where the citizens are stored
+	},
+	zones = {
+		reservable = {} -- used for zones used for jobs, or recreation, so two npcs cannot use the same zone
 	},
 	info = {
 		version_history = {
@@ -109,7 +126,7 @@ g_savedata = {
 }
 
 -- libraries
--- This library is for controlling or getting things about the Enemy AI.
+-- This library is for controlling or getting things about the AI.
 
 -- required libraries
 -- required libraries
@@ -676,7 +693,7 @@ d = Debugging
 ---@param requires_debug boolean if it requires <debug_type> debug to be enabled
 ---@param debug_type integer the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler) 
 ---@param peer_id integer if you want to send it to a specific player, leave empty to send to all players
-function Debugging.print(message, requires_debug, debug_type, peer_id, djkhabwjkbahwd) -- "glorious debug function" - senty, 2022
+function Debugging.print(message, requires_debug, debug_type, peer_id) -- "glorious debug function" - senty, 2022
 
 	if IS_DEVELOPMENT_VERSION or not requires_debug or requires_debug and d.getDebug(debug_type, peer_id) or requires_debug and debug_type == 2 and d.getDebug(0, peer_id) then
 		local suffix = debug_type == 1 and " Error:" or debug_type == 2 and " Profiler:" or " Debug:"
@@ -695,7 +712,7 @@ function Debugging.print(message, requires_debug, debug_type, peer_id, djkhabwjk
 		end
 		
 		if type(message) == "table" then
-			d.printTable(message, requires_debug, debug_type, peer_id, djkhabwjkbahwd)
+			d.printTable(message, requires_debug, debug_type, peer_id)
 
 		elseif requires_debug then
 			if pl.isPlayer(peer_id) and peer_id then
@@ -732,7 +749,7 @@ function Debugging.printTable(t, requires_debug, debug_type, peer_id, self_call)
 		elseif type(v) == "string" or type(v) == "number" then
 			d.print("k: "..tostring(k).." v: "..tostring(v), requires_debug, debug_type, peer_id)
 		else
-			d.print("k: "..tostring(k).." type(v): "..type(v), requires_debug, debug_type, peer_id, 2)
+			d.print("k: "..tostring(k).." type(v): "..type(v), requires_debug, debug_type, peer_id)
 		end
 	end
 end
@@ -2432,6 +2449,23 @@ function Vehicle.getPowertrainTypes(vehicle_object)
 	return powertrain_types, true	
 end
 
+--# decides where to spawn a vehicle
+---@param vehicle_type string the type of the vehicle to spawn
+function Vehicle.decideVehicleSpawn(vehicle_type)
+	
+
+
+--# decides which vehicle to spawn
+---@return string vehicle_type the vehicle type to spawn
+function Vehicle.typeToSpawn()
+	
+
+--# spawns an AI vehicle, set arguments to nil to be completely random.
+---@param spawn_matrix ?SWMatrix the position you want the vehicle to spawn at
+---@param vehicle_type ?string the vehicle type, eg: "boat"
+---@param vehicle_name ?string the name of the vehicle
+function Vehicle.spawn(spawn_matrix, vehicle_type, vehicle_name)
+
 ---@param requested_prefab any vehicle name or vehicle role, such as scout, will try to spawn that vehicle or type
 ---@param vehicle_type string the vehicle type you want to spawn, such as boat, leave nil to ignore
 ---@param force_spawn boolean if you want to force it to spawn, it will spawn at the ai's main base
@@ -2996,6 +3030,14 @@ function onCreate(is_world_create)
 	-- start the timer for when the world has started to be setup
 	local world_setup_time = s.getTimeMillisec()
 
+	-- setup settings
+	if not g_savedata.settings then
+		g_savedata.settings = {
+			MAX_FAMILIES_PER_TOWN = property.slider("Maximum Families Per Town", 0, 20, 1, 7),
+			MAX_OCCUPIED_HOUSES_PERCENTAGE = property.slider("Maximum percentage of houses with residents per town", 0, 100, 5, 75) * 0.01
+		}
+	end
+
 	comp.verify() -- backwards compatibility check
 
 	if just_migrated then
@@ -3025,6 +3067,10 @@ function onCreate(is_world_create)
 		local empty_matrix = m.identity()
 
 		s.pathfind(empty_matrix, empty_matrix, "", "")
+
+		d.print("setting up reservable zones...", true, 0)
+		
+		Zones.setup()
 	end
 
 	d.print("Loaded Script: "..s.getAddonData((s.getAddonIndex())).name..", Version: "..ADDON_VERSION, true, 0, -1, 3)

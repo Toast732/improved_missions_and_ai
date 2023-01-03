@@ -178,6 +178,23 @@ function Vehicle.getPowertrainTypes(vehicle_object)
 	return powertrain_types, true	
 end
 
+--# decides where to spawn a vehicle
+---@param vehicle_type string the type of the vehicle to spawn
+function Vehicle.decideVehicleSpawn(vehicle_type)
+	
+
+
+--# decides which vehicle to spawn
+---@return string vehicle_type the vehicle type to spawn
+function Vehicle.typeToSpawn()
+	
+
+--# spawns an AI vehicle, set arguments to nil to be completely random.
+---@param spawn_matrix ?SWMatrix the position you want the vehicle to spawn at
+---@param vehicle_type ?string the vehicle type, eg: "boat"
+---@param vehicle_name ?string the name of the vehicle
+function Vehicle.spawn(spawn_matrix, vehicle_type, vehicle_name)
+
 ---@param requested_prefab any vehicle name or vehicle role, such as scout, will try to spawn that vehicle or type
 ---@param vehicle_type string the vehicle type you want to spawn, such as boat, leave nil to ignore
 ---@param force_spawn boolean if you want to force it to spawn, it will spawn at the ai's main base
