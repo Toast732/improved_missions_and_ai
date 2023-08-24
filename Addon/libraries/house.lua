@@ -7,7 +7,7 @@
 ]]
 
 -- required libraries
-require("libraries.debugging")
+require("libraries.addon.script.debugging")
 
 -- library name
 Houses = {}
@@ -41,7 +41,4 @@ h = Houses
 
 function Houses.create(town_name, house_number)
 
-end
-
-function Houses.setupOOP(house)
 end

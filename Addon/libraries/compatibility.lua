@@ -7,7 +7,7 @@
 ]]
 
 -- required libraries
-require("libraries.debugging")
+require("libraries.addon.script.debugging")
 require("libraries.setup")
 
 -- library name

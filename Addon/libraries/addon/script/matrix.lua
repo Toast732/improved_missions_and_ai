@@ -1,9 +1,10 @@
+require("libraries.utils.math")
+
 ---@param matrix1 SWMatrix the first matrix
 ---@param matrix2 SWMatrix the second matrix
-function matrix.xzDistance(matrix1, matrix2) -- returns the distance between two matrixes, ignoring the y axis
-	local ox, oy, oz = m.position(matrix1)
-	local tx, ty, tz = m.position(matrix2)
-	return m.distance(m.translation(ox, 0, oz), m.translation(tx, 0, tz))
+---@return number distance the xz distance between the two matrices
+function matrix.xzDistance(matrix1, matrix2) -- returns the euclidean distance between two matrixes, ignoring the y axis
+	return math.euclideanDistance(matrix1[13], matrix2[13], matrix1[15], matrix2[15])
 end
 
 ---@param rot_matrix SWMatrix the matrix you want to get the rotation of
@@ -33,12 +34,8 @@ end
 ---@return number velocity the total velocity
 function matrix.velocity(matrix1, matrix2, ticks_between)
 	ticks_between = ticks_between or 1
-	local rx = matrix2[13] - matrix1[13] -- relative x
-	local ry = matrix2[14] - matrix1[14] -- relative y
-	local rz = matrix2[15] - matrix1[15] -- relative z
-
 	-- total velocity
-	return math.sqrt(rx*rx+ry*ry+rz*rz) * 60/ticks_between
+	return math.euclideanDistance(matrix1[13], matrix2[13], matrix1[15], matrix2[15], matrix1[14], matrix2[14]) * 60/ticks_between
 end
 
 --# returns the acceleration, given 3 matrices. Each matrix must be the same ticks between eachother.

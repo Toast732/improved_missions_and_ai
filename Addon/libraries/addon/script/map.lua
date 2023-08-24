@@ -1,3 +1,11 @@
+--[[
+
+
+	Library Setup
+
+
+]]
+
 -- required libraries
 require("libraries.addon.script.debugging")
 require("libraries.utils.math")
@@ -5,11 +13,38 @@ require("libraries.utils.math")
 -- library name
 Map = {}
 
+-- shortened library name
+-- (not applicable)
+
+--[[
+
+
+	Variables
+   
+
+]]
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Functions         
+
+
+]]
+
 --# draws a search area within the specified radius at the coordinates provided
 ---@param x number the x coordinate of where the search area will be drawn around (required)
 ---@param z number the z coordinate of where the search area will be drawn around (required)
 ---@param radius number the radius of the search area (required)
----@param ui_id integer the ui_id of the search area (required)
+---@param ui_id SWUI_ID the ui_id of the search area (required)
 ---@param peer_id integer the peer_id of the player which you want to draw the search area for (defaults to -1)
 ---@param label string The text that appears when mousing over the icon. Appears like a title (defaults to "")
 ---@param hover_label string The text that appears when mousing over the icon. Appears like a subtitle or description (defaults to "")
@@ -17,8 +52,8 @@ Map = {}
 ---@param g integer 0-255, the green value of the search area (defaults to 255)
 ---@param b integer 0-255, the blue value of the search area (defaults to 255)
 ---@param a integer 0-255, the alpha value of the search area (defaults to 255)
----@return number x the x coordinate of where the search area was drawn
----@return number z the z coordinate of where the search area was drawn
+---@return number? x the x coordinate of where the search area was drawn
+---@return number? z the z coordinate of where the search area was drawn
 ---@return boolean success if the search area was drawn
 function Map.drawSearchArea(x, z, radius, ui_id, peer_id, label, hover_label, r, g, b, a)
 
@@ -60,18 +95,27 @@ function Map.drawSearchArea(x, z, radius, ui_id, peer_id, label, hover_label, r,
 	local x_pos = dist * math.sin(angle) + x -- uses the distance and angle to make the x pos of the search radius
 	local z_pos = dist * math.cos(angle) + z -- uses the distance and angle to make the z pos of the search radius
 
-	s.addMapObject(peer_id, ui_id, 0, 2, x_pos, z_pos, 0, 0, 0, 0, label, radius, hover_label, r, g, b, a) -- draws the search radius to the map
+	server.addMapObject(peer_id, ui_id, 0, 2, x_pos, z_pos, 0, 0, 0, 0, label, radius, hover_label, r, g, b, a) -- draws the search radius to the map
 
 	return x_pos, z_pos, true -- returns the x pos and z pos of the drawn search radius, and returns true that it was drawn.
 end
 
 function Map.addMapCircle(peer_id, ui_id, center_matrix, radius, width, r, g, b, a, lines) -- credit to woe
-	peer_id, ui_id, center_matrix, radius, width, r, g, b, a, lines = peer_id or -1, ui_id or 0, center_matrix or m.translation(0, 0, 0), radius or 500, width or 0.25, r or 255, g or 0, b or 0, a or 255, lines or 16
+	peer_id, ui_id, center_matrix, radius, width, r, g, b, a, lines = peer_id or -1, ui_id or 0, center_matrix or matrix.translation(0, 0, 0), radius or 500, width or 0.25, r or 255, g or 0, b or 0, a or 255, lines or 16
 	local center_x, center_z = center_matrix[13], center_matrix[15]
-	for i = 0, lines do
-		local x1, z1 = center_x+radius*math.cos(math.tau/lines*i), center_z+radius*math.sin(math.tau/lines*i)
-		local x2, z2 = center_x+radius*math.cos(math.tau/lines*(i+1)), center_z+radius*math.sin(math.tau/lines*(i+1))
-		local start_matrix, end_matrix = m.translation(x1, 0, z1), m.translation(x2, 0, z2)
-		s.addMapLine(peer_id, ui_id, start_matrix, end_matrix, width, r, g, b, a)
+
+	local angle_per_line = math.tau/lines
+
+	local last_angle = 0
+
+	for i = 1, lines + 1 do
+		local new_angle = angle_per_line*i
+
+		local x1, z1 = center_x+radius*math.cos(last_angle), center_z+radius*math.sin(last_angle)
+		local x2, z2 = center_x+radius*math.cos(new_angle), center_z+radius*math.sin(new_angle)
+		
+		local start_matrix, end_matrix = matrix.translation(x1, 0, z1), matrix.translation(x2, 0, z2)
+		server.addMapLine(peer_id, ui_id, start_matrix, end_matrix, width, r, g, b, a)
+		last_angle = new_angle
 	end
 end

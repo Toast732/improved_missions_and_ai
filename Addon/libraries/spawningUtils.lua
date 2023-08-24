@@ -1,5 +1,5 @@
 -- required libraries
-require("libraries.debugging")
+require("libraries.addon.script.debugging")
 require("libraries.tags")
 
 -- library name

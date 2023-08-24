@@ -7,8 +7,8 @@
 ]]
 
 -- required libraries
-require("libraries.debugging")
-require("libraries.tables")
+require("libraries.addon.script.debugging")
+require("libraries.utils.tables")
 require("libraries.tags")
 
 -- library name

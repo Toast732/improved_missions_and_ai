@@ -3,6 +3,16 @@
 		{
 			"name": "Addon",
 			"path": ".."
+		},
+		{
+			"name": "Improved Missions and AI",
+			"path": "../.."
 		}
-	]
+	],
+	"settings": {
+		"editor.fontFamily": "'Roboto Mono'",
+		"lifeboatapi.stormworks.isAddonProject": true,
+		"editor.insertSpaces": false,
+		"editor.detectIndentation": false
+	}
 }

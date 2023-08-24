@@ -1,4 +1,4 @@
--- This library is for controlling or getting things about the AI.
+-- This library is for controlling or getting things about the Enemy AI.
 
 -- required libraries
 require("libraries.addon.script.debugging")
