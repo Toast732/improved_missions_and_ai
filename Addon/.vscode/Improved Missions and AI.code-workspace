@@ -13,6 +13,9 @@
 		"editor.fontFamily": "'Roboto Mono'",
 		"lifeboatapi.stormworks.isAddonProject": true,
 		"editor.insertSpaces": false,
-		"editor.detectIndentation": false
+		"editor.detectIndentation": false,
+		"editor.wordWrapColumn": 80,
+		"html.format.wrapLineLength": 120,
+		"editor.wordWrap": "off"
 	}
 }

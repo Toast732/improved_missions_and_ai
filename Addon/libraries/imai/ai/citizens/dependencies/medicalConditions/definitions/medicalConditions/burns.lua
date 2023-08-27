@@ -88,7 +88,7 @@ medicalCondition.create(
 
 		-- update stability
 
-		Modifiables.set(citizen.stability, "burns", (burn.custom_data.degree*-2)*burn.custom_data.affected_area, -1)
+		Modifiables.set(citizen.stability, "burns", math.max(-100,(burn.custom_data.degree*-2)*burn.custom_data.affected_area), -1)
 
 		burn.hidden = false
 

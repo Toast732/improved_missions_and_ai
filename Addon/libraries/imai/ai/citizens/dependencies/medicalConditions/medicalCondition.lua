@@ -40,12 +40,13 @@ medicalCondition = {}
 ---@field name string the name of the medical condition, eg "burn"
 ---@field onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
 ---@field onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount)
+---@field assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
 
 medical_conditions_callbacks = {} ---@type table<string, medicalConditionCallbacks> the table containing all of the medical condition's callbacks
 
 medical_conditions = {} ---@type table<string, medicalCondition> the table containing all of the medical conditions themselves, for default data.
 
-function medicalCondition.create(name, hidden, custom_data, call_onTick, call_onCitizenDamaged)
+function medicalCondition.create(name, hidden, custom_data, call_onTick, call_onCitizenDamaged, call_assignCondition)
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
@@ -57,7 +58,8 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	medical_conditions_callbacks[name] = {
 		name = name,
 		onTick = call_onTick,
-		onCitizenDamaged = call_onCitizenDamaged
+		onCitizenDamaged = call_onCitizenDamaged,
+		assignCondition = call_assignCondition
 	} ---@type medicalConditionCallbacks
 
 	-- create it as a medical condition
@@ -128,6 +130,23 @@ function medicalCondition.onCitizenDamaged(citizen, damage_amount)
 		end
 	end
 end
+--[[
+	assignCondition
+]]
+function medicalCondition.assignCondition(citizen, condition, ...)
+	local medical_condition_callbacks = medical_conditions_callbacks[condition]
+
+	if not medical_condition_callbacks then
+		d.print(("<line>: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		return
+	end
+
+	if not medical_condition_callbacks.assignCondition then
+		return
+	end
+
+	medical_condition_callbacks.assignCondition(citizen, ...)
+end
 
 --[[
 
@@ -139,3 +158,4 @@ end
 	definitions
 ]]
 require("libraries.imai.ai.citizens.dependencies.medicalConditions.definitions.medicalConditions.burns")
+require("libraries.imai.ai.citizens.dependencies.medicalConditions.definitions.medicalConditions.cardiacArrest")

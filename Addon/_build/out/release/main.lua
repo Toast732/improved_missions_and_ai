@@ -23,7 +23,7 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-ADDON_VERSION = "(0.0.1.6)"
+ADDON_VERSION = "(0.0.1.7)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -1569,6 +1569,30 @@ function math.xor(...)
 
 	-- xor can be summarized down to if the number of true inputs modulo 2 is equal to 1, so do that.
 	return tc%2==1
+end
+
+--- Linear Scale, converts one scale to another scale <br>
+--- For example, if x is x_min, then it will output y_min <br>
+--- and if x is x_max, then it will output y_max <br>
+--- And anywhere inbetween, it will output between the y_min and y_max.
+---@param x number the value from the original scale
+---@param x_min number the minimum value for x scale
+---@param x_max number the maximum value for the x scale
+---@param y_min number the value to output from the y scale if x is x_min
+---@param y_max number the value to output from the y scale if x is x_max
+---@return number y the value from the y scale
+function math.linearScale(x, x_min, x_max, y_min, y_max)
+	--[[
+		Get the scaled x
+		for example, if x is 0, x_min is -5, and x_max is 5, then scaled x is 0.5
+	]]
+	local scaled_x = (x - x_min)/(x_max - x_min)
+
+	--[[
+		return the scaled y
+		if scaled_x is 0.5, y_min is 10, and y_max is -10, then scaled_y is 0.
+	]]
+	return (1-scaled_x)*y_min+scaled_x*y_max
 end
 
 
@@ -3367,18 +3391,18 @@ end
 ---@param t Modifiable the table with the modifiables
 ---@param modifier_name string the name of the modifier 
 ---@param modifier number the value for this modifier
----@param expiry integer? the tick this will expire on, set nil to not update expirey, set to -1 to never expire.
+---@param expiry integer? in how many ticks this modifier will expire, set nil to not update expiry, set to -1 to never expire.
 function Modifiables.set(t, modifier_name, modifier, expiry)
 	if t.modifiers[modifier_name] then
 		if expiry then
-			t.modifiers[modifier_name].expires_at = expiry
+			t.modifiers[modifier_name].expires_at = expiry + g_savedata.tick_counter
 			t.modifiers[modifier_name].expires = expiry ~= -1
 		end
 
 		t.modifiers[modifier_name].modifier = modifier
 	else
 		t.modifiers[modifier_name] = {
-			expires_at = expiry or -1,
+			expires_at = expiry and expiry + g_savedata.tick_counter or -1,
 			expires = expiry ~= -1,
 			modifier = modifier
 		}
@@ -3604,6 +3628,7 @@ local npc_job_list = {
 ---@field medical_conditions table<string, medicalCondition> the list of medical conditions that this citizen has.
 ---@field health number the amount of health the citizen has.
 ---@field stability Modifiable the stability of the citizen
+---@field incapacitated boolean if the citizen is incapacitated, not set by the game but set by medical conditions.
 
 --[[
 
@@ -3725,7 +3750,27 @@ function Citizens.updateTooltip(citizen)
 	-- add their medical conditions to the tooltip
 	tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(citizen))
 
+	local object_data = server.getObjectData(citizen.object_id)
+
+	tooltip = ("%s\n\nDebug Data\nINCAP O: %s C: %s"):format(tooltip, 
+		object_data.incapacitated and "T" or "F",
+		citizen.incapacitated and "T" or "F"
+	)
+
 	server.setCharacterTooltip(citizen.object_id, tooltip)
+end
+
+---# Updates the citizen's data based on their stability, such as cardiac arrest.
+function Citizens.updateStability(citizen)
+	local stability = Modifiables.get(citizen.stability)
+
+	-- if the stability is 0 or less, than give the citizen cardiac arrest
+	if stability <= 0 then
+		-- if the citizen doesn't already have cardiac arrest
+		if not citizen.medical_conditions.cardiac_arrest.custom_data.cardiac_arrest then
+			medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
+		end
+	end
 end
 
 function Citizens.create(transform, outfit_type)
@@ -3738,7 +3783,8 @@ function Citizens.create(transform, outfit_type)
 		id = g_savedata.libraries.citizens.next_citizen_id,
 		medical_conditions = {},
 		health = 100,
-		stability = Modifiables.prepare({}, 100)
+		stability = Modifiables.prepare({}, 100),
+		incapacitated = false
 	}
 
 	
@@ -3845,17 +3891,7 @@ function Citizens.onTick(game_ticks)
 			}
 		end
 
-		if citizen.medical_conditions.burns.custom_data.degree < 4 then
-			if object_data.hp < 99 then
-				server.reviveCharacter(citizen.object_id)
-			end
-		elseif object_data.dead then
-			server.reviveCharacter(citizen.object_id)
-			server.setCharacterData(citizen.object_id, 5, true, true)
-			d.print(("Attempting to revive %s"):format(citizen.name.full), false, 0)
-		elseif not object_data.incapacitated then
-			server.killCharacter(citizen.object_id)
-		end
+		Citizens.updateStability(citizen)
 
 		-- just ensure the data isn't bad to avoid an error
 		if object_data and object_data.hp then
@@ -3868,11 +3904,32 @@ function Citizens.onTick(game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("3871: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("3907: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
 		medicalCondition.onTick(citizen, game_ticks)
+
+		if citizen.incapacitated then -- if the citizen should be incapacitated
+			if not object_data.incapacitated then -- if the citizen should be incapacitated, but isn't
+				server.killCharacter(citizen.object_id)
+				d.print(("Attempting to kill citizen %s"):format(citizen.name.full), false, 0)
+			end
+		elseif object_data.hp < 99 then -- if the citizen's health is below 99, and they're not incapacitated
+			server.reviveCharacter(citizen.object_id)
+		end
+
+		--[[if citizen.medical_conditions.burns.custom_data.degree < 4 then
+			if object_data.hp < 99 then
+				server.reviveCharacter(citizen.object_id)
+			end
+		elseif object_data.dead then
+			server.reviveCharacter(citizen.object_id)
+			server.setCharacterData(citizen.object_id, 5, true, true)
+			d.print(("Attempting to revive %s"):format(citizen.name.full), false, 0)
+		elseif not object_data.incapacitated then
+			server.killCharacter(citizen.object_id)
+		end]]
 
 		-- update their tooltip
 		Citizens.updateTooltip(citizen)
@@ -3884,7 +3941,75 @@ end
 ]]
 function Citizens.onCitizenDamaged(citizen, damage_amount)
 
-	--d.print(("Citizen %s took %s damage"):format(citizen.name.full, damage_amount), false, 0)
+	local function identifyDamageSource()
+
+		if damage_amount > 0 then
+			return
+		end
+
+		local damages = {
+			pistol = -15,
+			smg = -16.25,
+			rifle = -20,
+			speargun = -80
+		}
+		
+		local damage_reduction = 0
+
+		citizen.previous_damages = citizen.previous_damages or {}
+
+		for damage_index = #citizen.previous_damages, 1, -1 do
+			local ticks_since = g_savedata.tick_counter - citizen.previous_damages[damage_index]
+
+			-- only tracks to 3 seconds ago (187~ ticks), but cut to 75 as thats when the effect starts to get very little.
+			if ticks_since >= 75 then
+				table.remove(citizen.previous_damages, damage_index)
+				goto next_damage
+			end
+
+			-- calculate the damage reduction
+			damage_reduction = math.min(5, math.max(0, damage_reduction + 5-(2.1820366458058706*math.log(ticks_since)-3.7543876998534)))
+
+			-- already reached the max damage reduction, so we can break.
+			if damage_reduction == 5 then
+				break
+			end
+
+			::next_damage::
+		end
+
+		local closest_damage = math.huge
+		local closest_damage_source = "none"
+		local closest_damage_diff = math.huge
+
+		for damage_source, damage_source_amount in pairs(damages) do
+			local damage_diff = math.abs(damage_source_amount - (damage_amount - damage_reduction))
+			if damage_diff < closest_damage_diff then
+				closest_damage_diff = damage_diff
+				closest_damage = damage_source_amount
+				closest_damage_source = damage_source
+			end
+		end
+
+		d.print(("%s took %0.3f damage, closest match for damage source found was %s with a difference of %0.5f (damage reduction of %0.5f)"):format(
+			citizen.name.full,
+			damage_amount,
+			closest_damage_source,
+			closest_damage_diff,
+			damage_reduction
+		), false, 0)
+
+		table.insert(citizen.previous_damages, g_savedata.tick_counter)
+
+	end
+
+	identifyDamageSource()
+
+	if damage_amount <= 0 then
+		--d.print(("Citizen %s took %s damage.\nticks since last damage: %s\nticks since last health change:%s"):format(citizen.name.full, damage_amount, g_savedata.tick_counter - (citizen.last_damage_tick or 0), g_savedata.tick_counter - (citizen.last_health_change_tick or 0)), false, 0)
+		citizen.last_damage_tick = g_savedata.tick_counter
+	end
+	citizen.last_health_change_tick = g_savedata.tick_counter
 	-- update the medical conditions for this citizen
 	medicalCondition.onCitizenDamaged(citizen, damage_amount)
 end
@@ -3942,16 +4067,17 @@ medicalCondition = {}
 ---@field name string the name of the medical condition, eg "burn"
 ---@field onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
 ---@field onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount)
+---@field assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
 
 medical_conditions_callbacks = {} ---@type table<string, medicalConditionCallbacks> the table containing all of the medical condition's callbacks
 
 medical_conditions = {} ---@type table<string, medicalCondition> the table containing all of the medical conditions themselves, for default data.
 
-function medicalCondition.create(name, hidden, custom_data, call_onTick, call_onCitizenDamaged)
+function medicalCondition.create(name, hidden, custom_data, call_onTick, call_onCitizenDamaged, call_assignCondition)
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("3954: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("4080: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -3959,7 +4085,8 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	medical_conditions_callbacks[name] = {
 		name = name,
 		onTick = call_onTick,
-		onCitizenDamaged = call_onCitizenDamaged
+		onCitizenDamaged = call_onCitizenDamaged,
+		assignCondition = call_assignCondition
 	} ---@type medicalConditionCallbacks
 
 	-- create it as a medical condition
@@ -4029,6 +4156,23 @@ function medicalCondition.onCitizenDamaged(citizen, damage_amount)
 			medical_condition_callbacks.onCitizenDamaged(citizen, damage_amount)
 		end
 	end
+end
+--[[
+	assignCondition
+]]
+function medicalCondition.assignCondition(citizen, condition, ...)
+	local medical_condition_callbacks = medical_conditions_callbacks[condition]
+
+	if not medical_condition_callbacks then
+		d.print(("4167: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		return
+	end
+
+	if not medical_condition_callbacks.assignCondition then
+		return
+	end
+
+	medical_condition_callbacks.assignCondition(citizen, ...)
 end
 
 --[[
@@ -4546,7 +4690,7 @@ medicalCondition.create(
 
 		-- update stability
 
-		Modifiables.set(citizen.stability, "burns", (burn.custom_data.degree*-2)*burn.custom_data.affected_area, -1)
+		Modifiables.set(citizen.stability, "burns", math.max(-100,(burn.custom_data.degree*-2)*burn.custom_data.affected_area), -1)
 
 		burn.hidden = false
 
@@ -4612,6 +4756,123 @@ medicalCondition.create(
 		burn.custom_data.burn_temp = math.min(burn.custom_data.burn_temp + math.abs(health_change)*5, 120)
 
 		burn.custom_data.burn_decay = 2
+	end
+)
+--[[
+	
+Copyright 2023 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+medicalCondition.create(
+	"cardiac_arrest",
+	true,
+	{
+		incapacitated_at = 0,
+		cardiac_arrest = false
+	},
+	nil,
+	---@param citizen Citizen
+	---@param health_change number
+	function(citizen, health_change)
+		--d.print(("Citizen \"%s\" took %0.3f damage."):format(citizen.name.full, health_change), false, 0)
+
+		-- if it was not a defib
+		if health_change ~= 10 then
+			return
+		end
+
+		local cardiac_arrest = citizen.medical_conditions.cardiac_arrest
+
+		-- if this citizen is not suffering cardiac arrest
+		if not cardiac_arrest.custom_data.cardiac_arrest then
+			return
+		end
+
+		-- get how long its been since they became incapacitated
+		local incapacitated_duration = g_savedata.tick_counter - cardiac_arrest.custom_data.incapacitated_at
+
+		-- from a 35% chance to resurrect at 10 minutes, to a 95% chance to resurrect at 0 seconds.
+		local resurrect_chance = math.linearScale(
+			incapacitated_duration,
+			36000,
+			0,
+			0.35,
+			0.95
+		)
+
+		local resurrect_random_number = math.randomDecimals(0, 1)
+
+		-- if the resurrect failed
+		if resurrect_random_number > resurrect_chance then
+			server.notify(-1, "Resurrect",("Resurrecting %s failed."):format(citizen.name.full), 2)
+			return
+		end
+
+		-- give the citizen + 35 stability for 5 minutes
+		Modifiables.set(citizen.stability, "defibrillator", 35, 18000)
+
+		server.notify(-1, "Resurrect",("Resurrecting %s succeeded."):format(citizen.name.full), 4)
+
+		-- ressurect succeeded, set the citizen as no longer under cardiac arrest.
+		medicalCondition.assignCondition(citizen, "cardiac_arrest", false)
+	end,
+	---@param citizen Citizen
+	---@param new_state boolean if the citizen will now have cardiac arrest or not
+	function(citizen, new_state)
+		local cardiac_arrest = citizen.medical_conditions.cardiac_arrest
+
+		if cardiac_arrest.custom_data.cardiac_arrest ~= new_state then
+			-- set the state of this medical condition
+			cardiac_arrest.custom_data.cardiac_arrest = new_state
+
+			-- set the time of the incapacitation
+			cardiac_arrest.custom_data.incapacitated_at = g_savedata.tick_counter
+
+			-- set if this citizen should be incapacitated
+			citizen.incapacitated = new_state
+
+			-- set if this should be hidden
+			cardiac_arrest.hidden = not new_state
+
+			-- set the display name
+			cardiac_arrest.display_name = "Cardiac Arrest"
+
+			--[[if new_state then
+				-- say that this citizen is currently having cardiac arrest
+				cardiac_arrest.custom_data.cardiac_arrest = true
+
+				-- "kill" incapacitate the character
+				-- server.killCharacter(citizen.object_id)
+
+				-- set the time the citizen was incapacitated at
+				cardiac_arrest.custom_data.incapacitated_at = g_savedata.tick_counter
+
+				-- set that this citizen should be incapacitated
+				citizen.incapacitated = true
+			else
+			end]]
+		end
 	end
 )
 --[[

@@ -228,6 +228,7 @@ local npc_job_list = {
 ---@field medical_conditions table<string, medicalCondition> the list of medical conditions that this citizen has.
 ---@field health number the amount of health the citizen has.
 ---@field stability Modifiable the stability of the citizen
+---@field incapacitated boolean if the citizen is incapacitated, not set by the game but set by medical conditions.
 
 --[[
 
@@ -349,7 +350,27 @@ function Citizens.updateTooltip(citizen)
 	-- add their medical conditions to the tooltip
 	tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(citizen))
 
+	local object_data = server.getObjectData(citizen.object_id)
+
+	tooltip = ("%s\n\nDebug Data\nINCAP O: %s C: %s"):format(tooltip, 
+		object_data.incapacitated and "T" or "F",
+		citizen.incapacitated and "T" or "F"
+	)
+
 	server.setCharacterTooltip(citizen.object_id, tooltip)
+end
+
+---# Updates the citizen's data based on their stability, such as cardiac arrest.
+function Citizens.updateStability(citizen)
+	local stability = Modifiables.get(citizen.stability)
+
+	-- if the stability is 0 or less, than give the citizen cardiac arrest
+	if stability <= 0 then
+		-- if the citizen doesn't already have cardiac arrest
+		if not citizen.medical_conditions.cardiac_arrest.custom_data.cardiac_arrest then
+			medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
+		end
+	end
 end
 
 function Citizens.create(transform, outfit_type)
@@ -362,7 +383,8 @@ function Citizens.create(transform, outfit_type)
 		id = g_savedata.libraries.citizens.next_citizen_id,
 		medical_conditions = {},
 		health = 100,
-		stability = Modifiables.prepare({}, 100)
+		stability = Modifiables.prepare({}, 100),
+		incapacitated = false
 	}
 
 	
@@ -469,17 +491,7 @@ function Citizens.onTick(game_ticks)
 			}
 		end
 
-		if citizen.medical_conditions.burns.custom_data.degree < 4 then
-			if object_data.hp < 99 then
-				server.reviveCharacter(citizen.object_id)
-			end
-		elseif object_data.dead then
-			server.reviveCharacter(citizen.object_id)
-			server.setCharacterData(citizen.object_id, 5, true, true)
-			d.print(("Attempting to revive %s"):format(citizen.name.full), false, 0)
-		elseif not object_data.incapacitated then
-			server.killCharacter(citizen.object_id)
-		end
+		Citizens.updateStability(citizen)
 
 		-- just ensure the data isn't bad to avoid an error
 		if object_data and object_data.hp then
@@ -498,6 +510,27 @@ function Citizens.onTick(game_ticks)
 		-- tick their medical conditions
 		medicalCondition.onTick(citizen, game_ticks)
 
+		if citizen.incapacitated then -- if the citizen should be incapacitated
+			if not object_data.incapacitated then -- if the citizen should be incapacitated, but isn't
+				server.killCharacter(citizen.object_id)
+				d.print(("Attempting to kill citizen %s"):format(citizen.name.full), false, 0)
+			end
+		elseif object_data.hp < 99 then -- if the citizen's health is below 99, and they're not incapacitated
+			server.reviveCharacter(citizen.object_id)
+		end
+
+		--[[if citizen.medical_conditions.burns.custom_data.degree < 4 then
+			if object_data.hp < 99 then
+				server.reviveCharacter(citizen.object_id)
+			end
+		elseif object_data.dead then
+			server.reviveCharacter(citizen.object_id)
+			server.setCharacterData(citizen.object_id, 5, true, true)
+			d.print(("Attempting to revive %s"):format(citizen.name.full), false, 0)
+		elseif not object_data.incapacitated then
+			server.killCharacter(citizen.object_id)
+		end]]
+
 		-- update their tooltip
 		Citizens.updateTooltip(citizen)
 	end
@@ -508,7 +541,75 @@ end
 ]]
 function Citizens.onCitizenDamaged(citizen, damage_amount)
 
-	--d.print(("Citizen %s took %s damage"):format(citizen.name.full, damage_amount), false, 0)
+	local function identifyDamageSource()
+
+		if damage_amount > 0 then
+			return
+		end
+
+		local damages = {
+			pistol = -15,
+			smg = -16.25,
+			rifle = -20,
+			speargun = -80
+		}
+		
+		local damage_reduction = 0
+
+		citizen.previous_damages = citizen.previous_damages or {}
+
+		for damage_index = #citizen.previous_damages, 1, -1 do
+			local ticks_since = g_savedata.tick_counter - citizen.previous_damages[damage_index]
+
+			-- only tracks to 3 seconds ago (187~ ticks), but cut to 75 as thats when the effect starts to get very little.
+			if ticks_since >= 75 then
+				table.remove(citizen.previous_damages, damage_index)
+				goto next_damage
+			end
+
+			-- calculate the damage reduction
+			damage_reduction = math.min(5, math.max(0, damage_reduction + 5-(2.1820366458058706*math.log(ticks_since)-3.7543876998534)))
+
+			-- already reached the max damage reduction, so we can break.
+			if damage_reduction == 5 then
+				break
+			end
+
+			::next_damage::
+		end
+
+		local closest_damage = math.huge
+		local closest_damage_source = "none"
+		local closest_damage_diff = math.huge
+
+		for damage_source, damage_source_amount in pairs(damages) do
+			local damage_diff = math.abs(damage_source_amount - (damage_amount - damage_reduction))
+			if damage_diff < closest_damage_diff then
+				closest_damage_diff = damage_diff
+				closest_damage = damage_source_amount
+				closest_damage_source = damage_source
+			end
+		end
+
+		d.print(("%s took %0.3f damage, closest match for damage source found was %s with a difference of %0.5f (damage reduction of %0.5f)"):format(
+			citizen.name.full,
+			damage_amount,
+			closest_damage_source,
+			closest_damage_diff,
+			damage_reduction
+		), false, 0)
+
+		table.insert(citizen.previous_damages, g_savedata.tick_counter)
+
+	end
+
+	identifyDamageSource()
+
+	if damage_amount <= 0 then
+		--d.print(("Citizen %s took %s damage.\nticks since last damage: %s\nticks since last health change:%s"):format(citizen.name.full, damage_amount, g_savedata.tick_counter - (citizen.last_damage_tick or 0), g_savedata.tick_counter - (citizen.last_health_change_tick or 0)), false, 0)
+		citizen.last_damage_tick = g_savedata.tick_counter
+	end
+	citizen.last_health_change_tick = g_savedata.tick_counter
 	-- update the medical conditions for this citizen
 	medicalCondition.onCitizenDamaged(citizen, damage_amount)
 end

@@ -77,18 +77,18 @@ end
 ---@param t Modifiable the table with the modifiables
 ---@param modifier_name string the name of the modifier 
 ---@param modifier number the value for this modifier
----@param expiry integer? the tick this will expire on, set nil to not update expirey, set to -1 to never expire.
+---@param expiry integer? in how many ticks this modifier will expire, set nil to not update expiry, set to -1 to never expire.
 function Modifiables.set(t, modifier_name, modifier, expiry)
 	if t.modifiers[modifier_name] then
 		if expiry then
-			t.modifiers[modifier_name].expires_at = expiry
+			t.modifiers[modifier_name].expires_at = expiry + g_savedata.tick_counter
 			t.modifiers[modifier_name].expires = expiry ~= -1
 		end
 
 		t.modifiers[modifier_name].modifier = modifier
 	else
 		t.modifiers[modifier_name] = {
-			expires_at = expiry or -1,
+			expires_at = expiry and expiry + g_savedata.tick_counter or -1,
 			expires = expiry ~= -1,
 			modifier = modifier
 		}
