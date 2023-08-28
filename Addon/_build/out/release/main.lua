@@ -23,7 +23,7 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-ADDON_VERSION = "(0.0.1.7)"
+ADDON_VERSION = "(0.0.1.8)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -3944,7 +3944,7 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 	local function identifyDamageSource()
 
 		if damage_amount > 0 then
-			return
+			return ""
 		end
 
 		local damages = {
@@ -4001,9 +4001,11 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 
 		table.insert(citizen.previous_damages, g_savedata.tick_counter)
 
+		return closest_damage_source
+
 	end
 
-	identifyDamageSource()
+	local closest_damage_source = identifyDamageSource()
 
 	if damage_amount <= 0 then
 		--d.print(("Citizen %s took %s damage.\nticks since last damage: %s\nticks since last health change:%s"):format(citizen.name.full, damage_amount, g_savedata.tick_counter - (citizen.last_damage_tick or 0), g_savedata.tick_counter - (citizen.last_health_change_tick or 0)), false, 0)
@@ -4011,7 +4013,7 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 	end
 	citizen.last_health_change_tick = g_savedata.tick_counter
 	-- update the medical conditions for this citizen
-	medicalCondition.onCitizenDamaged(citizen, damage_amount)
+	medicalCondition.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
 end
 
 -- intercept onObjectDespawn calls
@@ -4066,7 +4068,7 @@ medicalCondition = {}
 ---@class medicalConditionCallbacks
 ---@field name string the name of the medical condition, eg "burn"
 ---@field onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
----@field onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount)
+---@field onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount, param 3 is closest_damage_source)
 ---@field assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
 
 medical_conditions_callbacks = {} ---@type table<string, medicalConditionCallbacks> the table containing all of the medical condition's callbacks
@@ -4077,7 +4079,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("4080: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("4082: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -4149,11 +4151,11 @@ end
 --[[
 	onCitizenDamaged
 ]]
-function medicalCondition.onCitizenDamaged(citizen, damage_amount)
+function medicalCondition.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
 	-- call all medical condition onCitizenDamaged for this citizen.
 	for _, medical_condition_callbacks in pairs(medical_conditions_callbacks) do
 		if medical_condition_callbacks.onCitizenDamaged then
-			medical_condition_callbacks.onCitizenDamaged(citizen, damage_amount)
+			medical_condition_callbacks.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
 		end
 	end
 end
@@ -4164,7 +4166,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("4167: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("4169: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 

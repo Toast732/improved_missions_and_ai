@@ -39,7 +39,7 @@ medicalCondition = {}
 ---@class medicalConditionCallbacks
 ---@field name string the name of the medical condition, eg "burn"
 ---@field onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
----@field onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount)
+---@field onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount, param 3 is closest_damage_source)
 ---@field assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
 
 medical_conditions_callbacks = {} ---@type table<string, medicalConditionCallbacks> the table containing all of the medical condition's callbacks
@@ -122,11 +122,11 @@ end
 --[[
 	onCitizenDamaged
 ]]
-function medicalCondition.onCitizenDamaged(citizen, damage_amount)
+function medicalCondition.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
 	-- call all medical condition onCitizenDamaged for this citizen.
 	for _, medical_condition_callbacks in pairs(medical_conditions_callbacks) do
 		if medical_condition_callbacks.onCitizenDamaged then
-			medical_condition_callbacks.onCitizenDamaged(citizen, damage_amount)
+			medical_condition_callbacks.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
 		end
 	end
 end
@@ -157,5 +157,5 @@ end
 --[[
 	definitions
 ]]
-require("libraries.imai.ai.citizens.dependencies.medicalConditions.definitions.medicalConditions.burns")
-require("libraries.imai.ai.citizens.dependencies.medicalConditions.definitions.medicalConditions.cardiacArrest")
+require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.definitions.medicalConditions.burns")
+require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.definitions.medicalConditions.cardiacArrest")

@@ -544,7 +544,7 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 	local function identifyDamageSource()
 
 		if damage_amount > 0 then
-			return
+			return ""
 		end
 
 		local damages = {
@@ -601,9 +601,11 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 
 		table.insert(citizen.previous_damages, g_savedata.tick_counter)
 
+		return closest_damage_source
+
 	end
 
-	identifyDamageSource()
+	local closest_damage_source = identifyDamageSource()
 
 	if damage_amount <= 0 then
 		--d.print(("Citizen %s took %s damage.\nticks since last damage: %s\nticks since last health change:%s"):format(citizen.name.full, damage_amount, g_savedata.tick_counter - (citizen.last_damage_tick or 0), g_savedata.tick_counter - (citizen.last_health_change_tick or 0)), false, 0)
@@ -611,7 +613,7 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 	end
 	citizen.last_health_change_tick = g_savedata.tick_counter
 	-- update the medical conditions for this citizen
-	medicalCondition.onCitizenDamaged(citizen, damage_amount)
+	medicalCondition.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
 end
 
 -- intercept onObjectDespawn calls
@@ -625,5 +627,5 @@ end
 --[[
 	definitions
 ]]
-require("libraries.imai.ai.citizens.dependencies.medicalConditions.medicalCondition")
+require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.medicalCondition")
 require("libraries.imai.ai.citizens.definitions.commands")
