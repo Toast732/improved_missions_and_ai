@@ -1,3 +1,20 @@
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
  
 --? Copyright 2024 Liam Matthews
 
@@ -27,7 +44,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.9)"
+ADDON_VERSION = "(0.0.1.10)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -38,7 +55,7 @@ local just_migrated = false
 local m = matrix
 local s = server
 
-local time = { -- the time unit in ticks, irl time, not in game
+time = { -- the time unit in ticks, irl time, not in game
 	second = 60,
 	minute = 3600,
 	hour = 216000,
@@ -5855,14 +5872,14 @@ Flag.registerPermission(
 Treatments = {}
 
 ---@class treatmentCondition For your treatment condition, you can define any number of these functions, if they return true, then the condition will be treated.
----@field onCitizenDamaged function? this function is called whenever a citizen takes damage, args are: citizen, damage_amount, closest_damage_source
----@field onTick function? this function is called every tick, args are: citizen, game_ticks
----@field onFirstAid function? this function is called whenever the citizen is healed by a first aid kit. args are: citizen
----@field onDefibrillator function? this function is called whenever the citizen gets hit by a defibrillator. args are: citizen
+---@field onCitizenDamaged fun(citizen: Citizen, damage_amount: number, closest_damage_source: string)|nil this function is called whenever a citizen takes damage
+---@field onTick fun(citizen: Citizen, game_ticks: integer)|nil this function is called every tick
+---@field onFirstAid fun(citizen: Citizen)|nil this function is called whenever the citizen is healed by a first aid kit.
+---@field onDefibrillator fun(citizen: Citizen)|nil this function is called whenever the citizen gets hit by a defibrillator.
 
 ---@class treatment The
 ---@field name string the name for this treatment, should be the same as the linked condition, eg "bleeds"
----@field tooltip string|function the tooltip of this treatment, if as a function, param is citizen
+---@field tooltip string|fun(citizen: Citizen):string the tooltip of this treatment, if as a function, param is citizen
 ---@field completion_actions function? This function will be executed whenever its successfully treated.
 ---@field failure_actions function? This function will be executed whenever they failed to treat it within the deadline.
 ---@field default_time integer? The default timer for when this can no longer be treated. nil means it never expires
@@ -6118,9 +6135,9 @@ medicalCondition = {}
 
 ---@class medicalConditionCallbacks
 ---@field name string the name of the medical condition, eg "burn"
----@field onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
----@field onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount, param 3 is closest_damage_source)
----@field assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
+---@field onTick fun(citizen: Citizen, game_ticks: integer)|nil called whenever onTick is called.
+---@field onCitizenDamaged fun(citizen: Citizen, damage_amount: number, closest_damage_source: string)|nil called whenever a citizen is damaged or healed.
+---@field assignCondition fun(citizen: Citizen, ...)|nil called whenever something tries to assign this medical condition, ... is the extra arguments sent to medicalCondition.assignCondition.
 
 medical_conditions_callbacks = {} ---@type table<string, medicalConditionCallbacks> the table containing all of the medical condition's callbacks
 
@@ -6129,9 +6146,9 @@ medical_conditions = {} ---@type table<string, medicalCondition> the table conta
 ---@param name string the name of the medical condition, eg "burn"
 ---@param hidden boolean if this condition is to be hidden.
 ---@param custom_data table<any, any> your custom data to be stored with this medical condition.
----@param call_onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
----@param call_onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount, param 3 is closest_damage_source)
----@param call_assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
+---@param call_onTick fun(citizen: Citizen, game_ticks: integer)|nil called whenever onTick is called.
+---@param call_onCitizenDamaged fun(citizen: Citizen, damage_amount: number, closest_damage_source: string)|nil called whenever a citizen is damaged or healed.
+---@param call_assignCondition fun(citizen: Citizen, ...)|nil called whenever something tries to assign this medical condition, ... is the extra arguments sent to medicalCondition.assignCondition.
 function medicalCondition.create(name, hidden, custom_data, call_onTick, call_onCitizenDamaged, call_assignCondition)
 	
 	-- check if this medical condition is already registered
@@ -7113,7 +7130,7 @@ medicalCondition.create(
 	"bleeds",
 	true,
 	{
-		severity = 0,
+		severity = 0, -- value for the severity of their bleeding
 		blood = {
 			max = 5000,
 			current = 5000
@@ -7493,7 +7510,7 @@ limitations under the License.
 --[[
 	Some of the data for behaviour in here has been referenced from
 	Hooper N, Armstrong TJ. Hemorrhagic Shock. [Updated 2022 Sep 26]. In: StatPearls [Internet]. Treasure Island (FL): StatPearls Publishing; 2023 Jan-. Available from: https://www.ncbi.nlm.nih.gov/books/NBK470382/
-	Specifically for the different classes of hemorrahagic shock for the thresholds.
+	Specifically for the different classes of hemorrhagic shock for the thresholds.
 ]]
 
 --[[
@@ -7533,6 +7550,12 @@ LibraryName = {}
 
 ]]
 
+-- decrement for the hemorrhagic shock severity
+HEMORRHAGIC_SEVERITY_DECREASE = 1/(time.minute*20)
+
+-- increment for the hemorrhagic shock severity
+HEMORRHAGIC_SEVERITY_INCREASE = 1/(time.hour*20)
+
 --[[
 
 
@@ -7543,35 +7566,54 @@ LibraryName = {}
 
 -- Define the medical condition
 medicalCondition.create(
-	"hemorrahagic_shock",
+	"hemorrhagic_shock",
 	true,
 	{
-		stage = 0
+		stage = 0,
+		severity = 0 -- severity of their blood loss, 0 is perfectly fine, 1 is really bad.
 	},
 	---@param citizen Citizen
 	function(citizen)
-		local hemorrahagic_shock = citizen.medical_data.medical_conditions.hemorrahagic_shock
+		local hemorrhagic_shock = citizen.medical_data.medical_conditions.hemorrhagic_shock
 		local bleeds = citizen.medical_data.medical_conditions.bleeds
 
+		-- How much blood they've lost from their maximum blood contents.
 		local blood_lost_ratio = 1-(bleeds.custom_data.blood.current/bleeds.custom_data.blood.max)
 
+		--[[
+			Update Hemorrhagic Shock Stage
+		]]
+
 		if blood_lost_ratio > 0.4 then -- class 4 hemorrhagic shock, over 40% blood loss.
-			hemorrahagic_shock.custom_data.stage = 4
+			hemorrhagic_shock.custom_data.stage = 4
 		elseif blood_lost_ratio > 0.3 then -- class 3 hemorragic shock, over 30% blood loss.
-			hemorrahagic_shock.custom_data.stage = 3
+			hemorrhagic_shock.custom_data.stage = 3
 		elseif blood_lost_ratio > 0.15 then -- class 2 hemorragic shock, over 15% blood loss.
-			hemorrahagic_shock.custom_data.stage = 2
-		elseif blood_lost_ratio > 0.07 then -- class 1 hemorragic shock, over 7% blood loss. (The book never specifies the minimum blood loss for class 1, just "up to 15%", so I put it as 7% to avoid class 1 hemorrahagic shock being usless to know.)
-			hemorrahagic_shock.custom_data.stage = 1
-		else -- no hemorrahagic shock.
-			hemorrahagic_shock.custom_data.stage = 0
+			hemorrhagic_shock.custom_data.stage = 2
+		elseif blood_lost_ratio > 0.07 then -- class 1 hemorragic shock, over 7% blood loss. (The book never specifies the minimum blood loss for class 1, just "up to 15%", so I put it as 7% to avoid class 1 hemorrhagic shock being usless to know.)
+			hemorrhagic_shock.custom_data.stage = 1
+		else -- no hemorrhagic shock.
+			hemorrhagic_shock.custom_data.stage = 0
 		end
 
-		-- hide the tooltip if hemorrahagic shock is 0
-		hemorrahagic_shock.hidden = hemorrahagic_shock.custom_data.stage == 0
+		--[[
+			Update Hemorrhagic Shock Blood Loss Severity
+		]]
+		
+		-- if the stage is 0, decrease severity
+		if hemorrhagic_shock.custom_data.stage == 0 then
+			hemorrhagic_shock.custom_data.severity = math.max(0, hemorrhagic_shock.custom_data.severity - HEMORRHAGIC_SEVERITY_DECREASE)
+		end
+
+		--[[
+			Update Tooltip
+		]]
+
+		-- hide the tooltip if hemorrhagic shock is 0
+		hemorrhagic_shock.hidden = hemorrhagic_shock.custom_data.stage == 0
 
 		-- set the displayname tooltip
-		hemorrahagic_shock.display_name = ("Stage %s Hemorrhagic Shock"):format(hemorrahagic_shock.custom_data.stage)
+		hemorrhagic_shock.display_name = ("Stage %s Hemorrhagic Shock"):format(hemorrhagic_shock.custom_data.stage)
 	end,
 	nil,
 	nil
@@ -9778,6 +9820,9 @@ function onCreate(is_world_create)
 		
 		--Zones.setup()
 	end
+
+	-- send out discovery message (AddonDiscoveryAPI)
+	server.command(([[AddonDiscoveryAPI discovery "%s" --category:"Gameplay" --version:"%s"]]):format(SHORT_ADDON_NAME, ADDON_VERSION))
 
 	d.print("Loaded Script: "..s.getAddonData((s.getAddonIndex())).name..", Version: "..ADDON_VERSION, true, 0, -1)
 

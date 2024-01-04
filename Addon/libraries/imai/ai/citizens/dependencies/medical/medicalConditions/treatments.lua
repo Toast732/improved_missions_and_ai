@@ -34,14 +34,14 @@ require("libraries.addon.commands.flags")
 Treatments = {}
 
 ---@class treatmentCondition For your treatment condition, you can define any number of these functions, if they return true, then the condition will be treated.
----@field onCitizenDamaged function? this function is called whenever a citizen takes damage, args are: citizen, damage_amount, closest_damage_source
----@field onTick function? this function is called every tick, args are: citizen, game_ticks
----@field onFirstAid function? this function is called whenever the citizen is healed by a first aid kit. args are: citizen
----@field onDefibrillator function? this function is called whenever the citizen gets hit by a defibrillator. args are: citizen
+---@field onCitizenDamaged fun(citizen: Citizen, damage_amount: number, closest_damage_source: string)|nil this function is called whenever a citizen takes damage
+---@field onTick fun(citizen: Citizen, game_ticks: integer)|nil this function is called every tick
+---@field onFirstAid fun(citizen: Citizen)|nil this function is called whenever the citizen is healed by a first aid kit.
+---@field onDefibrillator fun(citizen: Citizen)|nil this function is called whenever the citizen gets hit by a defibrillator.
 
 ---@class treatment The
 ---@field name string the name for this treatment, should be the same as the linked condition, eg "bleeds"
----@field tooltip string|function the tooltip of this treatment, if as a function, param is citizen
+---@field tooltip string|fun(citizen: Citizen):string the tooltip of this treatment, if as a function, param is citizen
 ---@field completion_actions function? This function will be executed whenever its successfully treated.
 ---@field failure_actions function? This function will be executed whenever they failed to treat it within the deadline.
 ---@field default_time integer? The default timer for when this can no longer be treated. nil means it never expires

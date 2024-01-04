@@ -44,9 +44,9 @@ medicalCondition = {}
 
 ---@class medicalConditionCallbacks
 ---@field name string the name of the medical condition, eg "burn"
----@field onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
----@field onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount, param 3 is closest_damage_source)
----@field assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
+---@field onTick fun(citizen: Citizen, game_ticks: integer)|nil called whenever onTick is called.
+---@field onCitizenDamaged fun(citizen: Citizen, damage_amount: number, closest_damage_source: string)|nil called whenever a citizen is damaged or healed.
+---@field assignCondition fun(citizen: Citizen, ...)|nil called whenever something tries to assign this medical condition, ... is the extra arguments sent to medicalCondition.assignCondition.
 
 medical_conditions_callbacks = {} ---@type table<string, medicalConditionCallbacks> the table containing all of the medical condition's callbacks
 
@@ -55,9 +55,9 @@ medical_conditions = {} ---@type table<string, medicalCondition> the table conta
 ---@param name string the name of the medical condition, eg "burn"
 ---@param hidden boolean if this condition is to be hidden.
 ---@param custom_data table<any, any> your custom data to be stored with this medical condition.
----@param call_onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
----@param call_onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount, param 3 is closest_damage_source)
----@param call_assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
+---@param call_onTick fun(citizen: Citizen, game_ticks: integer)|nil called whenever onTick is called.
+---@param call_onCitizenDamaged fun(citizen: Citizen, damage_amount: number, closest_damage_source: string)|nil called whenever a citizen is damaged or healed.
+---@param call_assignCondition fun(citizen: Citizen, ...)|nil called whenever something tries to assign this medical condition, ... is the extra arguments sent to medicalCondition.assignCondition.
 function medicalCondition.create(name, hidden, custom_data, call_onTick, call_onCitizenDamaged, call_assignCondition)
 	
 	-- check if this medical condition is already registered

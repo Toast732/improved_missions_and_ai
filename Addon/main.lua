@@ -26,7 +26,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.9)"
+ADDON_VERSION = "(0.0.1.10)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -259,6 +259,9 @@ function onCreate(is_world_create)
 		
 		--Zones.setup()
 	end
+
+	-- send out discovery message (AddonDiscoveryAPI)
+	server.command(([[AddonDiscoveryAPI discovery "%s" --category:"Gameplay" --version:"%s"]]):format(SHORT_ADDON_NAME, ADDON_VERSION))
 
 	d.print("Loaded Script: "..s.getAddonData((s.getAddonIndex())).name..", Version: "..ADDON_VERSION, true, 0, -1)
 
