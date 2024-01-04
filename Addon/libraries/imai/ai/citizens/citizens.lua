@@ -1,6 +1,6 @@
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,9 @@ require("libraries.utils.math")
 require("libraries.tags")
 require("libraries.zones")
 require("libraries.addon.script.modifiables")
+require("libraries.addon.utils.objects.characters.inventory.inventory")
+require("libraries.addon.script.references")
+require("libraries.imai.effects.effects")
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -48,6 +51,10 @@ Citizens = {}
 
 ]]
 
+--[[
+--TODO:		Optimise the indexing of citizens by adding a new table which contains all of the indexes of the citizens by their id
+--TODO: 	to make it faster to get the citizens data from it's ID.
+]]
 g_savedata.libraries.citizens = {
 	citizen_list = {}, ---@type table<integer, Citizen>
 	next_citizen_id = 1 ---@type citizenID The next citizen ID to assign.
@@ -218,6 +225,11 @@ local npc_job_list = {
 ---@field last string their last name
 ---@field full string their first + last name
 
+---@class Status
+---@field name string the internal name for the status
+---@field tooltip string the tooltip for the status
+---@field priority number the priority for this status. Highest priority will be shown.
+
 ---@class Citizen
 ---@field name CitizenName the citizen's name
 ---@field transform SWMatrix the citizen's matrix
@@ -225,10 +237,13 @@ local npc_job_list = {
 ---@field outfit_type SWOutfitTypeEnum the citizen's outfit type
 ---@field object_id integer|nil the citizen's object_id, nil if the citizen has not yet been spawned.
 ---@field id citizenID the citizen's ID.
----@field medical_conditions table<string, medicalCondition> the list of medical conditions that this citizen has.
+---@field medical_data citizenMedicalData the medical data for the citizen
 ---@field health number the amount of health the citizen has.
----@field stability Modifiable the stability of the citizen
----@field incapacitated boolean if the citizen is incapacitated, not set by the game but set by medical conditions.
+---@field inventory Inventory the inventory of the citizen, use only for reading, use the functions directly when writing to avoid issues with the table not referencing the original.
+---@field suppress_next_health_change boolean if the next health change should be suppressed, used to avoid false positives from the addon's health overrides.
+---@field object_type "citizen"
+---@field statuses table<integer, Status> stores the statuses of the citizen.
+
 
 --[[
 
@@ -339,35 +354,143 @@ end]]
 	end
 end]]
 
+--[[
+	Citizen Status system
+]]
+Citizens.Status = {
+	---# Adds a status to a citizen.
+	---@param citizen Citizen the citizen to add a status to
+	---@param name string the internal name for the status
+	---@param tooltip string the tooltip for the status
+	---@param priority number the priority for this status. Highest priority will be shown.
+	add = function(citizen, name, tooltip, priority)
+		-- skip if the citizen already has this status
+		if Citizens.Status.has(citizen, name) then
+			return
+		end
+
+		-- add the status
+		table.insert(citizen.statuses, {
+			name = name,
+			tooltip = tooltip,
+			priority = priority
+		})
+	end,
+
+	---# Removes a status from a citizen.
+	---@param citizen Citizen the citizen to remove the specified status from
+	---@param name string the name of the status to remove
+	remove = function(citizen, name)
+		-- iterate through all statuses
+		for status_index = 1, #citizen.statuses do
+			-- get the status data
+			local status = citizen.statuses[status_index]
+
+			-- if the status name matches
+			if status.name == name then
+				-- remove the status
+				table.remove(citizen.statuses, status_index)
+
+				-- we dont need to keep checking.
+				return
+			end
+		end
+	end,
+
+	---# If a citizen has a status or not
+	---@param citizen Citizen the citizen to check if it has the specified status
+	---@param name string the name of the status to look for
+	---@return boolean has_status if it has the specified status
+	has = function(citizen, name)
+		-- iterate through all statuses
+		for status_index = 1, #citizen.statuses do
+			-- get the status data
+			local status = citizen.statuses[status_index]
+
+			-- if the status name matches
+			if status.name == name then
+				-- return true
+				return true
+			end
+		end
+
+		-- citizen does not have the status, return false
+		return false
+	end,
+
+	---# Get the highest priority status.
+	---@param citizen Citizen the citizen to get the highest status of
+	---@return Status highest_status the highest priority status for this citizen
+	getHighest = function(citizen)
+		---@type Status
+		local highest_status = {
+			name = "",
+			tooltip = "",
+			priority = -math.huge
+		}
+
+		-- iterate through all statuses
+		for status_index = 1, #citizen.statuses do
+			-- get the status data
+			local status = citizen.statuses[status_index]
+
+			-- if the status priority is higher than the previous highest priority, then set it as the new highest priority status.
+			if status.priority > highest_status.priority then
+				highest_status = status
+			end
+		end
+
+		-- return the highest status
+		return highest_status
+	end
+}
+
 ---# Update a citizen's tooltip.
 ---@param citizen Citizen the citizen who's tooltip to update
 function Citizens.updateTooltip(citizen)
-	local tooltip = "\n"..citizen.name.full
+	local tooltip = "\n"
+
+	-- get the highest status for this citizen.
+	local highest_status = Citizens.Status.getHighest(citizen)
+	if highest_status.tooltip ~= "" then
+		-- add the status at the top of the tooltip
+		tooltip = ("%s%s\n"):format(tooltip, highest_status.tooltip)
+	end
+
+	-- add the citizen's name to the tooltip
+	tooltip = tooltip..citizen.name.full
 
 	-- add their stability bar
-	tooltip = ("%s\n\nStability\n|%s|"):format(tooltip, string.toBar(math.min(100, math.max(0, Modifiables.get(citizen.stability)/100)), 16, "=", "  "))
+	--tooltip = ("%s\n\nStability\n|%s|"):format(tooltip, string.toBar(math.min(100, math.max(0, Modifiables.get(citizen.medical_data.stability)/100)), 16, "=", "  "))
 	
 	-- add their medical conditions to the tooltip
 	tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(citizen))
 
-	local object_data = server.getObjectData(citizen.object_id)
+	--[[local object_data = server.getObjectData(citizen.object_id)
 
 	tooltip = ("%s\n\nDebug Data\nINCAP O: %s C: %s"):format(tooltip, 
 		object_data.incapacitated and "T" or "F",
-		citizen.incapacitated and "T" or "F"
-	)
+		citizen.medical_data.incapacitated and "T" or "F"
+	)]]
+
+	-- always end the tooltip with a new line, if it doesn't
+	local tooltip_length = tooltip:len()
+	if tooltip:sub(tooltip_length, tooltip_length) ~= "\n" then
+		tooltip = tooltip.."\n"
+	end
 
 	server.setCharacterTooltip(citizen.object_id, tooltip)
 end
 
 ---# Updates the citizen's data based on their stability, such as cardiac arrest.
+---@param citizen Citizen
 function Citizens.updateStability(citizen)
-	local stability = Modifiables.get(citizen.stability)
+	local stability = Modifiables.get(citizen.medical_data.stability)
 
 	-- if the stability is 0 or less, than give the citizen cardiac arrest
 	if stability <= 0 then
 		-- if the citizen doesn't already have cardiac arrest
-		if not citizen.medical_conditions.cardiac_arrest.custom_data.cardiac_arrest then
+		if not citizen.medical_data.medical_conditions.cardiac_arrest.custom_data.cardiac_arrest then
 			medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
 		end
 	end
@@ -381,17 +504,22 @@ function Citizens.create(transform, outfit_type)
 		outfit_type = outfit_type,
 		object_id = nil,
 		id = g_savedata.libraries.citizens.next_citizen_id,
-		medical_conditions = {},
 		health = 100,
-		stability = Modifiables.prepare({}, 100),
-		incapacitated = false
+		medical_data = {
+			medical_conditions = {},
+			required_treatments = {},
+			stability = Modifiables.prepare({}, 100),
+			incapacitated = false
+		},
+		inventory = Inventory.create(), -- READ ONLY (May change to only store the inventory id at some point)
+		suppress_next_health_change = false,
+		object_type = "citizen",
+		statuses = {}
 	}
-
-	
 
 	-- register the medical conditions.
 	for medical_condition_name, medical_condition_data in pairs(medical_conditions) do
-		citizen.medical_conditions[medical_condition_name] = {
+		citizen.medical_data.medical_conditions[medical_condition_name] = {
 			name = medical_condition_name,
 			display_name = "",
 			custom_data = table.copy.deep(medical_condition_data.custom_data),
@@ -437,6 +565,9 @@ end
 
 function Citizens.remove(citizen)
 
+	-- remove all effects from this citizen
+	Effects.removeAll(citizen)
+
 	-- if this citzen has been spawned
 	if citizen.object_id then
 		-- despawn the citizen if they exist
@@ -457,6 +588,33 @@ function Citizens.remove(citizen)
 	end
 end
 
+---# Get a citizen's data from it's ID.
+---@param citizen_id integer the id of the citizen.
+---@return Citizen? citizen the data of the citizen, returns nil if it failed to find the citizen from it's id.
+function Citizens.getData(citizen_id)
+
+	--! TEMP DEBUG
+	d.print(("Attempting to find citizen with id: %s"):format(citizen_id))
+
+	-- go through all citizens
+	for citizen_index = 1, #g_savedata.libraries.citizens.citizen_list do
+		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
+
+		-- if the id of this citizen matches the one we want.
+		if citizen.id == citizen_id then
+			d.print(("Found citizen for id: %s"):format(citizen_id))
+			-- return it's data
+			return citizen
+		end
+
+		d.print(("Citizen ID %s does not match target %s"):format(citizen.id, citizen_id))
+	end
+
+	d.print(("Failed to find citizen with id: %s"):format(citizen_id))
+
+	-- only could get here if it failed to find the citizen's data, so return nil (not needed, but just for the code to be clearer)
+	return nil
+end
 --[[
 	onTick
 ]]
@@ -482,8 +640,8 @@ function Citizens.onTick(game_ticks)
 		-- detect changes in their health
 		local object_data = server.getObjectData(citizen.object_id)
 
-		if not citizen.medical_conditions.burns.custom_data.degree then
-			citizen.medical_conditions.burns.custom_data = {
+		if not citizen.medical_data.medical_conditions.burns.custom_data.degree then
+			citizen.medical_data.medical_conditions.burns.custom_data = {
 				degree = 0, -- the degree of the burn
 				affected_area = 0, -- the % of their body that is covered in the burn
 				burn_temp = 0, -- the temperature of the burn 
@@ -510,13 +668,29 @@ function Citizens.onTick(game_ticks)
 		-- tick their medical conditions
 		medicalCondition.onTick(citizen, game_ticks)
 
-		if citizen.incapacitated then -- if the citizen should be incapacitated
+		-- check if this citizen has the applying_first_aid effect.
+		local applying_first_aid, _ = Effects.has(citizen, "applying_first_aid")
+
+		--! temp commented out to try to reverse engineer the healing discharge system
+		if citizen.medical_data.incapacitated then -- if the citizen should be incapacitated
 			if not object_data.incapacitated then -- if the citizen should be incapacitated, but isn't
 				server.killCharacter(citizen.object_id)
 				d.print(("Attempting to kill citizen %s"):format(citizen.name.full), false, 0)
 			end
-		elseif object_data.hp < 99 then -- if the citizen's health is below 99, and they're not incapacitated
-			server.reviveCharacter(citizen.object_id)
+		elseif applying_first_aid then
+			--server.setCharacterData(citizen.object_id, 50, true, true)
+		elseif not applying_first_aid then -- if we're not applying first aid, then allow the health to be overridden.
+			if object_data.hp < 97 then -- if the citizen's health is below 97
+				server.reviveCharacter(citizen.object_id)
+				-- suppress the next health change to avoid it being mistooken for healing
+				citizen.suppress_next_health_change = true
+			elseif object_data.hp > 97 then
+
+				server.setCharacterData(citizen.object_id, 97, true, true)
+
+				-- suppress the next health change to avoid it being mistooken for taking damage
+				citizen.suppress_next_health_change = true
+			end
 		end
 
 		--[[if citizen.medical_conditions.burns.custom_data.degree < 4 then
@@ -541,17 +715,52 @@ end
 ]]
 function Citizens.onCitizenDamaged(citizen, damage_amount)
 
+	-- if this health change should be suppressed.
+	if citizen.suppress_next_health_change then
+		-- reset so it doesn't suppress the next health change
+		citizen.suppress_next_health_change = false
+
+		-- suppress.
+		return
+	end
+
 	local function identifyDamageSource()
 
-		if damage_amount > 0 then
+		--[[if damage_amount > 0 then
 			return ""
-		end
+		end]]
 
 		local damages = {
-			pistol = -15,
-			smg = -16.25,
-			rifle = -20,
-			speargun = -80
+			first_aid = {
+				suffers_falloff = false,
+				amount = 2.5,
+				tolerance = 0
+			},
+			defibrillator = {
+				suffers_falloff = false,
+				amount = 10,
+				tolerance = 0
+			},
+			pistol = {
+				suffers_falloff = true,
+				amount = -15,
+				tolerance = 2.25
+			},
+			smg = {
+				suffers_falloff = true,
+				amount = -16.25,
+				tolerance = 2.25
+			},
+			rifle = {
+				suffers_falloff = true,
+				amount = -20,
+				tolerance = 2.25
+			},
+			speargun = {
+				suffers_falloff = true,
+				amount = -80,
+				tolerance = 2.25
+			}
 		}
 		
 		local damage_reduction = 0
@@ -582,13 +791,28 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 		local closest_damage_source = "none"
 		local closest_damage_diff = math.huge
 
-		for damage_source, damage_source_amount in pairs(damages) do
-			local damage_diff = math.abs(damage_source_amount - (damage_amount - damage_reduction))
-			if damage_diff < closest_damage_diff then
+		for damage_source, damage_source_data in pairs(damages) do
+			local damage_diff
+			if damage_source_data.suffers_falloff then
+				damage_diff = math.abs(damage_source_data.amount - (damage_amount - damage_reduction))
+			else
+				damage_diff = math.abs(damage_source_data.amount - damage_amount)
+			end
+
+
+			if damage_diff < closest_damage_diff and damage_diff <= damage_source_data.tolerance then
 				closest_damage_diff = damage_diff
-				closest_damage = damage_source_amount
+				closest_damage = damage_source_data.amount
 				closest_damage_source = damage_source
 			end
+		end
+
+		if damage_amount < 0 then
+			table.insert(citizen.previous_damages, g_savedata.tick_counter)
+		end
+
+		if closest_damage_source == "none" then
+			return closest_damage_source
 		end
 
 		d.print(("%s took %0.3f damage, closest match for damage source found was %s with a difference of %0.5f (damage reduction of %0.5f)"):format(
@@ -599,33 +823,79 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 			damage_reduction
 		), false, 0)
 
-		table.insert(citizen.previous_damages, g_savedata.tick_counter)
-
 		return closest_damage_source
 
 	end
 
 	local closest_damage_source = identifyDamageSource()
 
-	if damage_amount <= 0 then
+	-- call the treatment callback for onCitizenDamaged
+	Treatments.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
+
+	--[[if damage_amount <= 0 then
 		--d.print(("Citizen %s took %s damage.\nticks since last damage: %s\nticks since last health change:%s"):format(citizen.name.full, damage_amount, g_savedata.tick_counter - (citizen.last_damage_tick or 0), g_savedata.tick_counter - (citizen.last_health_change_tick or 0)), false, 0)
 		citizen.last_damage_tick = g_savedata.tick_counter
 	end
-	citizen.last_health_change_tick = g_savedata.tick_counter
+	--citizen.last_health_change_tick = g_savedata.tick_counter]]
+
+	-- if this was a first aid kit
+	if closest_damage_source == "first_aid" then
+		-- call onFirstAid
+		Citizens.onFirstAid(citizen)
+	elseif closest_damage_source == "defibrillator" then
+		-- call onDefibrillator
+		Citizens.onDefibrillator(citizen)
+	end
+
 	-- update the medical conditions for this citizen
 	medicalCondition.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
 end
 
--- intercept onObjectDespawn calls
-
 --[[
-
-	scripts to be put after this one
-
+	callbacks
 ]]
+
+---Called whenever a citizen has first aid used on them.
+---@param citizen Citizen the citizen that had first aid applied to them
+function Citizens.onFirstAid(citizen)
+	-- give the applying first aid effect.
+	Effects.apply("applying_first_aid", citizen, 3.5, 1)
+
+	-- call Treatments.onFirstAid
+	Treatments.onFirstAid(citizen)
+end
+
+---Called wheneer a citizen hsa a defibrillator used on them.
+---@param citizen Citizen the citizen that had the defibrillator used on them.
+function Citizens.onDefibrillator(citizen)
+	-- call Treatments.onDefibrillator
+	Treatments.onDefibrillator(citizen)
+end
 
 --[[
 	definitions
 ]]
+
+
+--[[ Define how to reference a citizen via references.lua ]]
+References.define(
+	"citizen",
+	---@param citizen Citizen
+	function(citizen)
+		return {citizen.id}
+	end,
+	function(indexing_data)
+		-- returns the citizen's data, if the citizen exists.
+		return Citizens.getData(indexing_data[1])
+	end
+)
+
+--[[
+	
+	Definition Scripts to be put after this one
+
+]]
+require("libraries.imai.ai.citizens.definitions.effects.applyingFirstAidEffect")
+require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.treatments")
 require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.medicalCondition")
 require("libraries.imai.ai.citizens.definitions.commands")

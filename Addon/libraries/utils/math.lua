@@ -19,7 +19,7 @@
 
 
 	Variables
-   
+
 
 ]]
 
@@ -101,6 +101,8 @@ function math.seededRandom(use_decimals, seed, min, max)
 	-- return the seeded number
 	return seeded_number
 end
+
+
 
 ---@param x number the number to wrap
 ---@param min number the minimum number to wrap around

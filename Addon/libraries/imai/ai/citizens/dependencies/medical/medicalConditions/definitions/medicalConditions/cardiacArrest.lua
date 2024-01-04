@@ -1,6 +1,6 @@
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ medicalCondition.create(
 			return
 		end
 
-		local cardiac_arrest = citizen.medical_conditions.cardiac_arrest
+		local cardiac_arrest = citizen.medical_data.medical_conditions.cardiac_arrest
 
 		-- if this citizen is not suffering cardiac arrest
 		if not cardiac_arrest.custom_data.cardiac_arrest then
@@ -70,7 +70,7 @@ medicalCondition.create(
 		end
 
 		-- give the citizen + 35 stability for 5 minutes
-		Modifiables.set(citizen.stability, "defibrillator", 35, 18000)
+		Modifiables.set(citizen.medical_data.stability, "defibrillator", 35, 18000)
 
 		server.notify(-1, "Resurrect",("Resurrecting %s succeeded."):format(citizen.name.full), 4)
 
@@ -80,7 +80,7 @@ medicalCondition.create(
 	---@param citizen Citizen
 	---@param new_state boolean if the citizen will now have cardiac arrest or not
 	function(citizen, new_state)
-		local cardiac_arrest = citizen.medical_conditions.cardiac_arrest
+		local cardiac_arrest = citizen.medical_data.medical_conditions.cardiac_arrest
 
 		if cardiac_arrest.custom_data.cardiac_arrest ~= new_state then
 			-- set the state of this medical condition
@@ -90,7 +90,7 @@ medicalCondition.create(
 			cardiac_arrest.custom_data.incapacitated_at = g_savedata.tick_counter
 
 			-- set if this citizen should be incapacitated
-			citizen.incapacitated = new_state
+			citizen.medical_data.incapacitated = new_state
 
 			-- set if this should be hidden
 			cardiac_arrest.hidden = not new_state

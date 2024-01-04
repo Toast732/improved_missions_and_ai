@@ -1,6 +1,6 @@
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ medicalCondition.create(
 
 		local tick_mult = tick_rate/60
 
-		local burn = citizen.medical_conditions.burns
+		local burn = citizen.medical_data.medical_conditions.burns
 
 		if not burn.custom_data.burn_temp then
 			burn.custom_data = {
@@ -81,14 +81,14 @@ medicalCondition.create(
 		burn.custom_data.burn_decay = burn.custom_data.burn_decay - 1*tick_mult
 
 		-- update the shown condition
-		--[[if burn.custom_data.degree < 1 then
+		if burn.custom_data.degree < 1 then
 			burn.hidden = true
 			return
-		end]]
+		end
 
 		-- update stability
 
-		Modifiables.set(citizen.stability, "burns", math.max(-100,(burn.custom_data.degree*-2)*burn.custom_data.affected_area), -1)
+		Modifiables.set(citizen.medical_data.stability, "burns", math.max(-100,(burn.custom_data.degree*-2)*burn.custom_data.affected_area), -1)
 
 		burn.hidden = false
 
@@ -103,7 +103,10 @@ medicalCondition.create(
 			degree = "First"
 		end
 
-		burn.display_name = ("%s Degree Burn\nDegree: %0.3f\nBurn Temp: %0.3f\nIs In Fire: %s\nBody %% Burnt: %0.2f"):format(degree, burn.custom_data.degree, burn.custom_data.burn_temp, burn.custom_data.burn_decay > 0, burn.custom_data.affected_area)
+		burn.display_name = ("%s Degree Burn"):format(degree)
+
+		-- uncomment to see debug
+		-- burn.display_name = ("%s\nDegree: %0.3f\nBurn Temp: %0.3f\nIs In Fire: %s\nBody %% Burnt: %0.2f"):format(burn.display_name, burn.custom_data.degree, burn.custom_data.burn_temp, burn.custom_data.burn_decay > 0, burn.custom_data.affected_area)
 	end,
 	---@param citizen Citizen
 	---@param health_change number
@@ -121,7 +124,7 @@ medicalCondition.create(
 			return
 		end
 
-		local burn = citizen.medical_conditions.burns
+		local burn = citizen.medical_data.medical_conditions.burns
 
 		if not burn.custom_data.burn_temp then
 			burn.custom_data = {

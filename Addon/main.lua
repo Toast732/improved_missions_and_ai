@@ -1,4 +1,4 @@
---? Copyright 2022 Liam Matthews
+--? Copyright 2024 Liam Matthews
 
 --? Licensed under the Apache License, Version 2.0 (the "License");
 --? you may not use this file except in compliance with the License.
@@ -22,7 +22,11 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-ADDON_VERSION = "(0.0.1.8)"
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+ADDON_VERSION = "(0.0.1.9)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -33,7 +37,7 @@ local just_migrated = false
 local m = matrix
 local s = server
 
-local time = { -- the time unit in ticks, irl time, not in game
+time = { -- the time unit in ticks, irl time, not in game
 	second = 60,
 	minute = 3600,
 	hour = 216000,
@@ -187,6 +191,8 @@ require("libraries.addon.utils.objects.object")
 
 require("libraries.addon.commands.command.command") -- command handler, used to register commands.
 
+require("libraries.imai.effects.effects")
+
 require("libraries.imai.ai.citizens.citizens")
 
 require("libraries.ai") -- functions relating to their AI
@@ -268,6 +274,9 @@ function onTick(game_ticks)
 	g_savedata.tick_counter = g_savedata.tick_counter + 1
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
+
+	Effects.onTick(game_ticks)
+
 	Citizens.onTick(game_ticks)
 end
 

@@ -16,6 +16,11 @@
 		"editor.detectIndentation": false,
 		"editor.wordWrapColumn": 80,
 		"html.format.wrapLineLength": 120,
-		"editor.wordWrap": "off"
+		"editor.wordWrap": "off",
+		"Lua.workspace.ignoreDir": [
+			".vscode",
+			"Addon/_build/out"
+		],
+		"lifeboatapi.stormworks.user.authorName": ""
 	}
 }

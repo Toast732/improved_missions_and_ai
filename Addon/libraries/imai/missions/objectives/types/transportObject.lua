@@ -16,23 +16,54 @@ limitations under the License.
 
 ]]
 
+-- Library Version 0.0.1
+
 --[[
 
-	Registers the default commands.
+
+	Library Setup
+
 
 ]]
 
--- Info command
-Command.registerCommand(
-	"info",
-	---@param full_message string the full message
-	---@param peer_id integer the peer_id of the sender
-	---@param arg table the arguments of the command.
-	function(full_message, peer_id, arg)
-		d.print(("Addon version: %s"):format(ADDON_VERSION), false, 0, peer_id)
-	end,
-	"none",
-	"Prints some info about the addon, such as it's version",
-	"Prints some general addon info.",
-	{""}
-)
+-- required libraries
+require("libraries.imai.missions.objectives.objective")
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Contains the code for handling transporting an object.
+]]
+
+-- library name
+Objective.type.transportObject = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+
+function Objective.type.transportObject.create(object_id, destination)
+end

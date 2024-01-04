@@ -1,6 +1,6 @@
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,12 @@ limitations under the License.
 
 medicalCondition = {}
 
+---@class citizenMedicalData
+---@field medical_conditions table<string, medicalCondition> the list of medical conditions that this citizen has.
+---@field stability Modifiable the stability of the citizen
+---@field incapacitated boolean if the citizen is incapacitated, not set by the game but set by medical conditions.
+---@field required_treatments table<integer, requiredTreatment>
+
 ---@class medicalCondition
 ---@field name string the name of the medical condition, eg "burn"
 ---@field display_name string what to show in the list of medical conditions for this citizen, set by looking at the data in your custom_data.
@@ -46,6 +52,12 @@ medical_conditions_callbacks = {} ---@type table<string, medicalConditionCallbac
 
 medical_conditions = {} ---@type table<string, medicalCondition> the table containing all of the medical conditions themselves, for default data.
 
+---@param name string the name of the medical condition, eg "burn"
+---@param hidden boolean if this condition is to be hidden.
+---@param custom_data table<any, any> your custom data to be stored with this medical condition.
+---@param call_onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
+---@param call_onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount, param 3 is closest_damage_source)
+---@param call_assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
 function medicalCondition.create(name, hidden, custom_data, call_onTick, call_onCitizenDamaged, call_assignCondition)
 	
 	-- check if this medical condition is already registered
@@ -75,8 +87,8 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
 		
 		-- if it does not exist for this citizen, register it.
-		if not citizen.medical_conditions[name] then
-			citizen.medical_conditions[name] = {
+		if not citizen.medical_data.medical_conditions[name] then
+			citizen.medical_data.medical_conditions[name] = {
 				name = name,
 				display_name = "",
 				custom_data = custom_data,
@@ -89,19 +101,41 @@ end
 ---@param citizen Citizen the citizen to get the medical condition tooltip of
 function medicalCondition.getTooltip(citizen)
 
-	local mc_string = "Conditions"
+	-- add their stability bar
+	local mc_string = ("Stability\n|%s|"):format(string.toBar(math.min(100, math.max(0, Modifiables.get(citizen.medical_data.stability)/100)), 16, "=", "  "))
 
-	for _, effect_data in pairs(citizen.medical_conditions) do
+	-- add the blood bar if they've lost any blood
+	local bleeds = citizen.medical_data.medical_conditions.bleeds
+	if bleeds.custom_data.blood.current < bleeds.custom_data.blood.max then
+		mc_string = ("%s\nBlood (%0.1fml)\n|%s|"):format(mc_string, bleeds.custom_data.blood.current, string.toBar(bleeds.custom_data.blood.current/bleeds.custom_data.blood.max, 16, "=", "  "))
+	end
+
+	-- add their medical conditions
+
+
+	local conditions_string = "Conditions"
+
+	-- no need to show the conditions string if theres no conditions to show
+	local show_conditions = false
+
+	for _, effect_data in pairs(citizen.medical_data.medical_conditions) do
 		
 		-- if the effect is hidden, skip it
 		if effect_data.hidden then
 			goto continue_condition
 		end
 
+		-- show conditions, as theres a condition to show.
+		show_conditions = true
+
 		-- add the display name
-		mc_string = ("%s\n- %s"):format(mc_string, effect_data.display_name)
+		conditions_string = ("%s\n- %s"):format(conditions_string, effect_data.display_name)
 
 		::continue_condition::
+	end
+
+	if show_conditions then
+		mc_string = ("%s\n\n%s"):format(mc_string, conditions_string)
 	end
 
 	return mc_string
@@ -159,3 +193,6 @@ end
 ]]
 require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.definitions.medicalConditions.burns")
 require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.definitions.medicalConditions.cardiacArrest")
+require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.definitions.medicalConditions.bleeds")
+require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.definitions.medicalConditions.internalBleeding")
+require("libraries.imai.ai.citizens.dependencies.medical.medicalConditions.definitions.medicalConditions.hemorrhagicShock")

@@ -1,5 +1,5 @@
  
---? Copyright 2022 Liam Matthews
+--? Copyright 2024 Liam Matthews
 
 --? Licensed under the Apache License, Version 2.0 (the "License");
 --? you may not use this file except in compliance with the License.
@@ -23,7 +23,11 @@
 --- Developed using LifeBoatAPI - Stormworks Lua plugin for VSCode - https://code.visualstudio.com/download (search "Stormworks Lua with LifeboatAPI" extension)
 --- If you have any issues, please report them here: https://github.com/nameouschangey/STORMWORKS_VSCodeExtension/issues - by Nameous Changey
 
-ADDON_VERSION = "(0.0.1.8)"
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+ADDON_VERSION = "(0.0.1.9)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -185,7 +189,7 @@ g_savedata = {
 -- libraries
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -244,7 +248,7 @@ function Object.addObject(object_id)
 
 	-- the object doesn't actually exist
 	if not object_data then
-		d.print(("247: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
+		d.print(("251: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
 		return false
 	end
 
@@ -347,7 +351,7 @@ function onCharacterDespawn(object_id, object_data)
 end
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1041,7 +1045,7 @@ end
 ]]
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1168,7 +1172,7 @@ Command.registerPermission(
 )
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1207,8 +1211,8 @@ Command.registerCommand(
 
  -- command handler, used to register commands.
 --[[
-	
-Copyright 2023 Liam Matthews
+
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1231,6 +1235,8 @@ limitations under the License.
 
 
 ]]
+
+Effects = {}
 
 -- required libraries
 -- required libraries
@@ -1388,7 +1394,7 @@ end
 
 
 	Variables
-   
+
 
 ]]
 
@@ -1470,6 +1476,8 @@ function math.seededRandom(use_decimals, seed, min, max)
 	-- return the seeded number
 	return seeded_number
 end
+
+
 
 ---@param x number the number to wrap
 ---@param min number the minimum number to wrap around
@@ -2317,7 +2325,6 @@ end
 
 -- a table containing a bunch of functions for making a copy of tables, to best fit each scenario performance wise.
 table.copy = {
-
 	iShallow = function(t, __ENV)
 		__ENV = __ENV or _ENV
 		return {__ENV.table.unpack(t)}
@@ -2356,6 +2363,67 @@ table.copy = {
 		return deepCopy(t)
 	end
 }
+
+---# Returns whether or not two tables are equal. <br>
+--- Variation of https://stackoverflow.com/a/32660766
+---@param t1 any
+---@param t2 any
+---@return boolean equal
+function table.equals(t1, t2)
+	-- if the two variables are just directly equal.
+	if t1 == t2 then
+		return true
+	end
+
+	-- get the types of the tables
+	local t1_type = type(t1)
+	local t2_type = type(t2)
+
+	-- if the types are not the same, then they cannot be the same.
+	if t1_type ~= t2_type then
+		return false
+	end
+
+	--[[
+		if they're not tables, then we can skip checking them, as we cannot iterate through non tables.
+		we only need to check one as they have to be the same variable type due to the previous check.
+	]]
+	if t1_type ~= "table" then
+		return false
+	end
+
+	-- store the keys that exist in t1
+	local t1_keys = {}
+
+	-- iterate through t1
+	for tk1, tv1 in pairs(t1) do
+		-- get the value in t2 with the index of this variable in t1
+		local tv2 = t2[tk1]
+
+		-- if the index in t1 does not exist in t2, then the tables are not the same.
+		if tv2 == nil then
+			return false
+		end
+
+		-- check if the two values are the same, if the normal == returns false, then do a check via table.equals, as {} ~= {}.
+		if tv1 ~= tv2 and table.equals(tv1, tv2) then
+			return false
+		end
+		-- say that this key exists in tv1
+		t1_keys[tk1] = true
+	end
+
+	-- iterate through t2
+	for tk2, _ in pairs(t2) do
+		-- if this key does not exist in t1, then the tables are not the same.
+		if not t1_keys[tk2] then
+			return false
+		end
+	end
+
+	-- if we got to this point, that means that these two tables are the same.
+	return true
+end
 
 
 -- library name
@@ -3198,6 +3266,462 @@ Debugging.trace = {
 		d.print(str, requires_debug or false, 8, peer_id or -1)
 	end
 }
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+g_savedata.libraries.effects = {
+	---@type table<integer, Effect>
+	effects = {}
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+---@type table<string, DefinedEffect>
+defined_effects = {}
+
+--- Indexed by effect name, and then by object type.
+---@type table<string, table<string, boolean>>
+effect_applicable_objects = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class DefinedEffect effect's data stored in defined_effects
+---@field name string the name of the effect
+---@field applicable_objects table<integer, string> stores the objects which this can apply to, strings function as patterns (can define {".*"} to allow it to apply to all objects.)
+---@field call_onEffectApply function? called whenever the effect is applied, param1 is the object data, param2 is the duration of the effect (in ticks), param3 is the strength of the effect
+---@field call_onEffectRemove function? called when the effect is removed or expires, param1 is the object data.
+---@field call_onTick function? called every tick, param1 is object data, param 2 is game_ticks
+
+---@class Effect Effects stored in g_savedata, stores the currently active effects.
+---@field name string the name of the applied effect.
+---@field indexing_data table the indexing data to index the object's data.
+---@field expiry integer? the tick this expires on, no value means it never naturally expires.
+
+--[[
+
+
+	Functions
+
+
+]]
+
+---# Define an effect.
+---@param name string the name of the effect
+---@param applicable_objects table<integer, string> stores the objects which this can apply to, strings function as patterns (can define {".*"} to allow it to apply to all objects.)
+---@param call_onEffectApply function? called whenever the effect is applied, param1 is the object data, param2 is the duration of the effect (in ticks), param3 is the strength of the effect
+---@param call_onEffectRemove function? called when the effect is removed or expires, param1 is the object data.
+---@param call_onTick function? called every tick, param1 is object data, param 2 is game_ticks
+function Effects.define(name, applicable_objects, call_onEffectApply, call_onEffectRemove, call_onTick)
+	defined_effects[name] = {
+		name = name,
+		applicable_objects = applicable_objects,
+		call_onEffectApply = call_onEffectApply,
+		call_onEffectRemove = call_onEffectRemove,
+		call_onTick = call_onTick
+	}
+
+	-- sets the applicable effects for the objects (so we dont have to iterate through each time we want to apply an object)
+	for applicable_object_index = 1, #applicable_objects do
+		effect_applicable_objects[name] = effect_applicable_objects[name] or {} -- make sure table is defined, if not define it.
+
+		effect_applicable_objects[name][applicable_objects[applicable_object_index]] = true -- say that this effect is applicable to this object type.
+	end
+end
+
+---# Apply an effect.
+---@param name string the name of the effect.
+---@param object table the object to apply this effect to.
+---@param duration number the duration of this effect (in seconds), setting to 0 or below results in the effect being permanent.
+---@param strength number? the strength of this effect, defaults to 1.
+---@return boolean is_success if the effect was successfully applied.
+function Effects.apply(name, object, duration, strength)
+
+	-- get the effect's definition
+	local effect_definition = defined_effects[name]
+	
+	-- if this effect does not exist.
+	if not effect_definition then
+		d.print(("3359: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		return false
+	end
+
+	-- if the object does not contain the object_type param
+	if not object.object_type then
+		d.print(("3365: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		return false
+	end
+
+	-- if the object cannot have this effect applied.
+	if not effect_applicable_objects[name] or not effect_applicable_objects[name][object.object_type] then
+		d.print(("3371: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
+		return false
+	end
+
+	-- Get the indexing data.
+	local indexing_data, is_success = References.getIndexingData(object)
+
+	-- if getting the indexing data failed
+	if not is_success then
+		d.print(("3380: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		return false
+	end
+
+	-- default strength to 1 if not defined
+	strength = strength or 1
+
+	-- convert duration from seconds to ticks
+	--TODO: Add a thing to check if the tps is 62.5 vs 60, to provide a more accurate and consistent experience from singleplayer and multiplayer (right now just assumes 60 for mp for simplicity with math)
+	duration = duration*60
+
+	-- Apply the effect
+	if effect_definition.call_onEffectApply then 
+		effect_definition.call_onEffectApply(object, duration, strength)
+	end
+
+	---@type number|nil
+	local expiry = duration + g_savedata.tick_counter
+
+	-- set expiry to nil if the duration is 0 or less (never expire)
+	if duration < 1 then
+		expiry = nil
+	end
+
+	-- store the effect data
+	table.insert(g_savedata.libraries.effects.effects, {
+		name = name,
+		indexing_data = indexing_data,
+		expiry = expiry
+	})
+
+	-- return that the effect was applied.
+	return true
+end
+
+---# Remove an effect
+---@param object table the object to remove the effect from
+---@param name string the name of the effect to remove
+---@return boolean removed if the effect was removed, returns false if an error occured or if the effect was not applied in the first place.
+---@return boolean is_success returns false if there was an error in the process of removing an effect.
+function Effects.remove(object, name)
+	-- if the object was never given
+	if not object then
+		d.print(("3423: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
+		return false, false
+	end
+
+	-- get the effect's definition
+	local effect_definition = defined_effects[name]
+	
+	-- if this effect does not exist.
+	if not effect_definition then
+		d.print(("3432: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		return false, false
+	end
+
+	-- if the object does not contain the object_type param
+	if not object.object_type then
+		d.print(("3438: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		return false, false
+	end
+
+	-- get the indexing data for this object (used to identify which effects in the effects table is for this object)
+	local indexing_data, is_success = References.getIndexingData(object)
+
+	-- if getting the indexing data failed
+	if not is_success then
+		d.print(("3447: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		return false, false
+	end
+
+	-- iterate through all effects in search of the one to remove.
+	for effect_index = 1, #g_savedata.libraries.effects.effects do
+		local effect = g_savedata.libraries.effects.effects[effect_index]
+
+		-- if the name of the effect is not the one we're looking for, skip it.
+		if effect.name ~= name then
+			goto next_effect
+		end
+
+		-- if the assigned object type for this effect is not the one we're looking for, skip it.
+		if effect.indexing_data.object_type ~= object.object_type then
+			goto next_effect
+		end
+
+		-- if this is not the object we're looking for, skip it.
+		if not table.equals(effect.indexing_data, indexing_data) then
+			goto next_effect
+		end
+
+		--[[
+			this is the effect we're looking to remove
+		]]
+
+		-- Remove the effect
+		if effect_definition.call_onEffectRemove then
+			effect_definition.call_onEffectRemove(object)
+		end
+
+		-- remove it from the effects table
+		table.remove(g_savedata.libraries.effects.effects, effect_index)
+
+		-- return that we successfully removed it (ugly ass code but this is to avoid eof error)
+		do return true, true end
+
+		::next_effect::
+	end
+
+	-- effect was not found, so it wasn't removed, however there were no errors.
+	return false, true
+end
+
+---# Remove all effects from a given object
+---@param object table the object to remove the effect from
+---@return integer removed_count the number of effects that were removed.
+---@return boolean is_success returns false if there was an error in the process of removing the effects
+function Effects.removeAll(object)
+	-- if the object was never given
+	if not object then
+		d.print("3499: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
+		return 0, false
+	end
+
+	-- if the object does not contain the object_type param
+	if not object.object_type then
+		d.print(("3505: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		return 0, false
+	end
+
+	-- get the indexing data for this object (used to identify which effects in the effects table is for this object)
+	local indexing_data, is_success = References.getIndexingData(object)
+
+	-- if getting the indexing data failed
+	if not is_success then
+		d.print(("3514: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
+		return 0, false
+	end
+
+	local remove_count = 0
+
+	--[[
+		iterate through all effects in search of the one to remove.
+		Start from the top and work down to avoid issues where we will skip effects due to table.remove.
+	]]
+	for effect_index = #g_savedata.libraries.effects.effects, 1, -1 do
+		local effect = g_savedata.libraries.effects.effects[effect_index]
+
+		-- if the assigned object type for this effect is not the one we're looking for, skip it.
+		if effect.indexing_data.object_type ~= object.object_type then
+			goto next_effect
+		end
+
+		-- if this is not the object we're looking for, skip it.
+		if not table.equals(effect.indexing_data, indexing_data) then
+			goto next_effect
+		end
+
+		-- get the effect's definition
+		local effect_definition = defined_effects[effect.name]
+		
+		-- if this effect does not exist.
+		if not effect_definition then
+			d.print(("3542: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
+			goto next_effect
+		end
+
+		--[[
+			this is the effect on this object, remove it.
+		]]
+
+		-- Remove the effect
+		if effect_definition.call_onEffectRemove then
+			effect_definition.call_onEffectRemove(object)
+		end
+
+		-- remove it from the effects table
+		table.remove(g_savedata.libraries.effects.effects, effect_index)
+
+		-- increment the remove count.
+		remove_count = remove_count + 1
+
+		::next_effect::
+	end
+
+	-- effect was not found, so it wasn't removed, however there were no errors.
+	return remove_count, true
+end
+
+---# Check if an object has an effect<br>
+--- Code is basically the same as Effects.remove, except the effect does not get removed.
+---@param object table the object to check if it has the effect
+---@param name string the name of the effect to check if the object has
+---@return boolean has_effect if the effect was found, returns false if an error occured or if the effect is not on the object.
+---@return boolean is_success returns false if there was an error in the process of finding the effect.
+function Effects.has(object, name)
+	-- get the effect's definition
+	local effect_definition = defined_effects[name]
+	
+	-- if this effect does not exist.
+	if not effect_definition then
+		d.print(("3580: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		return false, false
+	end
+
+	-- if the object does not contain the object_type param
+	if not object.object_type then
+		d.print(("3586: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		return false, false
+	end
+
+	-- get the indexing data for this object (used to identify which effects in the effects table is for this object)
+	local indexing_data, is_success = References.getIndexingData(object)
+
+	-- if getting the indexing data failed
+	if not is_success then
+		d.print(("3595: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		return false, false
+	end
+
+	-- iterate through all effects in search of the one we're looking for.
+	for effect_index = 1, #g_savedata.libraries.effects.effects do
+		local effect = g_savedata.libraries.effects.effects[effect_index]
+
+		-- if the name of the effect is not the one we're looking for, skip it.
+		if effect.name ~= name then
+			goto next_effect
+		end
+
+		-- if the assigned object type for this effect is not the one we're looking for, skip it.
+		if effect.indexing_data.object_type ~= object.object_type then
+			goto next_effect
+		end
+
+		-- if this is not the object we're looking for, skip it.
+		if not table.equals(effect.indexing_data, indexing_data) then
+			goto next_effect
+		end
+
+		--[[
+			this is the effect we're looking for.
+		]]
+
+		-- return that we successfully found it (ugly ass code but this is to avoid eof error)
+		do return true, true end
+
+		::next_effect::
+	end
+
+	-- effect was not found, however there were no errors.
+	return false, true
+end
+
+--[[
+	Callbacks
+]]
+
+---# onTick
+---@param game_ticks integer the number of ticks since the last tick, 1 during normal gameplay, 400 when sleeping.
+function Effects.onTick(game_ticks)
+	--[[
+		iterate through all effects and tick them,
+		start at highest index and count down, as when we remove the effects, that will shift the indexes, going top down ensures that we dont get any mixups.
+	]]
+	for effect_index = #g_savedata.libraries.effects.effects, 1, -1 do
+		local effect = g_savedata.libraries.effects.effects[effect_index]
+
+		-- check if this effect has expired
+		if effect.expiry and effect.expiry <= g_savedata.tick_counter then
+			--[[
+				remove this effect
+				Seems like it may be a waste to get the object data twice in the same function,
+				however only 1 or the other can occur in the same tick, so we don't have to worry
+				about making an optimisation system for it.
+			]]
+
+			-- get the object's data
+			local object, is_success = References.getData(effect.indexing_data)
+			
+			-- if getting the object's data failed.
+			if not is_success then
+				d.print(("3660: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				goto next_effect
+			end
+
+			-- remove the effect
+			Effects.remove(object, effect.name)
+
+			-- go to the next effect
+			goto next_effect
+		end
+
+		-- get the effect's definition
+		local effect_definition = defined_effects[effect.name]
+
+		-- if this effect definition does not exist.
+		if not effect_definition then
+			d.print(("3676: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
+			goto next_effect
+		end
+
+		-- only get the object's data if this has a tick function, otherwise its just a waste
+		if effect_definition.call_onTick then
+			-- get the object's data
+			local object, is_success = References.getData(effect.indexing_data)
+			
+			-- if getting the object's data failed.
+			if not is_success then
+				d.print(("3687: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				goto next_effect
+			end
+
+			-- tick the effect
+			effect_definition.call_onTick(object, game_ticks)
+		end
+
+		::next_effect::
+	end
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
 -- required libraries
 
 -- library name
@@ -3314,7 +3838,7 @@ function Zones.setReserved(zone_index, state)
 end
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -3429,7 +3953,475 @@ function Modifiables.get(t)
 
 	return value
 end
+--[[
+	
+Copyright 2024 Liam Matthews
 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Adds a item system, the items can be chosen to have no in game counterpart, or be made to be linked to one
+	due to limitations, the name of the item cannot be changed, and there cannot be custom models.
+
+	As of current, all items are hidden, as the functionality where they need to exist is not yet required.
+]]
+
+---@class ItemPrefab
+---@field item_name string the name of the item
+---@field equipment_id SWEquipmentTypeEnum? the equipment type, leave nil to have no in game model (If theres no in game model, it cannot be shown in game)
+---@field data table the custom data for this item
+
+---@class Item
+---@field id integer the item's id
+---@field name string the name of the item
+---@field data table the item's custom data
+---@field equipment_id SWEquipmentTypeEnum? the equipment type, nil if there is none
+---@field hidden boolean if the item should be hidden
+
+g_savedata.libraries.items = {
+	item_list = {}, ---@type table<integer, Item>
+	item_prefabs = {}, ---@type table<string, ItemPrefab>
+	next_item_id = 1
+}
+
+Item = {}
+
+---@param item_name string the name of the item
+---@param equipment_id SWEquipmentTypeEnum? the equipment type, leave nil to have no in game model (If theres no in game model, it cannot be shown in game)
+---@param data table the custom data for this item
+---@return boolean is_success if the prefab was successfully updated or added.
+function Item.createPrefab(item_name, equipment_id, data)
+
+	--[[
+		Ensure params are correct
+	]]
+
+	local item_name_type = type(item_name)
+
+	if item_name_type ~= "string" then
+		d.print(("4055: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		return false
+	end
+
+	local equipment_id_type = type(equipment_id)
+
+	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
+		d.print(("4062: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		return false
+	end
+
+	local data_type = type(data)
+
+	if data_type ~= "table" then
+		d.print(("4069: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		return false
+	end
+
+	-- if this item already exists
+	if g_savedata.libraries.items.item_prefabs[item_name] then
+		-- update it's data, as this item is already added as a prefab
+		local item_data = g_savedata.libraries.items.item_prefabs[item_name]
+
+		item_data.equipment_id = equipment_id
+		item_data.data = data
+
+		return true
+	end
+
+	-- this item does not already exist, create it
+	g_savedata.libraries.items.item_prefabs[item_name] = {
+		item_name = item_name,
+		equipment_id = equipment_id,
+		data = data
+	}
+
+	return true
+end
+
+---@param item_name string the item's name
+---@param hidden boolean if the item should be hidden.
+---@return Item? item the item, returns nil if it failed to spawn
+---@return boolean is_success if the item was successfully spawned.
+function Item.create(item_name, hidden)
+
+	--[[
+		Ensure params are correct
+	]]
+
+	local item_name_type = type(item_name)
+
+	if item_name_type ~= "string" then
+		d.print(("4107: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		return nil, false
+	end
+
+	local hidden_type = type(hidden)
+
+	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
+		d.print(("4114: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		return nil, false
+	end
+
+	--[[
+		Ensure this item exists
+	]]
+	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
+
+	if not item_prefab then
+		d.print(("4124: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		return nil, false
+	end
+
+	local item_id = g_savedata.libraries.items.next_item_id
+
+	---@type Item
+	local item = {
+		id = item_id,
+		name = item_name,
+		data = table.copy.deep(item_prefab.data),
+		equipment_id = item_prefab.equipment_id,
+		hidden = hidden
+	}
+
+	table.insert(g_savedata.libraries.items.item_list, item)
+
+	-- increment the next item id
+	g_savedata.libraries.items.next_item_id = item_id + 1
+
+	return item, true
+end
+
+---@param item_id integer the item's id
+---@return Item? item
+---@return boolean is_success
+function Item.get(item_id)
+	--[[
+		Ensure params are correct
+	]]
+
+	local item_id_type = math.type(item_id)
+
+	if item_id_type ~= "integer" then
+		d.print(("4158: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		return nil, false
+	end
+
+	for item_index = 1, #g_savedata.libraries.items.item_list do
+		local item = g_savedata.libraries.items.item_list[item_index]
+		if item.id == item_id then
+			return item, true
+		end
+	end
+
+	d.print(("4169: Failed to find item with id %s"):format(item_id), true, 1)
+	return nil, false
+end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Adds a sort of inventory system, the inventory can be expanded past the normal
+	inventory, and can contain custom items, these items cannot add their own models or
+	change the name when held, but they can be simulated as different. These can also
+	be made hidden, worn, and have no in game counterpart (Hidden items and ones with no
+	in game counterpart cannot be put in the in game inventory.)
+
+	As of current, all items are hidden, as the functionality where they need to exist is not yet required.
+]]
+
+---@class Inventory
+---@field items table<integer, Item> All of the items this character has
+---@field active table<integer, Item> The items this character has active
+---@field id integer the inventory id.
+
+g_savedata.libraries.inventory = {
+	inventories = {},
+	next_inventory_id = 1
+}
+
+Inventory = {}
+
+---@return Inventory inventory the created inventory.
+function Inventory.create()
+
+	-- create the inventory
+	g_savedata.libraries.inventory.inventories[g_savedata.libraries.inventory.next_inventory_id] = {
+		items = {},
+		active = {},
+		id = g_savedata.libraries.inventory.next_inventory_id
+	}
+
+	-- increment the next inventory id
+	g_savedata.libraries.inventory.next_inventory_id = g_savedata.libraries.inventory.next_inventory_id + 1
+
+	return g_savedata.libraries.inventory.inventories[g_savedata.libraries.inventory.next_inventory_id - 1]
+end
+
+---@param inventory_id integer the id of the inventory which you want to get.
+---@return Inventory? inventory the inventory with the associated id, returns nil if that inventory does not exist.
+function Inventory.get(inventory_id)
+
+	-- get the inventory
+	local inventory = g_savedata.libraries.inventory.inventories[inventory_id]
+
+	-- if it does not exist
+	if not inventory then
+		d.print(("4225: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+	end
+
+	-- return inventory.
+	return inventory
+end
+
+
+function Inventory.addItem(inventory_id, item, is_active)
+
+	-- get the inventory
+	local inventory = Inventory.get(inventory_id)
+
+	-- if it failed to get the inventory
+	if not inventory then
+		-- return that we failed to get it.
+		return false
+	end
+	
+	-- add it to the item list
+	table.insert(inventory.items, item)
+
+	-- if this item should be active
+	if is_active then
+		-- add it to the active item list
+		table.insert(inventory.active, item)
+	end
+end
+
+---@param item_name string the name of the item you want to see if it exists
+---@return Item? item the item if it exists, returns nil if not found.
+---@return boolean exists if this item exists
+---@return boolean active if the inventory has this item active
+---@return boolean is_success if it was able to check the inventories (false means that it failed to get the inventory, so the given inventory id is invalid.)
+function Inventory.hasItem(inventory_id, item_name)
+	local inventory = Inventory.get(inventory_id)
+
+	if not inventory then
+		return nil, false, false, false
+	end
+
+	-- check active list
+	for item_index = 1, #inventory.active do
+		local item = inventory.active[item_index]
+		if item.name == item_name then
+			return item, true, true, true
+		end
+	end
+
+	-- check full item list, as its not active
+	for item_index = 1, #inventory.items do
+		local item = inventory.items[item_index]
+		if item.name == item_name then
+			return item, true, false, true
+		end
+	end
+
+	-- item does not exist in this inventory
+	return nil, false, false, true
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	A system to be able to get the data on something without needing to store an exact copy of its data, to avoid issues with the two not syncing,
+	and to provide an easy way to grab the data without hardcoding it to grab that data for only that data type.
+]]
+
+-- library name
+References = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class referenceDefinition
+---@field object_type string the object's type which this definition is for.
+---@field getIndexingData function the function called whenever it tries to create the table which is store the indexing data, param1 is the object's data.
+---@field getData function the function called whenever the data is tried to be gotten, param 1 is index_data (the data you return in the getIndexingData function)
+
+--[[
+
+
+	Variables
+
+
+]]
+
+---@type table<string, referenceDefinition>
+reference_definitions = {}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+---# Define this object type for references
+---@param object_type string the type of this object.
+---@param getIndexingData function the function called whenever it tries to create the table which is used to store the indexing data, param1 is the object's data.
+---@param getData function the function called whenever the data is tried to be gotten, param 1 is index_data (the data you return in the getIndexingData function)
+function References.define(object_type, getIndexingData, getData)
+	reference_definitions[object_type] = {
+		object_type = object_type,
+		getIndexingData = getIndexingData,
+		getData = getData
+	}
+end
+
+---# Gets the indexing data, to store in the other tables to allow for easy indexing of this object.
+---@param object table the object's data which to get the indexing data from
+---@return table indexing_data the indexing data for this object, returns an empty table on failure.
+---@return boolean is_success if it was able to get the indexing table successfully, failures could be due to:<br>1. The object doesn't have the object_type variable stored in it.<br>2. The object does not have an associated reference definition.
+function References.getIndexingData(object)
+
+	-- if the object does not store the object type. (error 1)
+	if not object.object_type then
+		d.print(("4377: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		return {}, false
+	end
+
+	-- get the reference definition
+	local reference_definition = reference_definitions[object.object_type]
+
+	-- if the object does not have an associated definition. (error 2)
+	if not reference_definition then
+		d.print(("4386: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		return {}, false
+	end
+
+	-- get the indexing data
+	local indexing_data = reference_definition.getIndexingData(object)
+
+	-- add the object type parameter
+	indexing_data.object_type = object.object_type
+
+	-- return the data
+	return indexing_data, true
+end
+
+---# Gets the data from an object based on just a few variables set to be stored when defined via the getIndexingData function.
+---@param indexing_data table the indexing table, follows the returned table format defined in the getIndexingData function, also should have the object_type param unless there was an error in the References.getIndexingData function.
+---@return table object_data the object data from the indexing_data table. returns an empty table on failure.
+---@return boolean is_success if it successfully got the object_data failures could be due to:<br>1. The indexing_data does not contain the object_type<br>2. There is no defined way to get the object_data with the specified object_type
+function References.getData(indexing_data)
+	-- if the object does not store the object type. (error 1)
+	if not indexing_data.object_type then
+		d.print(("4407: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		return {}, false
+	end
+
+	-- get the reference definition
+	local reference_definition = reference_definitions[indexing_data.object_type]
+
+	-- if the object does not have an associated definition. (error 2)
+	if not reference_definition then
+		d.print(("4416: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		return {}, false
+	end
+
+	local referencing_data = reference_definition.getData(indexing_data)
+
+	-- get & return the object data, set referencing data to {} if its nil, as this should always return a table to try to prevent errors.
+	return referencing_data or {}, referencing_data ~= nil
+end
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -3448,6 +4440,10 @@ Citizens = {}
 
 ]]
 
+--[[
+--TODO:		Optimise the indexing of citizens by adding a new table which contains all of the indexes of the citizens by their id
+--TODO: 	to make it faster to get the citizens data from it's ID.
+]]
 g_savedata.libraries.citizens = {
 	citizen_list = {}, ---@type table<integer, Citizen>
 	next_citizen_id = 1 ---@type citizenID The next citizen ID to assign.
@@ -3618,6 +4614,11 @@ local npc_job_list = {
 ---@field last string their last name
 ---@field full string their first + last name
 
+---@class Status
+---@field name string the internal name for the status
+---@field tooltip string the tooltip for the status
+---@field priority number the priority for this status. Highest priority will be shown.
+
 ---@class Citizen
 ---@field name CitizenName the citizen's name
 ---@field transform SWMatrix the citizen's matrix
@@ -3625,10 +4626,13 @@ local npc_job_list = {
 ---@field outfit_type SWOutfitTypeEnum the citizen's outfit type
 ---@field object_id integer|nil the citizen's object_id, nil if the citizen has not yet been spawned.
 ---@field id citizenID the citizen's ID.
----@field medical_conditions table<string, medicalCondition> the list of medical conditions that this citizen has.
+---@field medical_data citizenMedicalData the medical data for the citizen
 ---@field health number the amount of health the citizen has.
----@field stability Modifiable the stability of the citizen
----@field incapacitated boolean if the citizen is incapacitated, not set by the game but set by medical conditions.
+---@field inventory Inventory the inventory of the citizen, use only for reading, use the functions directly when writing to avoid issues with the table not referencing the original.
+---@field suppress_next_health_change boolean if the next health change should be suppressed, used to avoid false positives from the addon's health overrides.
+---@field object_type "citizen"
+---@field statuses table<integer, Status> stores the statuses of the citizen.
+
 
 --[[
 
@@ -3739,35 +4743,143 @@ end]]
 	end
 end]]
 
+--[[
+	Citizen Status system
+]]
+Citizens.Status = {
+	---# Adds a status to a citizen.
+	---@param citizen Citizen the citizen to add a status to
+	---@param name string the internal name for the status
+	---@param tooltip string the tooltip for the status
+	---@param priority number the priority for this status. Highest priority will be shown.
+	add = function(citizen, name, tooltip, priority)
+		-- skip if the citizen already has this status
+		if Citizens.Status.has(citizen, name) then
+			return
+		end
+
+		-- add the status
+		table.insert(citizen.statuses, {
+			name = name,
+			tooltip = tooltip,
+			priority = priority
+		})
+	end,
+
+	---# Removes a status from a citizen.
+	---@param citizen Citizen the citizen to remove the specified status from
+	---@param name string the name of the status to remove
+	remove = function(citizen, name)
+		-- iterate through all statuses
+		for status_index = 1, #citizen.statuses do
+			-- get the status data
+			local status = citizen.statuses[status_index]
+
+			-- if the status name matches
+			if status.name == name then
+				-- remove the status
+				table.remove(citizen.statuses, status_index)
+
+				-- we dont need to keep checking.
+				return
+			end
+		end
+	end,
+
+	---# If a citizen has a status or not
+	---@param citizen Citizen the citizen to check if it has the specified status
+	---@param name string the name of the status to look for
+	---@return boolean has_status if it has the specified status
+	has = function(citizen, name)
+		-- iterate through all statuses
+		for status_index = 1, #citizen.statuses do
+			-- get the status data
+			local status = citizen.statuses[status_index]
+
+			-- if the status name matches
+			if status.name == name then
+				-- return true
+				return true
+			end
+		end
+
+		-- citizen does not have the status, return false
+		return false
+	end,
+
+	---# Get the highest priority status.
+	---@param citizen Citizen the citizen to get the highest status of
+	---@return Status highest_status the highest priority status for this citizen
+	getHighest = function(citizen)
+		---@type Status
+		local highest_status = {
+			name = "",
+			tooltip = "",
+			priority = -math.huge
+		}
+
+		-- iterate through all statuses
+		for status_index = 1, #citizen.statuses do
+			-- get the status data
+			local status = citizen.statuses[status_index]
+
+			-- if the status priority is higher than the previous highest priority, then set it as the new highest priority status.
+			if status.priority > highest_status.priority then
+				highest_status = status
+			end
+		end
+
+		-- return the highest status
+		return highest_status
+	end
+}
+
 ---# Update a citizen's tooltip.
 ---@param citizen Citizen the citizen who's tooltip to update
 function Citizens.updateTooltip(citizen)
-	local tooltip = "\n"..citizen.name.full
+	local tooltip = "\n"
+
+	-- get the highest status for this citizen.
+	local highest_status = Citizens.Status.getHighest(citizen)
+	if highest_status.tooltip ~= "" then
+		-- add the status at the top of the tooltip
+		tooltip = ("%s%s\n"):format(tooltip, highest_status.tooltip)
+	end
+
+	-- add the citizen's name to the tooltip
+	tooltip = tooltip..citizen.name.full
 
 	-- add their stability bar
-	tooltip = ("%s\n\nStability\n|%s|"):format(tooltip, string.toBar(math.min(100, math.max(0, Modifiables.get(citizen.stability)/100)), 16, "=", "  "))
+	--tooltip = ("%s\n\nStability\n|%s|"):format(tooltip, string.toBar(math.min(100, math.max(0, Modifiables.get(citizen.medical_data.stability)/100)), 16, "=", "  "))
 	
 	-- add their medical conditions to the tooltip
 	tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(citizen))
 
-	local object_data = server.getObjectData(citizen.object_id)
+	--[[local object_data = server.getObjectData(citizen.object_id)
 
 	tooltip = ("%s\n\nDebug Data\nINCAP O: %s C: %s"):format(tooltip, 
 		object_data.incapacitated and "T" or "F",
-		citizen.incapacitated and "T" or "F"
-	)
+		citizen.medical_data.incapacitated and "T" or "F"
+	)]]
+
+	-- always end the tooltip with a new line, if it doesn't
+	local tooltip_length = tooltip:len()
+	if tooltip:sub(tooltip_length, tooltip_length) ~= "\n" then
+		tooltip = tooltip.."\n"
+	end
 
 	server.setCharacterTooltip(citizen.object_id, tooltip)
 end
 
 ---# Updates the citizen's data based on their stability, such as cardiac arrest.
+---@param citizen Citizen
 function Citizens.updateStability(citizen)
-	local stability = Modifiables.get(citizen.stability)
+	local stability = Modifiables.get(citizen.medical_data.stability)
 
 	-- if the stability is 0 or less, than give the citizen cardiac arrest
 	if stability <= 0 then
 		-- if the citizen doesn't already have cardiac arrest
-		if not citizen.medical_conditions.cardiac_arrest.custom_data.cardiac_arrest then
+		if not citizen.medical_data.medical_conditions.cardiac_arrest.custom_data.cardiac_arrest then
 			medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
 		end
 	end
@@ -3781,17 +4893,22 @@ function Citizens.create(transform, outfit_type)
 		outfit_type = outfit_type,
 		object_id = nil,
 		id = g_savedata.libraries.citizens.next_citizen_id,
-		medical_conditions = {},
 		health = 100,
-		stability = Modifiables.prepare({}, 100),
-		incapacitated = false
+		medical_data = {
+			medical_conditions = {},
+			required_treatments = {},
+			stability = Modifiables.prepare({}, 100),
+			incapacitated = false
+		},
+		inventory = Inventory.create(), -- READ ONLY (May change to only store the inventory id at some point)
+		suppress_next_health_change = false,
+		object_type = "citizen",
+		statuses = {}
 	}
-
-	
 
 	-- register the medical conditions.
 	for medical_condition_name, medical_condition_data in pairs(medical_conditions) do
-		citizen.medical_conditions[medical_condition_name] = {
+		citizen.medical_data.medical_conditions[medical_condition_name] = {
 			name = medical_condition_name,
 			display_name = "",
 			custom_data = table.copy.deep(medical_condition_data.custom_data),
@@ -3837,6 +4954,9 @@ end
 
 function Citizens.remove(citizen)
 
+	-- remove all effects from this citizen
+	Effects.removeAll(citizen)
+
 	-- if this citzen has been spawned
 	if citizen.object_id then
 		-- despawn the citizen if they exist
@@ -3857,6 +4977,33 @@ function Citizens.remove(citizen)
 	end
 end
 
+---# Get a citizen's data from it's ID.
+---@param citizen_id integer the id of the citizen.
+---@return Citizen? citizen the data of the citizen, returns nil if it failed to find the citizen from it's id.
+function Citizens.getData(citizen_id)
+
+	--! TEMP DEBUG
+	d.print(("Attempting to find citizen with id: %s"):format(citizen_id))
+
+	-- go through all citizens
+	for citizen_index = 1, #g_savedata.libraries.citizens.citizen_list do
+		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
+
+		-- if the id of this citizen matches the one we want.
+		if citizen.id == citizen_id then
+			d.print(("Found citizen for id: %s"):format(citizen_id))
+			-- return it's data
+			return citizen
+		end
+
+		d.print(("Citizen ID %s does not match target %s"):format(citizen.id, citizen_id))
+	end
+
+	d.print(("Failed to find citizen with id: %s"):format(citizen_id))
+
+	-- only could get here if it failed to find the citizen's data, so return nil (not needed, but just for the code to be clearer)
+	return nil
+end
 --[[
 	onTick
 ]]
@@ -3882,8 +5029,8 @@ function Citizens.onTick(game_ticks)
 		-- detect changes in their health
 		local object_data = server.getObjectData(citizen.object_id)
 
-		if not citizen.medical_conditions.burns.custom_data.degree then
-			citizen.medical_conditions.burns.custom_data = {
+		if not citizen.medical_data.medical_conditions.burns.custom_data.degree then
+			citizen.medical_data.medical_conditions.burns.custom_data = {
 				degree = 0, -- the degree of the burn
 				affected_area = 0, -- the % of their body that is covered in the burn
 				burn_temp = 0, -- the temperature of the burn 
@@ -3904,19 +5051,35 @@ function Citizens.onTick(game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("3907: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("5054: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
 		medicalCondition.onTick(citizen, game_ticks)
 
-		if citizen.incapacitated then -- if the citizen should be incapacitated
+		-- check if this citizen has the applying_first_aid effect.
+		local applying_first_aid, _ = Effects.has(citizen, "applying_first_aid")
+
+		--! temp commented out to try to reverse engineer the healing discharge system
+		if citizen.medical_data.incapacitated then -- if the citizen should be incapacitated
 			if not object_data.incapacitated then -- if the citizen should be incapacitated, but isn't
 				server.killCharacter(citizen.object_id)
 				d.print(("Attempting to kill citizen %s"):format(citizen.name.full), false, 0)
 			end
-		elseif object_data.hp < 99 then -- if the citizen's health is below 99, and they're not incapacitated
-			server.reviveCharacter(citizen.object_id)
+		elseif applying_first_aid then
+			--server.setCharacterData(citizen.object_id, 50, true, true)
+		elseif not applying_first_aid then -- if we're not applying first aid, then allow the health to be overridden.
+			if object_data.hp < 97 then -- if the citizen's health is below 97
+				server.reviveCharacter(citizen.object_id)
+				-- suppress the next health change to avoid it being mistooken for healing
+				citizen.suppress_next_health_change = true
+			elseif object_data.hp > 97 then
+
+				server.setCharacterData(citizen.object_id, 97, true, true)
+
+				-- suppress the next health change to avoid it being mistooken for taking damage
+				citizen.suppress_next_health_change = true
+			end
 		end
 
 		--[[if citizen.medical_conditions.burns.custom_data.degree < 4 then
@@ -3941,17 +5104,52 @@ end
 ]]
 function Citizens.onCitizenDamaged(citizen, damage_amount)
 
+	-- if this health change should be suppressed.
+	if citizen.suppress_next_health_change then
+		-- reset so it doesn't suppress the next health change
+		citizen.suppress_next_health_change = false
+
+		-- suppress.
+		return
+	end
+
 	local function identifyDamageSource()
 
-		if damage_amount > 0 then
+		--[[if damage_amount > 0 then
 			return ""
-		end
+		end]]
 
 		local damages = {
-			pistol = -15,
-			smg = -16.25,
-			rifle = -20,
-			speargun = -80
+			first_aid = {
+				suffers_falloff = false,
+				amount = 2.5,
+				tolerance = 0
+			},
+			defibrillator = {
+				suffers_falloff = false,
+				amount = 10,
+				tolerance = 0
+			},
+			pistol = {
+				suffers_falloff = true,
+				amount = -15,
+				tolerance = 2.25
+			},
+			smg = {
+				suffers_falloff = true,
+				amount = -16.25,
+				tolerance = 2.25
+			},
+			rifle = {
+				suffers_falloff = true,
+				amount = -20,
+				tolerance = 2.25
+			},
+			speargun = {
+				suffers_falloff = true,
+				amount = -80,
+				tolerance = 2.25
+			}
 		}
 		
 		local damage_reduction = 0
@@ -3982,13 +5180,28 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 		local closest_damage_source = "none"
 		local closest_damage_diff = math.huge
 
-		for damage_source, damage_source_amount in pairs(damages) do
-			local damage_diff = math.abs(damage_source_amount - (damage_amount - damage_reduction))
-			if damage_diff < closest_damage_diff then
+		for damage_source, damage_source_data in pairs(damages) do
+			local damage_diff
+			if damage_source_data.suffers_falloff then
+				damage_diff = math.abs(damage_source_data.amount - (damage_amount - damage_reduction))
+			else
+				damage_diff = math.abs(damage_source_data.amount - damage_amount)
+			end
+
+
+			if damage_diff < closest_damage_diff and damage_diff <= damage_source_data.tolerance then
 				closest_damage_diff = damage_diff
-				closest_damage = damage_source_amount
+				closest_damage = damage_source_data.amount
 				closest_damage_source = damage_source
 			end
+		end
+
+		if damage_amount < 0 then
+			table.insert(citizen.previous_damages, g_savedata.tick_counter)
+		end
+
+		if closest_damage_source == "none" then
+			return closest_damage_source
 		end
 
 		d.print(("%s took %0.3f damage, closest match for damage source found was %s with a difference of %0.5f (damage reduction of %0.5f)"):format(
@@ -3999,37 +5212,869 @@ function Citizens.onCitizenDamaged(citizen, damage_amount)
 			damage_reduction
 		), false, 0)
 
-		table.insert(citizen.previous_damages, g_savedata.tick_counter)
-
 		return closest_damage_source
 
 	end
 
 	local closest_damage_source = identifyDamageSource()
 
-	if damage_amount <= 0 then
+	-- call the treatment callback for onCitizenDamaged
+	Treatments.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
+
+	--[[if damage_amount <= 0 then
 		--d.print(("Citizen %s took %s damage.\nticks since last damage: %s\nticks since last health change:%s"):format(citizen.name.full, damage_amount, g_savedata.tick_counter - (citizen.last_damage_tick or 0), g_savedata.tick_counter - (citizen.last_health_change_tick or 0)), false, 0)
 		citizen.last_damage_tick = g_savedata.tick_counter
 	end
-	citizen.last_health_change_tick = g_savedata.tick_counter
+	--citizen.last_health_change_tick = g_savedata.tick_counter]]
+
+	-- if this was a first aid kit
+	if closest_damage_source == "first_aid" then
+		-- call onFirstAid
+		Citizens.onFirstAid(citizen)
+	elseif closest_damage_source == "defibrillator" then
+		-- call onDefibrillator
+		Citizens.onDefibrillator(citizen)
+	end
+
 	-- update the medical conditions for this citizen
 	medicalCondition.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
 end
 
--- intercept onObjectDespawn calls
-
 --[[
-
-	scripts to be put after this one
-
+	callbacks
 ]]
+
+---Called whenever a citizen has first aid used on them.
+---@param citizen Citizen the citizen that had first aid applied to them
+function Citizens.onFirstAid(citizen)
+	-- give the applying first aid effect.
+	Effects.apply("applying_first_aid", citizen, 3.5, 1)
+
+	-- call Treatments.onFirstAid
+	Treatments.onFirstAid(citizen)
+end
+
+---Called wheneer a citizen hsa a defibrillator used on them.
+---@param citizen Citizen the citizen that had the defibrillator used on them.
+function Citizens.onDefibrillator(citizen)
+	-- call Treatments.onDefibrillator
+	Treatments.onDefibrillator(citizen)
+end
 
 --[[
 	definitions
 ]]
+
+
+--[[ Define how to reference a citizen via references.lua ]]
+References.define(
+	"citizen",
+	---@param citizen Citizen
+	function(citizen)
+		return {citizen.id}
+	end,
+	function(indexing_data)
+		-- returns the citizen's data, if the citizen exists.
+		return Citizens.getData(indexing_data[1])
+	end
+)
+
 --[[
 	
-Copyright 2023 Liam Matthews
+	Definition Scripts to be put after this one
+
+]]
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Defines the applying first aid effect, which is used to discharge the first aid healing, and cools down the player's ability to heal
+	the citizen, to simulate the player actively applying bandages or tourniquets on them.
+]]
+
+--[[Classes]]
+
+--[[Variables]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+Effects.define(
+	"applying_first_aid",
+	{
+		"citizen"
+	},
+	function(citizen)
+		-- add applying_first_aid status.
+		Citizens.Status.add(citizen, "applying_first_aid", "Applying First Aid...", 10000)
+	end,
+	function(citizen)
+		-- remove applying_first_aid status.
+		Citizens.Status.remove(citizen, "applying_first_aid")
+	end,
+	nil
+)
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+--[[ 
+	Flag command, used to manage more advanced settings.
+	Compliments the settings command, setting command is made to handle less
+	complex commands, and ones that should be set on the world's creation.
+	While flags are ones that may be set for compatiblity reasons, such as if
+	it adding currency rewards is incompatible with another addon on a server,
+	the economy module could be disabled via a flag.
+]]
+
+-- required libraries -- required to print messages -- required to get data on players -- required for some of its helpful string functions -- required for some of its helpful table functions
+
+g_savedata.flags = {}
+
+-- where all of the registered flags are stored, their current values get stored in g_savedata.flags instead, though.
+---@type table<string, BooleanFlag | IntegerFlag | NumberFlag | StringFlag | AnyFlag>
+local registered_flags = {}
+
+
+-- where all of the registered permissions are stored.
+local registered_permissions = {}
+
+-- stores the functions for flags
+Flag = {}
+
+---@param name string the name of this permission
+---@param has_permission function the function to execute, to check if the player has permission (arg1 is peer_id)
+function Flag.registerPermission(name, has_permission)
+
+	-- if the permission already exists
+	if registered_permissions[name] then
+
+		--[[
+			this can be quite a bad error, so it bypasses debug being disabled.
+
+			for example, library A adds a permission called "mod", for mod authors
+			and then after, library B adds a permission called "mod", for moderators of the server
+			
+			when this fails, any commands library B will now just require the requirements for mod authors
+			now you've got issues of mod authors being able to access moderator commands
+
+			so having this always alert is to try to make this issue obvious. as if it was just silent in
+			the background, suddenly you've got privilage elevation.
+		]]
+		d.print(("(Flag.registerPermission) Permission level %s is already registered!"):format(name), false, 1)
+		return
+	end
+
+	registered_permissions[name] = has_permission
+end
+
+--# Register a boolean flag, can only be true or false.
+---@param name string the name of the flag
+---@param default_value boolean the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+function Flag.registerBooleanFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description)
+	local function_name = "Flag.registerBooleanFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class BooleanFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "boolean"
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+--# Register an integer flag, can only be an integer.
+---@param name string the name of the flag
+---@param default_value integer the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+---@param min integer|nil the minimum value for the flag (nil for none)
+---@param max integer|nil the maximum value for the flag (nil for none)
+function Flag.registerIntegerFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description, min, max)
+	local function_name = "Flag.registerIntegerFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class IntegerFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "integer",
+		limit = {
+			min = min,
+			max = max
+		}
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+--# Register an number flag, can only be an number.
+---@param name string the name of the flag
+---@param default_value number the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+---@param min integer|nil the minimum value for the flag (nil for none)
+---@param max integer|nil the maximum value for the flag (nil for none)
+function Flag.registerNumberFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description, min, max)
+	local function_name = "Flag.registerNumberFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class NumberFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "number",
+		limit = {
+			min = min,
+			max = max
+		}
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+--# Register a string flag, can only be an string.
+---@param name string the name of the flag
+---@param default_value string the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+function Flag.registerStringFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, description, function_to_execute)
+	local function_name = "Flag.registerStringFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class StringFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "string",
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+--# Register an any flag, can be any value.
+---@param name string the name of the flag
+---@param default_value any the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+function Flag.registerAnyFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description)
+	local function_name = "Flag.registerAnyFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class AnyFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "any",
+		description = description
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+---@param full_message string the full_message of the player
+---@param peer_id integer the peer_id of the player who executed the command
+---@param is_admin boolean if the player has admin.
+---@param is_auth boolean if the player is authed.
+---@param command string the command the player entered
+---@param arg table<integer, string> the arguments to the command the player entered.
+function Flag.onFlagCommand(full_message, peer_id, is_admin, is_auth, command, arg)
+	if command == "flag" then
+		local flag_name = arg[1]
+
+		if not flag_name then
+			d.print("You must specify a flag's name! get a list of flags via ?icm flags", false, 1, peer_id)
+			return
+		end
+
+		local flag = registered_flags[flag_name]
+
+		if not flag then
+			d.print(("The flag \"%s\" does not exist! Get a list of flags via ?icm flags"):format(flag_name), false, 1, peer_id)
+			return
+		end
+
+		-- the player is trying to read the flag
+		if not arg[2] then
+			-- check if the player has the permission to read the flag
+			
+			-- if the required read permission does not exist, default it to admin.
+
+			local read_permission = registered_permissions[flag.read_permission_requirement] or registered_permissions["admin"]
+
+			if not read_permission(peer_id) then
+				d.print(("You do not have permission to read this flag! You require the permission %s, contact a server admin/owner if you belive this is in mistake."):format(registered_permissions[flag.read_permission_requirement] and flag.read_permission_requirement or "admin"), false, 1, peer_id)
+				return
+			end
+
+			local flag_value = g_savedata.flags[flag_name]
+
+			if flag.flag_type ~= "string" and flag_value == "nil" then
+				flag_value = nil
+			end
+
+			-- if the flag's value is a string, format it as a string for display.
+			if type(flag_value) == "string" then
+				flag_value = ("\"%s\""):format(flag_value)
+			end
+
+			d.print(("%s's current value is: %s"):format(flag.name, flag_value), false, 0, peer_id)
+		else
+			-- the player is trying to set the flag
+
+			local write_permission = registered_permissions[flag.write_permission_requirement] or registered_permissions["admin"]
+
+			if not write_permission(peer_id) then
+				d.print(("You do not have permission to write this flag! You require the permission %s, contact a server admin/owner if you belive this is in mistake."):format(registered_permissions[flag.write_permission_requirement] and flag.write_permission_requirement or "admin"), false, 1, peer_id)
+				return
+			end
+
+			local set_value = table.concat(arg, " ", 2, #arg)
+			local original_set_value = set_value
+
+			if flag.flag_type ~= "string" then
+				if set_value == "nil" then
+					set_value = nil ---@cast +nil
+				end
+
+				-- number and integer flags
+				if flag.flag_type == "number" or flag.flag_type == "integer" then
+					-- convert to number if number, integer if integer
+					set_value = flag.flag_type == "number" and tonumber(set_value) or math.tointeger(set_value)
+
+					-- cannot be converted to number if number, or integer if integer.
+					if not set_value then
+						d.print(("%s is not a %s! The flag %s requires %s inputs only!"):format(original_set_value, flag.flag_type, flag.name, flag.flag_type), false, 1, peer_id)
+						return
+					end
+
+					-- check if outside of minimum
+					if flag.limit.min and set_value < flag.limit.min then
+						d.print(("The flag \"%s\" has a minimum value of %s, your input of %s is too low!"):format(flag.name, flag.limit.min, set_value), false, 1, peer_id)
+						return
+					end
+
+					-- check if outside of maximum
+					if flag.limit.max and set_value > flag.limit.max then
+						d.print(("The flag \"%s\" has a maximum value of %s, your input of %s is too high!"):format(flag.name, flag.limit.max, set_value), false, 1, peer_id)
+						return
+					end
+				end
+
+				-- boolean flags
+				if flag.flag_type == "boolean" then
+					set_value = string.toboolean(set_value)
+
+					if set_value == nil then
+						d.print(("The flag \"%s\" requires the input to be a boolean, %s is not a boolean!"):format(flag.name, original_set_value))
+					end
+				end
+
+				-- any flags
+				if flag.flag_type == "any" then
+
+					-- parse the value (turn it into the expected type)
+					set_value = string.parseValue(set_value)
+				end
+			end
+
+			local old_flag_value = g_savedata.flags[flag_name]
+
+			-- set the flag
+			g_savedata.flags[flag_name] = set_value
+
+			-- call the function for when the flag is written, if one is specified
+			if flag.function_to_execute ~= nil then
+				flag.function_to_execute(set_value, old_flag_value, peer_id)
+			end
+
+			d.print(("Successfully set the value for the flag \"%s\" to %s"):format(flag.name, set_value), false, 0, peer_id)
+		end
+	elseif command == "flags" then
+		if arg[1] then
+			d.print("Does not yet support the ability to search for flags, only able to give a full list for now, sorry!", false, 0, peer_id)
+			return
+		end
+
+		d.print("\n-- Flags --", false, 0, peer_id)
+
+		--TODO: make it sort by tags and filter by tags.
+
+		local flag_list = {}
+
+		-- clones, as we will be modifying them and sorting them for display purposes, and we don't want to modify the actual flags.
+		local cloned_registered_flags = table.copy.deep(registered_flags)
+		for _, flag in pairs(cloned_registered_flags) do
+			table.insert(flag_list, flag)
+		end
+
+		-- sort the list for display purposes
+		table.sort(flag_list, function(a, b)
+			-- if the types are the same, then sort alphabetically by name
+			if a.flag_type == b.flag_type then
+				return a.name < b.name
+			end
+		
+			-- the types are different, sort alphabetically by type.
+			return a.flag_type < b.flag_type
+		end)
+
+		local last_type = "none"
+
+		for flag_index = 1, #flag_list do
+			local flag = flag_list[flag_index]
+
+			-- print the following flag category, if this is now printing a new category of flags
+			if last_type ~= flag.flag_type then
+				d.print(("\n--- %s Flags ---"):format(flag.flag_type:upperFirst()), false, 0, peer_id)
+				last_type = flag.flag_type
+			end
+
+			-- print the flag data
+			d.print(("-----\nName: %s\nValue: %s\nTags: %s"):format(flag.name, g_savedata.flags[flag.name], table.concat(flag.tags, ", ")), false, 0, peer_id)
+		end
+	end
+end
+
+--[[
+
+	Register Default Permissions
+
+]]
+
+-- None Permission
+Flag.registerPermission(
+	"none",
+	function()
+		return true
+	end
+)
+
+-- Auth Permission
+Flag.registerPermission(
+	"auth",
+	function(peer_id)
+		local players = server.getPlayers()
+
+		for peer_index = 1, #players do
+			local player = players[peer_index]
+
+			if player.id == peer_id then
+				return player.auth
+			end
+		end
+
+		return false
+	end
+)
+
+-- Admin Permission
+Flag.registerPermission(
+	"admin",
+	function(peer_id)
+		local players = server.getPlayers()
+
+		for peer_index = 1, #players do
+			local player = players[peer_index]
+
+			if player.id == peer_id then
+				return player.admin
+			end
+		end
+
+		return false
+	end
+)
+
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+Treatments = {}
+
+---@class treatmentCondition For your treatment condition, you can define any number of these functions, if they return true, then the condition will be treated.
+---@field onCitizenDamaged function? this function is called whenever a citizen takes damage, args are: citizen, damage_amount, closest_damage_source
+---@field onTick function? this function is called every tick, args are: citizen, game_ticks
+---@field onFirstAid function? this function is called whenever the citizen is healed by a first aid kit. args are: citizen
+---@field onDefibrillator function? this function is called whenever the citizen gets hit by a defibrillator. args are: citizen
+
+---@class treatment The
+---@field name string the name for this treatment, should be the same as the linked condition, eg "bleeds"
+---@field tooltip string|function the tooltip of this treatment, if as a function, param is citizen
+---@field completion_actions function? This function will be executed whenever its successfully treated.
+---@field failure_actions function? This function will be executed whenever they failed to treat it within the deadline.
+---@field default_time integer? The default timer for when this can no longer be treated. nil means it never expires
+---@field treatment_condition string the way this condition is treated
+
+---@class requiredTreatment the treatment stored with the citizen's data
+---@field name string the name of this treatment
+---@field deadline integer? the deadline for when this will have failed to have been treated. nil means it never expires.
+
+---@type table<string, treatment>
+defined_treatments = {}
+
+---@type table<string, treatmentCondition>
+defined_treatment_conditions = {}
+
+---# Allows the treatment debug to be toggled by a flag, as its quite spammy.
+---@param message string the message you want to print
+---@param requires_debug ?boolean if it requires <debug_type> debug to be enabled
+---@param debug_type ?integer the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler) 
+---@param peer_id ?integer if you want to send it to a specific player, leave empty to send to all players
+function Treatments.print(message, requires_debug, debug_type, peer_id)
+	if g_savedata.flags.treatment_debug then
+		d.print(message, requires_debug, debug_type, peer_id)
+	end
+end
+
+---@param name string the name for this treatment, should be the same as the linked condition, eg "bleeds"
+---@param tooltip string|function the tooltip of this treatment, if as a function, param is citizen
+---@param completion_actions function? This function will be executed whenever its successfully treated.
+---@param failure_actions function? This function will be executed whenever they failed to treat it within the deadline.
+---@param default_time integer? The default timer for when this can no longer be treated, leave nil to have it never expire.
+---@param treatment_condition string the way this condition is treated
+function Treatments.create(name, tooltip, completion_actions, failure_actions, default_time, treatment_condition)
+	defined_treatments[name] = {
+		name = name,
+		tooltip = tooltip,
+		completion_actions = completion_actions,
+		failure_actions = failure_actions,
+		default_time = default_time,
+		treatment_condition = treatment_condition
+	}
+end
+
+---@param onCitizenDamaged function? this function is called whenever a citizen takes damage, args are: citizen, damage_amount, closest_damage_source
+---@param onTick function? this function is called every tick, args are: citizen, game_ticks
+---@param onFirstAid function? this function is called whenever the citizen is healed by a first aid kit. args are: citizen
+---@param onDefibrillator function? this function is called whenever the citizen gets hit by a defibrillator. args are: citizen
+function Treatments.defineTreatmentCondition(name, onCitizenDamaged, onTick, onFirstAid, onDefibrillator)
+	defined_treatment_conditions[name] = {
+		onCitizenDamaged = onCitizenDamaged,
+		onTick = onTick,
+		onFirstAid = onFirstAid,
+		onDefibrillator = onDefibrillator
+	}
+end
+
+---# Applies the required treatment to the target citizen.
+---@param citizen Citizen
+---@param treatment_name string the treatment name
+---@param time_override number? the default time override. leave nil to keep default
+---@return boolean applied if the required treatment was applied, false doesn't always mean an error, could instead mean that it already has the required treatment applied.
+function Treatments.apply(citizen, treatment_name, time_override)
+	-- if treatment is already applied
+	if citizen.medical_data.required_treatments[treatment_name] then
+		Treatments.print(("5930: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		return false
+	end
+
+	-- get the treatment data
+	local treatment_data = defined_treatments[treatment_name]
+
+	-- get the wanted ticks till deadline, if output is nil or -1, then it should never expire.
+	local ticks_till_deadline = time_override or treatment_data.default_time
+
+	-- if output is -1, then set it to nil as there should be no deadline.
+	ticks_till_deadline = ticks_till_deadline ~= -1 and ticks_till_deadline or nil
+
+	-- apply the treatment
+	citizen.medical_data.required_treatments[treatment_name] = {
+		name = treatment_name,
+		deadline = ticks_till_deadline and ticks_till_deadline + g_savedata.tick_counter or nil
+	}
+
+	Treatments.print(("Applied Required Treatment %s to %s."):format(treatment_name, citizen.name.full), false, 0)
+
+	return true
+end
+
+--[[
+	Callbacks
+]]
+
+---@param citizen Citizen the citizen
+---@param treatment requiredTreatment the required treatment to check
+---@param callback string the name of the treatment callback to check
+---@param ... any the arguments to be sent to the callback.
+function Treatments.checkCallback(citizen, treatment, callback, ...)
+
+	-- if this treatment type is not defined
+	if not defined_treatments[treatment.name] then
+		d.print(("5966: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		-- remove it from this character
+		citizen.medical_data.required_treatments[treatment.name] = nil
+
+		return
+	end
+
+	local treatment_type = defined_treatments[treatment.name].treatment_condition
+
+	-- if this treatment doesn't actaully exist
+	if not defined_treatment_conditions[treatment_type] then
+		d.print(("5977: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		-- remove it from this character
+		citizen.medical_data.required_treatments[treatment.name] = nil
+
+		return
+	end
+
+	-- the deadline has been hit or surpassed, if deadline is nil, skip check as this shouldn't expire
+	if treatment.deadline and treatment.deadline <= g_savedata.tick_counter then
+		-- remove it from this character
+		citizen.medical_data.required_treatments[treatment.name] = nil
+
+		Treatments.print(("5989: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+
+		return
+	end
+
+	-- if this callback does not exist for this treatment
+	if not defined_treatment_conditions[treatment_type][callback] then
+		return
+	end
+
+	-- if this callback returns false
+	if not defined_treatment_conditions[treatment_type][callback](...) then
+		return
+	end
+
+	Treatments.print(("Required Treatment %s on %s has been successfully treated."):format(treatment.name, citizen.name.full), false, 0)
+
+	-- say that this condition was successfully treated
+	defined_treatments[treatment.name].completion_actions(citizen)
+
+	-- remove this required treatment
+	citizen.medical_data.required_treatments[treatment.name] = nil
+end
+
+function Treatments.onCitizenDamaged(citizen, damage_amount, closest_damage_source)
+	for _, treatment in pairs(citizen.medical_data.required_treatments) do
+		Treatments.checkCallback(
+			citizen,
+			treatment,
+			"onCitizenDamaged",
+			citizen,
+			damage_amount,
+			closest_damage_source
+		)
+	end
+end
+
+function Treatments.onTick(citizen, game_ticks)
+	for _, treatment in pairs(citizen.medical_data.required_treatments) do
+		Treatments.checkCallback(
+			citizen,
+			treatment,
+			"onTick",
+			citizen,
+			game_ticks
+		)
+	end
+end
+
+function Treatments.onFirstAid(citizen)
+	for _, treatment in pairs(citizen.medical_data.required_treatments) do
+		Treatments.checkCallback(
+			citizen,
+			treatment,
+			"onFirstAid",
+			citizen
+		)
+	end
+end
+
+function Treatments.onDefibrillator(citizen)
+	for _, treatment in pairs(citizen.medical_data.required_treatments) do
+		Treatments.checkCallback(
+			citizen,
+			treatment,
+			"onDefibrillator",
+			citizen
+		)
+	end
+end
+
+--[[
+	Flags
+]]
+
+Flag.registerBooleanFlag(
+	"treatment_debug",
+	true,
+	{
+		"debug"
+	},
+	"admin",
+	"admin",
+	nil,
+	"Enables or disables the debug output for treatments."
+)
+--[[
+	
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -4059,6 +6104,12 @@ limitations under the License.
 
 medicalCondition = {}
 
+---@class citizenMedicalData
+---@field medical_conditions table<string, medicalCondition> the list of medical conditions that this citizen has.
+---@field stability Modifiable the stability of the citizen
+---@field incapacitated boolean if the citizen is incapacitated, not set by the game but set by medical conditions.
+---@field required_treatments table<integer, requiredTreatment>
+
 ---@class medicalCondition
 ---@field name string the name of the medical condition, eg "burn"
 ---@field display_name string what to show in the list of medical conditions for this citizen, set by looking at the data in your custom_data.
@@ -4075,11 +6126,17 @@ medical_conditions_callbacks = {} ---@type table<string, medicalConditionCallbac
 
 medical_conditions = {} ---@type table<string, medicalCondition> the table containing all of the medical conditions themselves, for default data.
 
+---@param name string the name of the medical condition, eg "burn"
+---@param hidden boolean if this condition is to be hidden.
+---@param custom_data table<any, any> your custom data to be stored with this medical condition.
+---@param call_onTick function? called whenever onTick is called. (param 1 is citizen, param 2 is game_ticks)
+---@param call_onCitizenDamaged function? called whenever a citizen is damaged or healed. (param 1 is citizen, param 2 is damage_amount, param 3 is closest_damage_source)
+---@param call_assignCondition function? called whenever something tries to assign this medical condition, param 1 is citizen, rest of params is configurable.
 function medicalCondition.create(name, hidden, custom_data, call_onTick, call_onCitizenDamaged, call_assignCondition)
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("4082: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("6139: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -4104,8 +6161,8 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
 		
 		-- if it does not exist for this citizen, register it.
-		if not citizen.medical_conditions[name] then
-			citizen.medical_conditions[name] = {
+		if not citizen.medical_data.medical_conditions[name] then
+			citizen.medical_data.medical_conditions[name] = {
 				name = name,
 				display_name = "",
 				custom_data = custom_data,
@@ -4118,19 +6175,41 @@ end
 ---@param citizen Citizen the citizen to get the medical condition tooltip of
 function medicalCondition.getTooltip(citizen)
 
-	local mc_string = "Conditions"
+	-- add their stability bar
+	local mc_string = ("Stability\n|%s|"):format(string.toBar(math.min(100, math.max(0, Modifiables.get(citizen.medical_data.stability)/100)), 16, "=", "  "))
 
-	for _, effect_data in pairs(citizen.medical_conditions) do
+	-- add the blood bar if they've lost any blood
+	local bleeds = citizen.medical_data.medical_conditions.bleeds
+	if bleeds.custom_data.blood.current < bleeds.custom_data.blood.max then
+		mc_string = ("%s\nBlood (%0.1fml)\n|%s|"):format(mc_string, bleeds.custom_data.blood.current, string.toBar(bleeds.custom_data.blood.current/bleeds.custom_data.blood.max, 16, "=", "  "))
+	end
+
+	-- add their medical conditions
+
+
+	local conditions_string = "Conditions"
+
+	-- no need to show the conditions string if theres no conditions to show
+	local show_conditions = false
+
+	for _, effect_data in pairs(citizen.medical_data.medical_conditions) do
 		
 		-- if the effect is hidden, skip it
 		if effect_data.hidden then
 			goto continue_condition
 		end
 
+		-- show conditions, as theres a condition to show.
+		show_conditions = true
+
 		-- add the display name
-		mc_string = ("%s\n- %s"):format(mc_string, effect_data.display_name)
+		conditions_string = ("%s\n- %s"):format(conditions_string, effect_data.display_name)
 
 		::continue_condition::
+	end
+
+	if show_conditions then
+		mc_string = ("%s\n\n%s"):format(mc_string, conditions_string)
 	end
 
 	return mc_string
@@ -4166,7 +6245,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("4169: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("6248: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -4188,7 +6267,7 @@ end
 ]]
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -4215,7 +6294,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -4651,7 +6730,7 @@ medicalCondition.create(
 
 		local tick_mult = tick_rate/60
 
-		local burn = citizen.medical_conditions.burns
+		local burn = citizen.medical_data.medical_conditions.burns
 
 		if not burn.custom_data.burn_temp then
 			burn.custom_data = {
@@ -4685,14 +6764,14 @@ medicalCondition.create(
 		burn.custom_data.burn_decay = burn.custom_data.burn_decay - 1*tick_mult
 
 		-- update the shown condition
-		--[[if burn.custom_data.degree < 1 then
+		if burn.custom_data.degree < 1 then
 			burn.hidden = true
 			return
-		end]]
+		end
 
 		-- update stability
 
-		Modifiables.set(citizen.stability, "burns", math.max(-100,(burn.custom_data.degree*-2)*burn.custom_data.affected_area), -1)
+		Modifiables.set(citizen.medical_data.stability, "burns", math.max(-100,(burn.custom_data.degree*-2)*burn.custom_data.affected_area), -1)
 
 		burn.hidden = false
 
@@ -4707,7 +6786,10 @@ medicalCondition.create(
 			degree = "First"
 		end
 
-		burn.display_name = ("%s Degree Burn\nDegree: %0.3f\nBurn Temp: %0.3f\nIs In Fire: %s\nBody %% Burnt: %0.2f"):format(degree, burn.custom_data.degree, burn.custom_data.burn_temp, burn.custom_data.burn_decay > 0, burn.custom_data.affected_area)
+		burn.display_name = ("%s Degree Burn"):format(degree)
+
+		-- uncomment to see debug
+		-- burn.display_name = ("%s\nDegree: %0.3f\nBurn Temp: %0.3f\nIs In Fire: %s\nBody %% Burnt: %0.2f"):format(burn.display_name, burn.custom_data.degree, burn.custom_data.burn_temp, burn.custom_data.burn_decay > 0, burn.custom_data.affected_area)
 	end,
 	---@param citizen Citizen
 	---@param health_change number
@@ -4725,7 +6807,7 @@ medicalCondition.create(
 			return
 		end
 
-		local burn = citizen.medical_conditions.burns
+		local burn = citizen.medical_data.medical_conditions.burns
 
 		if not burn.custom_data.burn_temp then
 			burn.custom_data = {
@@ -4762,7 +6844,7 @@ medicalCondition.create(
 )
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -4804,7 +6886,7 @@ medicalCondition.create(
 			return
 		end
 
-		local cardiac_arrest = citizen.medical_conditions.cardiac_arrest
+		local cardiac_arrest = citizen.medical_data.medical_conditions.cardiac_arrest
 
 		-- if this citizen is not suffering cardiac arrest
 		if not cardiac_arrest.custom_data.cardiac_arrest then
@@ -4832,7 +6914,7 @@ medicalCondition.create(
 		end
 
 		-- give the citizen + 35 stability for 5 minutes
-		Modifiables.set(citizen.stability, "defibrillator", 35, 18000)
+		Modifiables.set(citizen.medical_data.stability, "defibrillator", 35, 18000)
 
 		server.notify(-1, "Resurrect",("Resurrecting %s succeeded."):format(citizen.name.full), 4)
 
@@ -4842,7 +6924,7 @@ medicalCondition.create(
 	---@param citizen Citizen
 	---@param new_state boolean if the citizen will now have cardiac arrest or not
 	function(citizen, new_state)
-		local cardiac_arrest = citizen.medical_conditions.cardiac_arrest
+		local cardiac_arrest = citizen.medical_data.medical_conditions.cardiac_arrest
 
 		if cardiac_arrest.custom_data.cardiac_arrest ~= new_state then
 			-- set the state of this medical condition
@@ -4852,7 +6934,7 @@ medicalCondition.create(
 			cardiac_arrest.custom_data.incapacitated_at = g_savedata.tick_counter
 
 			-- set if this citizen should be incapacitated
-			citizen.incapacitated = new_state
+			citizen.medical_data.incapacitated = new_state
 
 			-- set if this should be hidden
 			cardiac_arrest.hidden = not new_state
@@ -4879,7 +6961,624 @@ medicalCondition.create(
 )
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+--[[
+
+
+	Library Setup
+
+
+]]
+Bleed = {}
+
+-- required libraries
+
+--[[
+
+
+	Variables
+
+
+]]
+
+---@type table<string, number>
+SEVERITY_MULTIPLIERS = {
+	pistol = 2.5,
+	smg = 2.5,
+	rifle = 4,
+	speargun = 10 -- So this is how game devs catch their whales... Squeezed for every last drop.
+}
+
+-- Base threshold for severity when a tourniquet is required.
+BASE_TOURNIQUET_SEVERITY_THRESHOLD = 0.15
+
+MAX_BLOOD_PER_MINUTE = 75
+MIN_BLOOD_PER_MINUTE = 2
+
+MAX_BLOOD_LOSS_PER_MINUTE = 700
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--TODO: when the info such as items worn, have this calculation integrate the citizen's data.
+---# Calculates bleeding severity based on how much damage they took, and the estimated source<br>
+--- This function is kept seperate as the calculated severity could be used for debug or for early breaks.
+---@param citizen Citizen the citizen this will be applied to (Used for additional calculations based on some data about them)
+---@param damage number the damage the citizen recieved
+---@param damage_source string what caused the damage.
+---@return number severity the severity to be used with Bleed.apply
+function Bleed.damageToSeverity(citizen, damage, damage_source)
+	-- get the severity multiplier, defaults to 1
+	local severity_multiplier = SEVERITY_MULTIPLIERS[damage_source] or 1
+
+	-- calculate the severity
+	local severity = damage * -0.0065 * severity_multiplier
+
+	return severity
+end
+
+
+---# Returns the required treatment to treat the bleeding.
+---@param citizen Citizen
+---@return "bandage"|"tourniquet"|"none" required_treatment the treatment that the citizen requires.
+function Bleed.getRequiredTreatment(citizen)
+	local severity = citizen.medical_data.medical_conditions.bleeds.custom_data.severity
+
+	-- if the severity is 0 or less
+	if severity <= 0 then
+		-- then no treatment is required.
+		return "none"
+	end
+
+	-- if this can be treated with a bandage
+	if severity < BASE_TOURNIQUET_SEVERITY_THRESHOLD then
+		-- if they already have a bandage
+		local _, bandage_applied, _ = Inventory.hasItem(citizen.inventory.id, "bandage")
+		-- no need to apply a bandage.
+		if bandage_applied then
+			return "none"
+		end
+
+		-- bandage should be applied
+		return "bandage"
+	end
+
+	-- this should be treated with a tourniquet.
+	
+	-- if a tourniquet is already applied.
+	local tourniquet_data, _, has_tourniquet, got_inventory = Inventory.hasItem(citizen.inventory.id, "tourniquet")
+
+	-- failed to get their inventory
+	if not got_inventory then
+		d.print(("7073: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		return "tourniquet"
+	end
+
+	-- they dont have a tourniquet, so say that they need a tourniquet.
+	if not has_tourniquet then
+		return "tourniquet"
+	end
+
+	-- safety check
+	if tourniquet_data then
+		-- tourniquet is already tightened and properly applied.
+		if tourniquet_data.data.tightened then
+			return "none"
+		end
+
+		-- the tourniquet needs to be tightened, so say that they require a tourniquet.
+		return "tourniquet"
+	end
+
+	d.print(("7093: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	return "tourniquet"
+end
+
+---# Applies Bleeding, severity affects how much blood they lose <br>
+--- This is not at all 1:1 to real life, as that would require far too much resesearch, and many variables we would need cannot be gotten in stormworks.
+---@param citizen Citizen
+---@param severity number
+function Bleed.apply(citizen, severity)
+	local bleeds = citizen.medical_data.medical_conditions.bleeds
+
+	bleeds.custom_data.severity = bleeds.custom_data.severity + severity
+end
+
+--[[
+	Define conditons and treatments
+]]
+
+-- Define the medical condition
+medicalCondition.create(
+	"bleeds",
+	true,
+	{
+		severity = 0,
+		blood = {
+			max = 5000,
+			current = 5000
+		}
+	},
+	---@param citizen Citizen
+	---@param game_ticks number
+	function(citizen, game_ticks)
+		local bleeds = citizen.medical_data.medical_conditions.bleeds
+
+		-- if the citizen's current blood amount is less than the max
+		if bleeds.custom_data.blood.max > bleeds.custom_data.blood.current then
+			--[[
+				produce blood
+			]]
+
+			-- calculate how much blood to produce this tick
+			local blood_production = math.clamp(
+				math.linearScale(
+					bleeds.custom_data.blood.current,
+					bleeds.custom_data.blood.max*0.75,
+					bleeds.custom_data.blood.max,
+					MAX_BLOOD_PER_MINUTE,
+					MIN_BLOOD_PER_MINUTE),
+				MIN_BLOOD_PER_MINUTE,
+				MAX_BLOOD_PER_MINUTE
+			)*0.00027777777
+
+			bleeds.custom_data.blood.current = math.clamp(
+				bleeds.custom_data.blood.current + blood_production,
+				0,
+				bleeds.custom_data.blood.max
+			)
+		end
+
+		--[[
+			update tooltip & tick blood loss
+		]]
+
+		-- if theres no bleeding
+		if bleeds.custom_data.severity <= 0 then
+			-- remove tooltip
+			bleeds.hidden = true
+			return
+		end
+
+		-- check if they have a bandage
+		local _, _, has_bandage, _ = Inventory.hasItem(citizen.inventory.id, "bandage")
+
+		-- check if they have a tourniquet
+		local tourniquet_data, _, has_tourniquet, _ = Inventory.hasItem(citizen.inventory.id, "tourniquet")
+
+		local base_blood_loss = MAX_BLOOD_LOSS_PER_MINUTE*bleeds.custom_data.severity*0.00027777777
+
+		-- if the bleeding is in the bandage range
+		if bleeds.custom_data.severity < BASE_TOURNIQUET_SEVERITY_THRESHOLD then
+			
+			if has_bandage then
+				-- hide tooltip, no bleeding
+				bleeds.hidden = true
+				return
+			end
+
+			-- mild bleeding
+			bleeds.custom_data.blood.current = bleeds.custom_data.blood.current - base_blood_loss*0.5
+
+			-- set tooltip
+			bleeds.hidden = false
+			bleeds.display_name = "Mild Bleeding (Treat with Bandage)"
+			return
+		end
+
+		-- the bleeding is in the tourniquet range
+
+		local bleeding_severity = bleeds.custom_data.severity < 0.3 and "Moderate" or "Severe"
+
+		bleeds.display_name = bleeding_severity.." Bleeding"
+
+		-- a tourniquet has not been applied
+		if not has_tourniquet then
+
+			-- heavy bleeding
+			bleeds.custom_data.blood.current = bleeds.custom_data.blood.current - base_blood_loss
+
+			bleeds.display_name = bleeds.display_name.." (Treat with tourniquet)"
+			bleeds.hidden = false
+		elseif tourniquet_data and not tourniquet_data.data.tightened then
+			-- tourniquet needs to be tightened
+
+			-- ever so slightly less heavy bleeding
+			bleeds.custom_data.blood.current = bleeds.custom_data.blood.current - base_blood_loss*0.999
+
+			bleeds.display_name = bleeds.display_name.." (Tourniquet needs tightened)"
+			bleeds.hidden = false
+		else
+
+			-- still some minor bleeding.
+			bleeds.custom_data.blood.current = bleeds.custom_data.blood.current - base_blood_loss*0.05
+
+			-- tourniquet is applied and tightened, no need to display anything.
+			bleeds.hidden = true
+		end
+	end,
+	function(citizen, health_change, damage_source) 
+		-- discard if they were healed
+		if health_change > 0 then
+			return
+		end
+
+		-- get the severity
+		local severity = Bleed.damageToSeverity(citizen, health_change, damage_source)
+
+		-- if the severity change is more than 0, then apply the bleeds required treatment.
+		if severity > 0 then
+			Treatments.apply(citizen, "bleeds")
+		end
+
+		-- apply bleeding
+		Bleed.apply(citizen, severity)
+	end,
+	nil
+)
+
+-- Define the condition in order to treat blood loss (bleeding)
+Treatments.defineTreatmentCondition(
+	"blood_loss",
+	nil,
+	nil,
+	---@param citizen Citizen
+	function(citizen)
+		-- get the current severity of their bleeding
+		-- local severity = citizen.medical_data.medical_conditions.bleeds.custom_data.severity
+
+		--! OPTIMISATION: I might not need to do much processing here?
+
+		-- figure out what treatment this citizen requires
+		local required_treatment = Bleed.getRequiredTreatment(citizen)
+
+		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
+		if required_treatment == "none" then
+			Treatments.print(("7257: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			return true
+		end
+
+		-- apply the bandage
+		if required_treatment == "bandage" then
+			Treatments.print(("7263: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			return true
+		end
+
+		if required_treatment == "tourniquet" then
+			local tourniquet, _, has_tourniquet, _ = Inventory.hasItem(citizen.inventory.id, "tourniquet")
+
+			-- if they dont have a tourniquet
+			if not has_tourniquet then
+				-- apply a tourniquet
+				Inventory.addItem(citizen.inventory.id, Item.create("tourniquet", true), true)
+
+				-- the tourniquet still needs to be tightened, so return false
+				return false
+			end
+
+			-- they have a tourniquet, so tighten it and return true, as the tourniquet has been properly applied.
+
+			-- make sure we actually got the tourniquet item to avoid an error.
+			if tourniquet then
+				-- tighten the tourniquet
+				Treatments.print(("7284: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				tourniquet.data.tightened = true
+			end
+
+			-- say that the bleeding has been treated.
+			Treatments.print(("7289: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			return true
+		end
+
+		-- shouldn't normally be able to get here...
+		d.print(("7294: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+
+		return false
+	end,
+	nil
+)
+
+-- Define the treatment for bleeding, used more for display and handling when its been treated.
+Treatments.create(
+	"bleeds",
+	function(citizen)
+	end,
+	function(citizen)
+	end,
+	nil,
+	nil,
+	"blood_loss"
+)
+
+--[[
+	Item Prefab Definitions
+]]
+
+-- Define bandages
+Item.createPrefab(
+	"bandage",
+	nil,
+	{
+		applied_time = 0
+	}
+)
+
+-- Define Tourniquets
+Item.createPrefab(
+	"tourniquet",
+	nil,
+	{
+		applied_time = 0,
+		tightened = false
+	}
+)
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries -- requires bleeding system to update blood amount.
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Adds internal bleeding, gunshot wounds have a chance to result in internal bleeding
+	which cannot be stopped on the field, and the citizen will need to be transported
+	to the hospital immediately.
+]]
+
+-- library name
+LibraryName = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+local INTERNAL_BLEEDING_BLOOD_LOSS_PER_MINUTE = 125
+
+local internal_bleeding_causes = {
+	pistol = {
+		chance = 0.2 -- 20%
+	},
+	smg = {
+		chance = 0.2 -- 20%
+	},
+	rifle = {
+		chance = 0.4 -- 40%
+	},
+	speargun = {
+		chance = 1 -- 100%
+	}
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+medicalCondition.create(
+	"internal_bleeding",
+	true,
+	{
+		count = 0 -- stores how many instances of internal bleeding there is.
+	},
+	---@param citizen Citizen
+	function(citizen)
+		local internal_bleeding = citizen.medical_data.medical_conditions.internal_bleeding
+		--[[
+			tick internal bleeding
+		]]
+		
+		-- if the citizen has no internal bleeding, skip
+		if internal_bleeding.custom_data.count == 0 then
+			internal_bleeding.hidden = true
+			return
+		end
+
+		-- update tooltip
+		internal_bleeding.hidden = false
+		internal_bleeding.display_name = "Internal Bleeding"
+
+		local bleeds = citizen.medical_data.medical_conditions.bleeds
+
+		-- calculate how much blood is lost this tick.
+		local blood_loss = internal_bleeding.custom_data.count*INTERNAL_BLEEDING_BLOOD_LOSS_PER_MINUTE*0.00027777777
+
+		-- remove that much blood from the citizen.
+		bleeds.custom_data.blood.current = bleeds.custom_data.blood.current - blood_loss
+	end,
+	---@param citizen Citizen
+	---@param _ number
+	---@param damage_source string
+	function(citizen, _, damage_source)
+		-- check if the damage source could cause internal bleeding
+		if not internal_bleeding_causes[damage_source] then
+			return
+		end
+
+		local internal_bleeding_cause_data = internal_bleeding_causes[damage_source]
+
+		-- random chance if this will cause internal bleeding
+		if internal_bleeding_cause_data.chance < math.randomDecimals(0, 1) then
+			return
+		end
+
+		-- cause internal bleeding
+		local internal_bleeding = citizen.medical_data.medical_conditions.internal_bleeding
+
+		internal_bleeding.custom_data.count = internal_bleeding.custom_data.count + 1
+	end,
+	nil
+)
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+	Some of the data for behaviour in here has been referenced from
+	Hooper N, Armstrong TJ. Hemorrhagic Shock. [Updated 2022 Sep 26]. In: StatPearls [Internet]. Treasure Island (FL): StatPearls Publishing; 2023 Jan-. Available from: https://www.ncbi.nlm.nih.gov/books/NBK470382/
+	Specifically for the different classes of hemorrahagic shock for the thresholds.
+]]
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries -- requires bleeding system to get how much blood the citizen has.
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	LIBRARY DESCRIPTION
+]]
+
+-- library name
+LibraryName = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+-- Define the medical condition
+medicalCondition.create(
+	"hemorrahagic_shock",
+	true,
+	{
+		stage = 0
+	},
+	---@param citizen Citizen
+	function(citizen)
+		local hemorrahagic_shock = citizen.medical_data.medical_conditions.hemorrahagic_shock
+		local bleeds = citizen.medical_data.medical_conditions.bleeds
+
+		local blood_lost_ratio = 1-(bleeds.custom_data.blood.current/bleeds.custom_data.blood.max)
+
+		if blood_lost_ratio > 0.4 then -- class 4 hemorrhagic shock, over 40% blood loss.
+			hemorrahagic_shock.custom_data.stage = 4
+		elseif blood_lost_ratio > 0.3 then -- class 3 hemorragic shock, over 30% blood loss.
+			hemorrahagic_shock.custom_data.stage = 3
+		elseif blood_lost_ratio > 0.15 then -- class 2 hemorragic shock, over 15% blood loss.
+			hemorrahagic_shock.custom_data.stage = 2
+		elseif blood_lost_ratio > 0.07 then -- class 1 hemorragic shock, over 7% blood loss. (The book never specifies the minimum blood loss for class 1, just "up to 15%", so I put it as 7% to avoid class 1 hemorrahagic shock being usless to know.)
+			hemorrahagic_shock.custom_data.stage = 1
+		else -- no hemorrahagic shock.
+			hemorrahagic_shock.custom_data.stage = 0
+		end
+
+		-- hide the tooltip if hemorrahagic shock is 0
+		hemorrahagic_shock.hidden = hemorrahagic_shock.custom_data.stage == 0
+
+		-- set the displayname tooltip
+		hemorrahagic_shock.display_name = ("Stage %s Hemorrhagic Shock"):format(hemorrahagic_shock.custom_data.stage)
+	end,
+	nil,
+	nil
+)
+--[[
+	
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -7094,6 +9793,9 @@ function onTick(game_ticks)
 	g_savedata.tick_counter = g_savedata.tick_counter + 1
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
+
+	Effects.onTick(game_ticks)
+
 	Citizens.onTick(game_ticks)
 end
 

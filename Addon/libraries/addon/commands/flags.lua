@@ -1,6 +1,6 @@
 --[[
 	
-Copyright 2023 Liam Matthews
+Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ require("libraries.addon.script.debugging") -- required to print messages
 require("libraries.addon.script.players") -- required to get data on players
 require("libraries.utils.string") -- required for some of its helpful string functions
 require("libraries.utils.tables") -- required for some of its helpful table functions
+
+g_savedata.flags = {}
 
 -- where all of the registered flags are stored, their current values get stored in g_savedata.flags instead, though.
 ---@type table<string, BooleanFlag | IntegerFlag | NumberFlag | StringFlag | AnyFlag>

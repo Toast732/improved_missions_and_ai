@@ -216,7 +216,6 @@ end
 
 -- a table containing a bunch of functions for making a copy of tables, to best fit each scenario performance wise.
 table.copy = {
-
 	iShallow = function(t, __ENV)
 		__ENV = __ENV or _ENV
 		return {__ENV.table.unpack(t)}
@@ -255,3 +254,64 @@ table.copy = {
 		return deepCopy(t)
 	end
 }
+
+---# Returns whether or not two tables are equal. <br>
+--- Variation of https://stackoverflow.com/a/32660766
+---@param t1 any
+---@param t2 any
+---@return boolean equal
+function table.equals(t1, t2)
+	-- if the two variables are just directly equal.
+	if t1 == t2 then
+		return true
+	end
+
+	-- get the types of the tables
+	local t1_type = type(t1)
+	local t2_type = type(t2)
+
+	-- if the types are not the same, then they cannot be the same.
+	if t1_type ~= t2_type then
+		return false
+	end
+
+	--[[
+		if they're not tables, then we can skip checking them, as we cannot iterate through non tables.
+		we only need to check one as they have to be the same variable type due to the previous check.
+	]]
+	if t1_type ~= "table" then
+		return false
+	end
+
+	-- store the keys that exist in t1
+	local t1_keys = {}
+
+	-- iterate through t1
+	for tk1, tv1 in pairs(t1) do
+		-- get the value in t2 with the index of this variable in t1
+		local tv2 = t2[tk1]
+
+		-- if the index in t1 does not exist in t2, then the tables are not the same.
+		if tv2 == nil then
+			return false
+		end
+
+		-- check if the two values are the same, if the normal == returns false, then do a check via table.equals, as {} ~= {}.
+		if tv1 ~= tv2 and table.equals(tv1, tv2) then
+			return false
+		end
+		-- say that this key exists in tv1
+		t1_keys[tk1] = true
+	end
+
+	-- iterate through t2
+	for tk2, _ in pairs(t2) do
+		-- if this key does not exist in t1, then the tables are not the same.
+		if not t1_keys[tk2] then
+			return false
+		end
+	end
+
+	-- if we got to this point, that means that these two tables are the same.
+	return true
+end

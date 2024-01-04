@@ -18,21 +18,26 @@ limitations under the License.
 
 --[[
 
-	Registers the default commands.
+	Registers the medical items to the registers.
 
 ]]
 
--- Info command
-Command.registerCommand(
-	"info",
-	---@param full_message string the full message
-	---@param peer_id integer the peer_id of the sender
-	---@param arg table the arguments of the command.
-	function(full_message, peer_id, arg)
-		d.print(("Addon version: %s"):format(ADDON_VERSION), false, 0, peer_id)
-	end,
-	"none",
-	"Prints some info about the addon, such as it's version",
-	"Prints some general addon info.",
-	{""}
+-- required libraries
+require("libraries.addon.utils.objects.characters.inventory.item")
+
+Item.createPrefab(
+	"bandage",
+	nil,
+	{
+		applied_time = 0
+	}
+)
+
+Item.createPrefab(
+	"tourniquet",
+	nil,
+	{
+		applied_time = 0,
+		tightened = false
+	}
 )
