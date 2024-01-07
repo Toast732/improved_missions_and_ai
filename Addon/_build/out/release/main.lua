@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.11)"
+ADDON_VERSION = "(0.0.1.12)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -8960,7 +8960,7 @@ function Animator.deployAnimation(animation, spawning_data, origin)
 	-- create and store the animator data
 	table.insert(g_savedata.animator.active_animators,
 		---@type ActiveAnimator
-	{
+		{
 			animator_id = animator_id,
 			spawning_data = spawning_data,
 			origin = origin,
@@ -9328,7 +9328,6 @@ Command.registerCommand(
 			end
 
 			d.print("Deleted all animators.", false, 0, peer_id)
-			
 		else
 			local is_success = Animator.removeAnimator(animator_id)
 			
@@ -12084,13 +12083,9 @@ function onCreate(is_world_create)
 		-- otherwise the game would freeze for a bit after the player loaded in, looking like the game froze
 		-- instead it looks like its taking a bit longer to create the world.
 
-		local empty_matrix = m.identity()
+		local empty_matrix = matrix.identity()
 
 		s.pathfind(empty_matrix, empty_matrix, "", "")
-
-		--d.print("setting up reservable zones...", true, 0)
-		
-		--Zones.setup()
 	end
 
 	-- send out discovery message (AddonDiscoveryAPI)
@@ -12118,35 +12113,6 @@ function onTick(game_ticks)
 	Missions.onTick(game_ticks)
 
 	Animator.onTick(game_ticks)
-
-	g_savedata.test_close_dest_ring = g_savedata.test_close_dest_ring or {
-		spawned = false,
-		ring_group_id = -1,
-		y_modifier = 0,
-		y_modifier_direction = 1
-	}
-
-	--[[if trueg_savedata.test_close_dest_ring.spawned and isTickID(0, 0) then
-		if math.abs(g_savedata.test_close_dest_ring.y_modifier) >= 4 then
-			g_savedata.test_close_dest_ring.y_modifier_direction = -g_savedata.test_close_dest_ring.y_modifier_direction
-		end
-
-		local y_movement = g_savedata.test_close_dest_ring.y_modifier_direction * 0.05
-
-		g_savedata.test_close_dest_ring.y_modifier = g_savedata.test_close_dest_ring.y_modifier + y_movement
-
-		local vehicle_ids = server.getVehicleGroup(g_savedata.test_close_dest_ring.ring_group_id)
-
-		local vehicle_id = vehicle_ids[1]
-
-		local vehicle_pos = server.getVehiclePos(vehicle_id)
-
-		local new_vehicle_pos = vehicle_pos
-
-		new_vehicle_pos[14] = new_vehicle_pos[14] + y_movement
-
-		server.moveVehicle(vehicle_id, new_vehicle_pos)
-	end]]
 end
 
 --------------------------------------------------------------------------------
@@ -12167,88 +12133,4 @@ end
 function millisecondsSince(start_ms)
 	return s.getTimeMillisec() - start_ms
 end
-
-Command.registerCommand(
-	"close_dest_ring",
-	---@param full_message string the full message
-	---@param peer_id integer the peer_id of the sender
-	---@param arg table the arguments of the command.
-	function(full_message, peer_id, arg)
-		g_savedata.test_close_dest_ring = g_savedata.test_close_dest_ring or {
-			spawned = false,
-			ring_group_id = -1,
-			y_modifier = 0,
-			y_modifier_direction = 1
-		}
-
-		if g_savedata.test_close_dest_ring.spawned then
-			local vehicle_ids = server.getVehicleGroup(g_savedata.test_close_dest_ring.ring_group_id)
-
-			for _, vehicle_id in pairs(vehicle_ids) do
-				server.despawnVehicle(vehicle_id, true)
-			end
-
-			g_savedata.test_close_dest_ring.spawned = false
-		end
-
-		-- get player pos
-		local player_pos = server.getPlayerPos(peer_id)
-
-		local found_location_index = -1
-		local found_component_index = -1
-
-		local addon_index = server.getAddonIndex()
-		for location_index = 0, server.getAddonData(addon_index).location_count - 1 do
-			local location_data = server.getLocationData(addon_index, location_index)
-
-			-- skip if this is an env mod
-			if location_data.env_mod then
-				goto continue
-			end
-
-			d.print(("Location Name: %s"):format(location_data.name), false, 0, peer_id)
-
-			-- iterate through all components in this location
-			for component_index = 0, location_data.component_count - 1 do
-
-				local component_data, is_success = server.getLocationComponentData(addon_index, location_index, component_index)
-
-				if is_success then
-					if component_data.tags_full == "imai,close_destination_marker" then
-						found_location_index = location_index
-						found_component_index = component_index
-						break
-					end
-				end
-			end
-			::continue::
-		end
-
-		d.print(("Found location index: %d, component index: %d"):format(found_location_index, found_component_index), false, 0, peer_id)
-
-		player_pos[14] = player_pos[14] + 2
-
-		player_pos[1] = 10
-		player_pos[6] = 5
-		player_pos[11] = 10
-
-		-- spawn ring at player's position
-		component_data, is_success = server.spawnAddonComponent(
-			player_pos,
-			server.getAddonIndex(),
-			found_location_index,
-			found_component_index
-		)
-
-		g_savedata.test_close_dest_ring.ring_group_id = component_data.group_id
-
-		g_savedata.test_close_dest_ring.spawned = true
-
-		g_savedata.test_close_dest_ring.y_modifier = 0
-	end,
-	"admin_script",
-	"Starts the specified mission.",
-	"Starts the specified mission, specified mission name must be it's internal name.",
-	{"start_mission <internal_mission_name> [mission_args...]"}
-)
 

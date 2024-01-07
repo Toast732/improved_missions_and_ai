@@ -213,7 +213,7 @@ function Animator.deployAnimation(animation, spawning_data, origin)
 	-- create and store the animator data
 	table.insert(g_savedata.animator.active_animators,
 		---@type ActiveAnimator
-	{
+		{
 			animator_id = animator_id,
 			spawning_data = spawning_data,
 			origin = origin,
@@ -581,7 +581,6 @@ Command.registerCommand(
 			end
 
 			d.print("Deleted all animators.", false, 0, peer_id)
-			
 		else
 			local is_success = Animator.removeAnimator(animator_id)
 			
