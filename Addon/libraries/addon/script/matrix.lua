@@ -49,3 +49,24 @@ function matrix.acceleration(matrix1, matrix2, matrix3, ticks_between)
 	-- returns the acceleration
 	return (v1-v2)/(ticks_between/60)
 end
+
+function matrix.clone(matrix_to_clone)
+	return {
+		matrix_to_clone[1],
+		matrix_to_clone[2],
+		matrix_to_clone[3],
+		matrix_to_clone[4],
+		matrix_to_clone[5],
+		matrix_to_clone[6],
+		matrix_to_clone[7],
+		matrix_to_clone[8],
+		matrix_to_clone[9],
+		matrix_to_clone[10],
+		matrix_to_clone[11],
+		matrix_to_clone[12],
+		matrix_to_clone[13],
+		matrix_to_clone[14],
+		matrix_to_clone[15],
+		matrix_to_clone[16]
+	}
+end

@@ -9,7 +9,7 @@
 -- required libraries
 require("libraries.addon.script.debugging")
 require("libraries.utils.tables")
-require("libraries.tags")
+require("libraries.addon.components.tags")
 
 -- library name
 Setup = {}

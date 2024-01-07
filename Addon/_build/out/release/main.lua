@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.10)"
+ADDON_VERSION = "(0.0.1.11)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -1620,6 +1620,26 @@ function math.linearScale(x, x_min, x_max, y_min, y_max)
 	return (1-scaled_x)*y_min+scaled_x*y_max
 end
 
+--- Quadratic Bezier interpolation between 3 points.
+---@param last number the previous point
+---@param new number the new target point
+---@param p1 number the control point
+---@param progress number the progress between 0 and 1
+---@return number point the point between last and new
+function math.quadraticBezier(last, new, p1, progress)
+	-- calculate the inverse of the progress
+	local inverse_progress = 1-progress
+
+	-- calculate the progress squared
+	local progress_squared = progress*progress
+
+	-- calculate the inverse progress squared
+	local inverse_progress_squared = inverse_progress*inverse_progress
+
+	-- calculate and return the point.
+	return inverse_progress_squared * last + 2 * inverse_progress * progress * p1 + progress_squared * new
+end
+
 
 ---@param matrix1 SWMatrix the first matrix
 ---@param matrix2 SWMatrix the second matrix
@@ -1669,6 +1689,27 @@ function matrix.acceleration(matrix1, matrix2, matrix3, ticks_between)
 	local v2 = m.velocity(matrix2, matrix3, ticks_between) -- change in velocity from ticks_between ago
 	-- returns the acceleration
 	return (v1-v2)/(ticks_between/60)
+end
+
+function matrix.clone(matrix_to_clone)
+	return {
+		matrix_to_clone[1],
+		matrix_to_clone[2],
+		matrix_to_clone[3],
+		matrix_to_clone[4],
+		matrix_to_clone[5],
+		matrix_to_clone[6],
+		matrix_to_clone[7],
+		matrix_to_clone[8],
+		matrix_to_clone[9],
+		matrix_to_clone[10],
+		matrix_to_clone[11],
+		matrix_to_clone[12],
+		matrix_to_clone[13],
+		matrix_to_clone[14],
+		matrix_to_clone[15],
+		matrix_to_clone[16]
+	}
 end
 
 
@@ -3373,19 +3414,19 @@ function Effects.apply(name, object, duration, strength)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("3359: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("3400: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3365: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("3406: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false
 	end
 
 	-- if the object cannot have this effect applied.
 	if not effect_applicable_objects[name] or not effect_applicable_objects[name][object.object_type] then
-		d.print(("3371: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
+		d.print(("3412: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -3394,7 +3435,7 @@ function Effects.apply(name, object, duration, strength)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3380: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("3421: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -3437,7 +3478,7 @@ end
 function Effects.remove(object, name)
 	-- if the object was never given
 	if not object then
-		d.print(("3423: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
+		d.print(("3464: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
 		return false, false
 	end
 
@@ -3446,13 +3487,13 @@ function Effects.remove(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("3432: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("3473: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3438: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("3479: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -3461,7 +3502,7 @@ function Effects.remove(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3447: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("3488: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -3513,13 +3554,13 @@ end
 function Effects.removeAll(object)
 	-- if the object was never given
 	if not object then
-		d.print("3499: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
+		d.print("3540: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
 		return 0, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3505: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("3546: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return 0, false
 	end
 
@@ -3528,7 +3569,7 @@ function Effects.removeAll(object)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3514: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
+		d.print(("3555: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
 		return 0, false
 	end
 
@@ -3556,7 +3597,7 @@ function Effects.removeAll(object)
 		
 		-- if this effect does not exist.
 		if not effect_definition then
-			d.print(("3542: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
+			d.print(("3583: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -3594,13 +3635,13 @@ function Effects.has(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("3580: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("3621: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3586: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("3627: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -3609,7 +3650,7 @@ function Effects.has(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3595: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("3636: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -3674,7 +3715,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("3660: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("3701: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -3690,7 +3731,7 @@ function Effects.onTick(game_ticks)
 
 		-- if this effect definition does not exist.
 		if not effect_definition then
-			d.print(("3676: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
+			d.print(("3717: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -3701,7 +3742,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("3687: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("3728: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -3739,10 +3780,72 @@ limitations under the License.
 ]]
 
 -- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
 -- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Has some functions to find tags on an object. And some to get their value.
+]]
 
 -- library name
 Tags = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias Tags table<integer, string>
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
 
 function Tags.has(tags, tag, decrement)
 	if type(tags) ~= "table" then
@@ -4069,21 +4172,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("4055: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("4158: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("4062: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("4165: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("4069: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("4172: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -4121,14 +4224,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("4107: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("4210: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("4114: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("4217: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -4138,7 +4241,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("4124: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("4227: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -4172,7 +4275,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("4158: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("4261: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -4183,7 +4286,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("4169: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("4272: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -4239,7 +4342,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("4225: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("4328: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -4391,7 +4494,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("4377: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("4480: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -4400,7 +4503,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("4386: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("4489: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -4421,7 +4524,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("4407: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("4510: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -4430,7 +4533,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("4416: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("4519: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -5068,7 +5171,7 @@ function Citizens.onTick(game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("5054: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("5157: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -5642,14 +5745,62 @@ function Flag.registerAnyFlag(name, default_value, tags, read_permission_require
 	end
 end
 
----@param full_message string the full_message of the player
----@param peer_id integer the peer_id of the player who executed the command
----@param is_admin boolean if the player has admin.
----@param is_auth boolean if the player is authed.
----@param command string the command the player entered
----@param arg table<integer, string> the arguments to the command the player entered.
-function Flag.onFlagCommand(full_message, peer_id, is_admin, is_auth, command, arg)
-	if command == "flag" then
+--[[
+
+	Register Default Permissions
+
+]]
+
+-- None Permission
+Flag.registerPermission(
+	"none",
+	function()
+		return true
+	end
+)
+
+-- Auth Permission
+Flag.registerPermission(
+	"auth",
+	function(peer_id)
+		local players = server.getPlayers()
+
+		for peer_index = 1, #players do
+			local player = players[peer_index]
+
+			if player.id == peer_id then
+				return player.auth
+			end
+		end
+
+		return false
+	end
+)
+
+-- Admin Permission
+Flag.registerPermission(
+	"admin",
+	function(peer_id)
+		local players = server.getPlayers()
+
+		for peer_index = 1, #players do
+			local player = players[peer_index]
+
+			if player.id == peer_id then
+				return player.admin
+			end
+		end
+
+		return false
+	end
+)
+
+Command.registerCommand(
+	"flag",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
 		local flag_name = arg[1]
 
 		if not flag_name then
@@ -5760,7 +5911,19 @@ function Flag.onFlagCommand(full_message, peer_id, is_admin, is_auth, command, a
 
 			d.print(("Successfully set the value for the flag \"%s\" to %s"):format(flag.name, set_value), false, 0, peer_id)
 		end
-	elseif command == "flags" then
+	end,
+	"none",
+	"Used to manage more advanced settings, such as disabling modules.",
+	"Used to manage more advanced settings.",
+	{"flag <flag_name> [value]"}
+)
+
+Command.registerCommand(
+	"flags",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
 		if arg[1] then
 			d.print("Does not yet support the ability to search for flags, only able to give a full list for now, sorry!", false, 0, peer_id)
 			return
@@ -5803,57 +5966,11 @@ function Flag.onFlagCommand(full_message, peer_id, is_admin, is_auth, command, a
 			-- print the flag data
 			d.print(("-----\nName: %s\nValue: %s\nTags: %s"):format(flag.name, g_savedata.flags[flag.name], table.concat(flag.tags, ", ")), false, 0, peer_id)
 		end
-	end
-end
-
---[[
-
-	Register Default Permissions
-
-]]
-
--- None Permission
-Flag.registerPermission(
+	end,
 	"none",
-	function()
-		return true
-	end
-)
-
--- Auth Permission
-Flag.registerPermission(
-	"auth",
-	function(peer_id)
-		local players = server.getPlayers()
-
-		for peer_index = 1, #players do
-			local player = players[peer_index]
-
-			if player.id == peer_id then
-				return player.auth
-			end
-		end
-
-		return false
-	end
-)
-
--- Admin Permission
-Flag.registerPermission(
-	"admin",
-	function(peer_id)
-		local players = server.getPlayers()
-
-		for peer_index = 1, #players do
-			local player = players[peer_index]
-
-			if player.id == peer_id then
-				return player.admin
-			end
-		end
-
-		return false
-	end
+	"Used to list all of the flags which you have permission to read, flags are used for more advanced settings.",
+	"Used to list the flags.",
+	{"flags"}
 )
 
 
@@ -5944,7 +6061,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("5930: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("6047: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -5980,7 +6097,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("5966: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("6083: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -5991,7 +6108,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("5977: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("6094: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -6003,7 +6120,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("5989: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("6106: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -6153,7 +6270,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("6139: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("6256: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -6262,7 +6379,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("6248: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("6365: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -7087,7 +7204,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("7073: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("7190: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -7107,7 +7224,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("7093: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("7210: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -7271,13 +7388,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("7257: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7374: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("7263: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7380: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -7298,17 +7415,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("7284: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("7401: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("7289: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7406: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("7294: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("7411: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -7672,6 +7789,2207 @@ Command.registerCommand(
 	"Spawns a citizen at the player's position",
 	"Spawns a citizen",
 	{""}
+)
+--[[
+
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	LIBRARY DESCRIPTION
+]]
+
+-- library name
+Objective = {
+	type = {},
+	destination = {}
+}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class Objective
+---@field money_reward number the amount of money to reward the player with when they complete it.
+---@field research_reward number the amount of research points to reward the player with when they complete it.
+---@field type string the type of objective.
+
+---@alias Objectives table<int, Objective>
+
+---@alias DestinationType
+---| "zone" meaning the destination is a zone.
+---| "matrix" meaning the destination is a matrix.
+
+---@class Destination
+---@field type DestinationType the type of destination.
+---@field zone SWZone|nil the zone the destination is in. Only used if the type is "zone".
+---@field position SWVoxelPos|nil the position of the destination. Only used if the type is "matrix". Stored as voxel pos to avoid higher memory usage.
+---@field radius number|nil the radius of the destination. Only used if the type is "matrix".
+---@field instances integer the amount of instances of this destination. Used to know if it can be removed or not.
+---@field animator_id AnimatorID? The animator id for this destination.
+
+---@class DefinedObjective
+---@field name string the name of the objective.
+---@field checkCompletion fun(objective: Objective):ObjectiveCompletionStatus the function to check if the objective is complete.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- Completition status of an objective.
+---@enum ObjectiveCompletionStatus
+OBJECTIVE_COMPLETION_STATUS = {
+	IN_PROGRESS = 0,
+	COMPLETED = 1,
+	FAILED = 2
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.objectives = g_savedata.objectives or {
+	---@type table<int, Destination>
+	destinations = {}
+}
+
+-- stores the defined objectives, indexed by the type of the objective.
+---@type table<string, DefinedObjective>
+defined_objectives = {}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+
+	Destination Functions
+
+]]
+
+--- Create a destination using a zone.
+---@param zone SWZone the zone to use as the destination.
+---@return Destination destination the destination.
+function Objective.destination.zone(zone)
+	-- create the destination using the zone
+	---@type Destination
+	local destination = {
+		type = "zone",
+		zone = zone,
+		instances = 0
+	}
+
+	-- return the destination
+	return destination
+end
+
+--- Create a destination using a matrix.
+---@param dest_matrix SWMatrix the matrix to use as the destination.
+---@param radius number the radius of the destination.
+---@return Destination destination the destination.
+function Objective.destination.matrix(dest_matrix, radius)
+
+	-- extract position from the matrix (I assume this function properly applies the rotations, scaling, etc to the matrix.)
+	local x, y, z = matrix.position(dest_matrix)
+
+	-- Turn into 3D position ("SWVoxelPos")
+	---@type SWVoxelPos
+	local dest_pos = {
+		x = x,
+		y = y,
+		z = z
+	}
+
+	-- create the destination using the matrix
+	---@type Destination
+	local destination = {
+		type = "matrix",
+		position = dest_pos,
+		radius = radius,
+		instances = 0
+	}
+
+	-- return the destination
+	return destination
+end
+
+--- Check if a matrix is within the destination
+---@param current_matrix SWMatrix the matrix to check.
+---@param destination Destination the destination to check.
+---@return boolean is_in_destination whether or not the matrix is in the destination.
+function Objective.destination.hasReachedDestination(current_matrix, destination)
+	-- check if the destination is a zone
+	if destination.type == "zone" then
+		-- check if the matrix is in the zone
+		return server.isInTransformArea(
+			matrix,
+			destination.zone.transform,
+			destination.zone.size.x,
+			destination.zone.size.y,
+			destination.zone.size.z
+		)
+	end
+
+	--* this destination is a matrix.
+
+	-- extract position from the matrix (I assume this function properly applies the rotations, scaling, etc to the matrix.)
+	local current_x, current_y, current_z = matrix.position(current_matrix)
+
+	-- get the distance from the current position to the target position
+	local destination_distance = math.euclideanDistance(
+		current_x,
+		destination.position.x,
+		current_z,
+		destination.position.z,
+		current_y,
+		destination.position.y
+	)
+
+	-- return if the distance from the current position to the target position is within the radius
+	return destination_distance <= destination.radius
+end
+
+--- Add an instance of this destination, used so it knows if it can be removed or not.
+---@param destination Destination the destination to add an instance of.
+---@return Destination destination the destination with an added instance.
+function Objective.destination.addInstance(destination)
+	-- add an instance
+	destination.instances = destination.instances + 1
+
+	-- return the destination
+	return destination
+end
+
+--- Remove an instance of this destination, used so it knows if it can be removed or not.
+---@param destination Destination the destination to remove an instance of.
+---@return Destination destination the destination with a removed instance.
+function Objective.destination.removeInstance(destination)
+	-- remove an instance
+	destination.instances = destination.instances - 1
+
+	return destination
+end
+
+--[[
+
+	Objective Functions
+
+]]
+
+--[[
+	Internal Usage Functions
+]]
+
+--- Define a new objective type. (Should only be used when creating new objective types)
+---@param name string the name of the objective type.
+---@param checkCompletion fun(objective: Objective):ObjectiveCompletionStatus the function to check if the objective is complete.
+function Objective.defineType(name, checkCompletion)
+	-- create the objective type
+	defined_objectives[name] = {
+		name = name,
+		checkCompletion = checkCompletion
+	}
+end
+
+--[[
+	External Usage Functions
+]]
+
+--- Checks if an objective is completed
+---@param objective Objective the objective to check.
+---@return ObjectiveCompletionStatus status the completition status of the objective.
+function Objective.checkCompletion(objective)
+	-- check if the objective type is defined
+	if not defined_objectives[objective.type] then
+		d.print(("8061: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		return OBJECTIVE_COMPLETION_STATUS.FAILED
+	end
+
+	-- check if the objective is completed
+	return defined_objectives[objective.type].checkCompletion(objective)
+end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	LIBRARY DESCRIPTION
+]]
+
+-- library name
+Missions = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class Mission
+---@field internal_name string the internal name of the mission.
+---@field objectives Objectives the objectives of the mission.
+
+---@alias Missions table<integer, Mission>
+
+---@class DefinedMission
+---@field internal_name string the internal name of the mission.
+---@field name string the name of the mission.
+---@field startMission fun(...) the function to call to start the mission.
+---@field onCompletion fun(mission: Mission) the function to call when the mission is completed, as in, when there's no more objectives.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The tickrate of missions, the number of ticks between each time the mission is ticked.
+MISSION_TICK_RATE = 45
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.missions = g_savedata.missions or {
+	---@type Missions
+	missions_list = {}
+}
+
+---@type table<string, DefinedMission> a table of defined missions, indexed by the internal name.
+defined_missions = {}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Define a mission, should be used by the included missions.
+---@param internal_name string the internal name of the mission.
+---@param name string the name of the mission.
+---@param startMission fun(...) the function to call to start the mission.
+---@param onCompletion fun(mission: Mission) the function to call when the mission is completed, as in, when there's no more objectives.
+function Missions.define(internal_name, name, startMission, onCompletion)
+	-- Create the defined mission
+	local defined_mission = {
+		internal_name = internal_name,
+		name = name,
+		startMission = startMission,
+		onCompletion = onCompletion
+	}
+
+	-- add it to the defined missions list
+	defined_missions[internal_name] = defined_mission
+end
+
+--- Create a mission from a set of objectives.
+---@param internal_name string the internal name of the mission.
+---@param objectives Objectives the objectives of the mission.
+---@return Mission mission the created mission.
+function Missions.create(internal_name, objectives)
+	-- Create the mission
+	local mission = {
+		internal_name = internal_name,
+		objectives = objectives
+	}
+
+	-- add it to the missions list
+	table.insert(g_savedata.missions.missions_list, mission)
+
+	-- Return the mission
+	return mission
+end
+
+--- Tick the missions
+---@param game_ticks integer the amount of game ticks that have passed since the last tick.
+function Missions.onTick(game_ticks)
+
+	-- get the number of missions
+	local mission_count = #g_savedata.missions.missions_list
+
+	--[[
+		iterate through all missions, split it evenly among MISSION_TICK_RATE ticks.
+		
+		Operation:
+		- start at the last mission with the matching tick id
+		- dont go lower than 1
+		- decrement by the MISSION_TICK_RATE each time.
+		
+		Allows us to evenly split it among the ticks, without requiring us to iterate through
+		each one to check if it matches the tick_id.
+	]]
+	for mission_index = mission_count - g_savedata.tick_counter % MISSION_TICK_RATE, 1, -MISSION_TICK_RATE do
+
+		-- get the mission
+		local mission = g_savedata.missions.missions_list[mission_index]
+
+		-- get the number of objectives in this mission
+		local objective_count = #mission.objectives
+
+		-- if the number of objectives in this mission is 0, remove the mission.
+		if objective_count == 0 then
+			table.remove(g_savedata.missions.missions_list, mission_index)
+
+			server.notify(
+				-1,
+				"Mission",
+				"A mission has been completed.",
+				4
+			)
+
+			goto continue
+		end
+
+		-- iterate through all of the objectives
+		for objective_index = objective_count, 1, -1 do
+
+			local objective = mission.objectives[objective_index]
+
+			-- tick the objective
+			local completion_status = Objective.checkCompletion(objective)
+
+			if completion_status == OBJECTIVE_COMPLETION_STATUS.COMPLETED then
+				server.notify(
+					-1,
+					"Mission Objective",
+					"A mission objective has been completed.",
+					8
+				)
+
+				-- remove the objective
+				table.remove(mission.objectives, objective_index)
+			elseif completion_status == OBJECTIVE_COMPLETION_STATUS.FAILED then
+				server.notify(
+					-1,
+					"Mission Objective",
+					"A mission objective has been failed.",
+					2
+				)
+			end
+		end
+
+		::continue::
+	end
+end
+
+--[[
+
+
+	Definitions
+
+
+]]
+
+-- Define a command to start a mission
+Command.registerCommand(
+	"start_mission",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- Check if the mission is defined
+		if defined_missions[arg[1]] == nil then
+			d.print(("Mission %s is not defined."):format(arg[1]), false, 1, peer_id)
+			return
+		end
+
+		g_savedata.included_missions.scripted.transport.demo.started = false
+
+		-- Call the mission start function
+		defined_missions[arg[1]].startMission()
+	end,
+	"admin_script",
+	"Starts the specified mission.",
+	"Starts the specified mission, specified mission name must be it's internal name.",
+	{"start_mission <internal_mission_name> [mission_args...]"}
+)
+
+-- Define a command to stop a mission.
+Command.registerCommand(
+	"stop_mission",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+
+		-- get the mission_index
+		local mission_index = tonumber(arg[1])
+
+		-- Check if the mission exists
+		if g_savedata.missions.missions_list[mission_index] == nil then
+			d.print(("%s is not a valid index. There is no mission with that index."):format(arg[1]), false, 1, peer_id)
+			return
+		end
+
+		-- get the mission
+		local mission = g_savedata.missions.missions_list[mission_index]
+
+		-- remove the mission
+		table.remove(g_savedata.missions.missions_list, mission_index)
+
+		-- get it's definition
+		local mission_definition = defined_missions[mission.internal_name]
+
+		-- if it's function definition does not exist for whatever reason, return to prevent an error
+		if mission_definition == nil then
+			return
+		end
+
+		-- Call the mission stop function
+		mission_definition.onCompletion(mission)
+	end,
+	"admin_script",
+	"Stops the specified mission.",
+	"Stops the specified mission, from it's mission_index.",
+	{"stop_mission <mission_index>"}
+)
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[
+	Includes all the animations, this is required by main.lua, and then this will include all the animations to define, to de-clutter main.lua.
+]]
+
+-- library name
+Animations = {
+	markers = {}
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+included_animations = {
+	markers = {}
+}
+
+--g_savedata.included_animations = g_savedata.included_animations or {}
+--g_savedata.included_animations.markers = g_savedata.included_animations.markers or {}
+
+--[[
+
+
+	Included Missions
+
+
+]]
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Animation Version 0.0.1
+
+--[[
+
+
+	Animation Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Library to get spawning data for a component, and then spawn it from that data.
+]]
+
+-- library name
+ComponentSpawner = {
+	filter = {}
+}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class SpawningData
+---@field addon_index integer the addon index of the component.
+---@field location_index integer the location index of the component.
+---@field component_index integer the component index of the component.
+
+---@class ComponentFilterSegment
+---@field tags Tags the tags to match.
+---@field location_names table<int, string> the location names to match.
+
+---@class ComponentFilter
+---@field include ComponentFilterSegment the data that must match.
+---@field exclude ComponentFilterSegment the data that must not match.
+---@field env_mod_handling ComponentFilterEnvModHandlingOptions how to handle env mods. Defaults to COMPONENT_FILTER_ENV_MOD_HANDLING.EITHER
+---@field addTag fun(self: ComponentFilter, tag: string, exclude: boolean?) adds a tag to the filter.
+---@field addLocationName fun(self: ComponentFilter, location_name: string, exclude: boolean?) adds a location name to the filter.
+---@field setEnvModHandling fun(self: ComponentFilter, env_mod_handling: ComponentFilterEnvModHandlingOptions) sets the env mod handling of the filter.
+---@field getSpawningData fun(self: ComponentFilter, fallback: SpawningDataFallbackOptions?) gets the spawning data from the filter.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+---@enum SpawningDataFallbackOptions
+SPAWNING_DATA_FALLBACK = {
+	FIRST = 0,
+	RANDOM = 1
+}
+
+---@enum ComponentFilterEnvModHandlingOptions
+COMPONENT_FILTER_ENV_MOD_HANDLING = {
+	EITHER = 0, -- can be either an env mod or not.
+	REQUIRED = 1, -- required to be an env mod.
+	NOT_ALLOWED = 2, -- not allowed to be an env mod.
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Creates a blank filter.
+---@return ComponentFilter filter Warning, cannot be stored and g_savedata and should not be.
+function ComponentSpawner.createFilter()
+	filter = {
+		include = {
+			tags = {},
+			location_names = {}
+		}, -- required data, all must match
+		exclude = {
+			tags = {},
+			location_names = {}
+		}, -- excluded data, none can match
+		env_mod_handling = COMPONENT_FILTER_ENV_MOD_HANDLING.EITHER
+	}
+
+	--[[
+		add the filter functions.
+	]]
+
+	--- Function for adding a tag to a filter.
+	---@param self ComponentFilter the filter to add the tag to.
+	---@param tag string the tag to add to the filter
+	---@param exclude boolean? whether or not to add the tag to the exclude tags. If false or nil, adds to include.
+	function filter:addTag(tag, exclude)
+		-- if this is an exclude tag
+		if exclude then
+			-- add it to the exclude list
+			table.insert(self.exclude.tags, tag)
+		-- otherwise, if this is an include tag
+		else
+			-- add it to the include list.
+			table.insert(self.include.tags, tag)
+		end
+	end
+
+	--- Function for adding a location name to a filter.
+	---@param self ComponentFilter the filter to add the location name to.
+	---@param location_name string the location name to add to the filter.
+	---@param exclude boolean? whether or not to add the location name to the exclude location names. If false or nil, adds to include.
+	function filter:addLocationName(location_name, exclude)
+		-- if this is an exclude location name
+		if exclude then
+			-- add it to the exclude list
+			table.insert(self.exclude.location_names, location_name)
+		-- otherwise, if this is an include location name
+		else
+			-- add it to the include list.
+			table.insert(self.include.location_names, location_name)
+		end
+	end
+
+	--- Function for setting the env mod handling of a filter.
+	---@param self ComponentFilter the filter to set the env mod handling of.
+	---@param env_mod_handling ComponentFilterEnvModHandlingOptions the env mod handling to set.
+	function filter:setEnvModHandling(env_mod_handling)
+		self.env_mod_handling = env_mod_handling
+	end
+
+	--- Function for getting the spawning data from a filter
+	---@param self ComponentFilter the filter to get the spawning data from.
+	---@param fallback SpawningDataFallbackOptions? the fallback option to use if there is no spawning data found. If nil, defaults to SPAWNING_DATA_FALLBACK.FIRST
+	---@return SpawningData spawning_data the spawning data found.
+	---@return boolean is_success if the spawning data was found.
+	function filter:getSpawningData(fallback)
+		-- default fallback option to SPAWNING_DATA_FALLBACK.FIRST
+		fallback = fallback or SPAWNING_DATA_FALLBACK.FIRST
+
+		--[[
+			Get the spawning data.
+
+			Operation:
+				1. Iterate through all addons.
+					1.1 Iterate through all locations in the addon.
+					1.2 Discard location if it matches any exclude location_names.
+					1.3 Discard location if it does not match all of the include location_names.
+						1.1.1 Iterate through all components in the location.
+						1.1.2 Discard component if any of the tags match any exclude tag.
+						1.1.3 Discard component if the tags do not match all of the include tags.
+		]]
+
+		---@type table<int, SpawningData> the spawning data found.
+		local matching_spawning_data = {}
+
+		-- get the number of addons
+		local addon_count = server.getAddonCount()
+
+		-- iterate through all addons
+		for addon_index = 0, addon_count - 1 do
+
+			-- get the addon's data
+			local addon_data = server.getAddonData(addon_index)
+
+			-- iterate through all locations in this addon
+			for location_index = 0, addon_data.location_count - 1 do
+
+				-- get the location's data
+				local location_data, location_is_success = server.getLocationData(addon_index, location_index)
+
+				-- discard if location_is_success is false.
+				if not location_is_success then
+					goto discard_location
+				end
+
+				-- if env mod handling is required.
+				if self.env_mod_handling == COMPONENT_FILTER_ENV_MOD_HANDLING.REQUIRED then
+					-- if this location is not an env mod, discard the location.
+					if not location_data.env_mod then
+						goto discard_location
+					end
+				elseif self.env_mod_handling == COMPONENT_FILTER_ENV_MOD_HANDLING.NOT_ALLOWED then
+					-- if this location is an env mod, discard the location.
+					if location_data.env_mod then
+						goto discard_location
+					end
+				end
+
+				-- go through all of the exclude location names
+				for _, exclude_location_name in ipairs(self.exclude.location_names) do
+					-- if this location name matches the exclude location name, discard the location.
+					if location_data.name:match(exclude_location_name) then
+						goto discard_location
+					end
+				end
+
+				-- go through all of the include location names
+				for _, include_location_name in ipairs(self.include.location_names) do
+					-- if this location name does not match the include location name, discard the location.
+					if not location_data.name:match(include_location_name) then
+						goto discard_location
+					end
+				end
+
+				-- go through all components in this location
+				for component_index = 0, location_data.component_count - 1 do
+
+					-- get the component's data
+					local component_data, component_is_success = server.getLocationComponentData(addon_index, location_index, component_index)
+				
+					-- discard if component_is_success is false.
+					if not component_is_success then
+						goto discard_component
+					end
+
+					-- go through all exclude tags
+					for _, exclude_tag in ipairs(self.exclude.tags) do
+						-- if this component has the exclude tag, discard the component.
+						if Tags.has(component_data.tags, exclude_tag) then
+							goto discard_component
+						end
+					end
+
+					-- go through all include tags
+					for _, include_tag in ipairs(self.include.tags) do
+						-- if this component does not have the include tag, then exclued the component.
+						if not Tags.has(component_data.tags, include_tag) then
+							goto discard_component
+						end
+					end
+
+					-- add this as matching spawning data.
+					table.insert(matching_spawning_data, 
+						{
+							addon_index = addon_index,
+							location_index = location_index,
+							component_index = component_index
+						}
+					)
+					::discard_component::
+				end
+				::discard_location::
+			end
+		end
+
+		-- get the number of matches
+		local match_count = #matching_spawning_data
+
+		-- if there are no matches, return that it failed
+		if match_count == 0 then
+			return {
+				addon_index = 0,
+				location_index = 0,
+				component_index = 0
+			}, false
+		end
+
+		-- if the fallback option is SPAWNING_DATA_FALLBACK.FIRST
+		if fallback == SPAWNING_DATA_FALLBACK.FIRST then
+			-- return the first match
+			return matching_spawning_data[1], true
+		-- otherwise, this is using the random fallback.
+		else
+			-- return a random match
+			return matching_spawning_data[math.random(1, match_count)], true
+		end
+	end
+
+	return filter
+end
+
+--- Spawns a component from the spawning data.
+---@param spawning_data SpawningData the spawning data to spawn the component from.
+---@param matrix SWMatrix the matrix to spawn the component at.
+---@param parent_vehicle_id integer? optional parent's vehicle_id to parent to.
+---@return SWAddonComponentSpawned component_data
+---@return boolean is_success
+function ComponentSpawner.spawn(spawning_data, matrix, parent_vehicle_id)
+
+	-- spawn the component
+	local component_data, is_success = server.spawnAddonComponent(
+		matrix,
+		spawning_data.addon_index,
+		spawning_data.location_index,
+		spawning_data.component_index,
+		parent_vehicle_id
+	)
+
+	-- return data
+	return component_data, is_success
+end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Animates vehicles.
+]]
+
+-- library name
+Animator = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class KeyframeInstructionData
+
+---@class KeyframeInstruction
+---@field data KeyframeInstructionData the custom data for the keyframe instruction.
+
+---@class KeyframeInstruction
+---@field instruction_type string the type of keyframe instruction eg: "position", "rotation", "matrix", etc.
+---@field data KeyframeInstructionData the custom data for the keyframe instruction.
+
+---@class PositionalKeyframeInstructionData: KeyframeInstructionData
+---@field x number the x position of the keyframe
+---@field y number the y position of the keyframe
+---@field z number the z position of the keyframe
+---@field is_global boolean if the coordinates are global, if false, they are local to the origin.
+---@field interpolation_type "linear"|"quadratic_bezier" the type of interpolation to use.
+---@field p table<integer, table<string, number>> the points to use for more complex interpolations.
+
+---@class PositionalKeyframeInstruction: KeyframeInstruction
+---@field instruction_type "position" the type of keyframe instruction eg: "position", "rotation", "matrix", etc.
+---@field data PositionalKeyframeInstructionData the custom data for the keyframe instruction.
+---@field setQuadraticBezier fun(self: PositionalKeyframeInstruction, x: number, y: number, z: number) sets the quadratic bezier curve for the position.
+
+---@alias KeyframeInstructionsPrefab table<integer, KeyframeInstruction>
+
+---@alias KeyframeInstructions table<string, KeyframeInstruction> indexed by instruction type.
+
+---@class Keyframe
+---@field instructions KeyframeInstructions the instructions for the keyframe.
+---@field time_milliseconds number how long this keyframe will be active for, keyframe will end after this many milliseconds after the previous one ended.
+
+---@alias Keyframes table<integer, Keyframe>
+
+---@class Animation
+---@field keyframes Keyframes the keyframes for the animation.
+---@field remove_collision boolean if you want to have collision removed on the animation. NOTE: ONLY WORKS FOR HOST IN MULTIPLAYER.
+---@field animation_id AnimationID the id of the animation. (primary key for the registered_animations table)
+
+---@alias AnimationID integer the id of the animation. (primary key for the registered_animations table)
+---@alias AnimatorID integer the id of the animator. (primary key for the animator_ids table)
+---@alias AnimatorIndex integer the index of the animator. (primary key for the active_animators table) NOTE: Volatile.
+
+---@class ActiveAnimator
+---@field animator_id AnimatorID the id of the animator. (primary key for the animator_ids table)
+---@field spawning_data SpawningData the spawning data used when the animation was deployed. Used to respawn the animation if the vehicle is re-loaded.
+---@field origin SWMatrix the animator's origin point.
+---@field group_id integer the group id of the component.
+---@field animation_id AnimationID the id of the animation to use. (primary key for the registered_animations table)
+---@field keyframe_start_time number the time the last keyframe of the animation ended.
+---@field keyframe_index integer the index of the current keyframe.
+---@field last_matrix SWMatrix the matrix the time the last keyframe ended.
+
+---@class DefinedAnimation
+---@field internal_name string the internal name of the animation.
+---@field name string the name of the animation.
+---@field startAnimation fun(...) the function to call to start the animation.
+
+---@alias DefinedAnimations table<string, DefinedAnimation> indexed by the internal name of the animation.
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--- Stores the defined animations, can be used later to easily create the animation via command.
+---@type DefinedAnimations
+defined_animations = {}
+
+g_savedata.animator = {
+
+	---@type table<AnimatorID, AnimatorIndex>
+	animator_ids = {}, -- Maps the animation id to the animation index.
+
+	---@type table<AnimatorIndex, ActiveAnimator>
+	active_animators = {}, -- Stores the active animators.
+
+	---@type table<AnimationID, Animation>
+	registered_animations = {}, -- Stores the registered animations, can be used later to get the animation, so it doesn't have to be re-created.
+
+	---@type AnimationID
+	next_animation_id = 1, -- The next animation id to use.
+
+	---@type AnimatorID
+	next_animator_id = 1 -- The next animator id to use.
+
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Define an animation, should be used by the included animations.
+---@param internal_name string the internal name of the animation.
+---@param name string the name of the animation.
+---@param startAnimation fun(...) the function to call to start the animation.
+function Animator.define(internal_name, name, startAnimation)
+	-- Create the defined mission
+	---@type DefinedAnimation
+	local defined_animation = {
+		internal_name = internal_name,
+		name = name,
+		startAnimation = startAnimation
+	}
+
+	-- add it to the defined missions list
+	defined_animations[internal_name] = defined_animation
+end
+
+---@param animation Animation the animation to use.
+---@param spawning_data SpawningData the spawning data to use.
+---@param origin SWMatrix the matrix to use as the origin.
+---@return AnimatorID animator_id Returns 0 when is_success is false.
+---@return boolean is_success
+function Animator.deployAnimation(animation, spawning_data, origin)
+
+	-- if the animation is set to make sure it has no collision
+	if animation.remove_collision then
+		-- ensure no scales are exactly 1.
+		--TODO: Does not work if the zone is rotated.
+		
+		-- ensure x scale is not 1
+		if origin[1] == 1 then
+			origin[1] = 1.05
+		end
+
+		-- ensure y scale is not 1
+		if origin[6] == 1 then
+			origin[6] = 1.05
+		end
+
+		-- ensure z scale is not 1
+		if origin[11] == 1 then
+			origin[11] = 1.05
+		end
+	end
+
+	-- spawn the component
+	local component_data, is_success = ComponentSpawner.spawn(
+		spawning_data,
+		origin
+	)
+
+	-- if it failed to spawn the component
+	if not is_success then
+		d.print(("Failed to spawn component"), true, 1)
+		return 0, false
+	end
+
+	-- get the animator id
+	local animator_id = g_savedata.animator.next_animator_id
+	-- increment the next animator id
+	g_savedata.animator.next_animator_id = g_savedata.animator.next_animator_id + 1
+
+	-- create and store the animator data
+	table.insert(g_savedata.animator.active_animators,
+		---@type ActiveAnimator
+	{
+			animator_id = animator_id,
+			spawning_data = spawning_data,
+			origin = origin,
+			---@diagnostic disable-next-line: undefined-field
+			group_id = component_data.group_id,
+			animation_id = animation.animation_id,
+			keyframe_start_time = server.getTimeMillisec(),
+			keyframe_index = 1,
+			last_matrix = origin
+		}
+	)
+
+	-- get it's animation_index
+	local animation_index = #g_savedata.animator.active_animators
+
+	-- store that in the animator_ids table.
+	g_savedata.animator.animator_ids[animator_id] = animation_index
+
+	return animator_id, true
+end
+
+--- Function for creating an animation from a set of keyframes.
+---@param keyframes Keyframes the keyframes for the animation.
+---@param remove_collision boolean if you want to have collision removed on the animation. NOTE: ONLY WORKS FOR HOST IN MULTIPLAYER.
+---@return Animation animation
+function Animator.createAnimation(keyframes, remove_collision)
+
+	-- if animator_debug is enabled, print the keyframes.
+	if g_savedata.flags.animator_debug then
+		d.print(("(Animator.createAnimation) Keyframes: %s"):format(string.fromTable(keyframes)), false, 0)
+	end
+
+	-- get the animation id
+	local animation_id = g_savedata.animator.next_animation_id
+	-- increment the next animation id
+	g_savedata.animator.next_animation_id = g_savedata.animator.next_animation_id + 1
+
+	-- store the animation
+	g_savedata.animator.registered_animations[animation_id] = {
+		keyframes = keyframes,
+		remove_collision = remove_collision,
+		animation_id = animation_id
+	}
+	
+	-- return the animation
+	return g_savedata.animator.registered_animations[animation_id]
+end
+
+--- Function for creating a keyframe from a set of instructions.
+---@param keyframe_instructions KeyframeInstructionsPrefab the instructions for the keyframe.
+---@param time number how long this keyframe will be active for, keyframe will end after this many seconds after the previous one ended.
+---@return Keyframe keyframe
+function Animator.createKeyframe(keyframe_instructions, time)
+
+	-- if animator_debug is enabled, print the keyframe instructions.
+	if g_savedata.flags.animator_debug then
+		d.print("Keyframe Instructions:\n"..string.fromTable(keyframe_instructions), false, 0)
+	end
+
+	-- convert the time to ms
+	local time_milliseconds = time*1000
+
+	-- create the built keyframe instructions
+	---@type KeyframeInstructions
+	local built_keyframe_instructions = {}
+
+	-- iterate through the keyframe instructions
+	for keyframe_instruction_index = 1, #keyframe_instructions do
+		keyframe_instruction = keyframe_instructions[keyframe_instruction_index]
+
+		-- check if it's already added.
+		if built_keyframe_instructions[keyframe_instruction.instruction_type] then
+			
+			-- print an error, two of the same type cannot be in the same keyframe.
+			d.print(("Keyframe instruction type \"%s\" already exists in this keyframe! You can only have up-to one of each instruction type in a keyframe!"):format(keyframe_instruction.instruction_type), true, 1)
+			
+			-- return data early.
+			return {
+				instructions = built_keyframe_instructions,
+				time_milliseconds = time_milliseconds
+			}
+		end
+
+		-- add this instruction to the built keyframe instructions.
+		built_keyframe_instructions[keyframe_instruction.instruction_type] = keyframe_instruction
+	end
+
+	-- if animator_debug is enabled, print the built keyframe instructions.
+	if g_savedata.flags.animator_debug then
+		d.print("Built Keyframe Instructions:\n"..string.fromTable(built_keyframe_instructions), false, 0)
+	end
+
+	-- return the keyframe
+	return {
+		instructions = built_keyframe_instructions,
+		time_milliseconds = time_milliseconds
+	}
+end
+
+--- Function for creating a position keyframe instruction, keyframes are made up with a table of instructions.
+---@param x number the x position of the keyframe
+---@param y number the y position of the keyframe
+---@param z number the z position of the keyframe
+---@param is_global boolean? if the coordinates are global, if false, they are local to the origin.
+---@return PositionalKeyframeInstruction keyframe_instruction
+function Animator.createPositionKeyframeInstruction(x, y, z, is_global)
+
+	local positional_keyframe_instruction = {
+		instruction_type = "position",
+		data = {
+			x = x,
+			y = y,
+			z = z,
+			is_global = is_global or false,
+			interpolation_type = "linear"
+		}
+	}
+
+	--- Function for setting this positional keyframe to use quadratic bezier interpolation.
+	---@param p1x number the x positon of p1 for keyframe
+	---@param p1y number the y positon of p1 for keyframe
+	---@param p1z number the z positon of p1 for keyframe
+	---@return PositionalKeyframeInstruction keyframe_instruction
+	function positional_keyframe_instruction:setQuadraticBezier(p1x, p1y, p1z)
+
+		-- set the interpolation type
+		self.data.interpolation_type = "quadratic_bezier"
+
+		-- set the bezier points
+		self.data.p = {
+			{
+				x = p1x,
+				y = p1y,
+				z = p1z
+			}
+		}
+
+		return self
+	end
+
+	-- return the positional keyframe instructions.
+	return positional_keyframe_instruction
+end
+
+--- Remove a animator from it's ID.
+---@param animator_id AnimatorID the id of the animator to remove.
+---@return boolean is_success
+function Animator.removeAnimator(animator_id)
+	-- Check if the animator exists
+	if g_savedata.animator.animator_ids[animator_id] == nil then
+		d.print(("Animator %s is not defined."):format(animator_id), true, 1)
+		return false
+	end
+
+	-- get the animator index
+	local animator_index = g_savedata.animator.animator_ids[animator_id]
+
+	-- go through all vehicle ids in the group and despawn in
+	local vehicle_ids = server.getVehicleGroup(g_savedata.animator.active_animators[animator_index].group_id)
+
+	-- iterate through the vehicle ids
+	for vehicle_index = 1, #vehicle_ids do
+		-- despawn the vehicle
+		server.despawnVehicle(vehicle_ids[vehicle_index], true)
+	end
+
+	-- remove the animator
+	table.remove(g_savedata.animator.active_animators, animator_index)
+
+	-- shift the animator indexes in animator_ids which were above this one.
+	for _, iter_animator_index in pairs(g_savedata.animator.animator_ids) do
+		if iter_animator_index > animator_index then
+			g_savedata.animator.animator_ids[iter_animator_index] = animator_index - 1
+		end
+	end
+
+	return true
+end
+
+--[[
+
+
+	Internal Functions
+
+
+]]
+
+--[[
+
+
+	Callbacks
+
+
+]]
+
+-- Update animations
+function Animator.onTick(game_ticks)
+	-- get the number of active animators
+	local active_animator_count = #g_savedata.animator.active_animators
+
+	-- if the number of active animators is 0, return early.
+	if active_animator_count == 0 then
+		return
+	end
+
+	-- get the current time (ms)
+	local current_time_milliseconds = server.getTimeMillisec()
+
+	-- iterate through the active animators
+	for active_animator_index = active_animator_count, 1, -1 do
+
+		-- get the active animator
+		local active_animator = g_savedata.animator.active_animators[active_animator_index]
+
+		-- get the animation
+		local animation = g_savedata.animator.registered_animations[active_animator.animation_id]
+
+		-- get the current keyframe
+		local keyframe = animation.keyframes[active_animator.keyframe_index]
+
+		-- get the new animation progress
+		local keyframe_progress = math.min((current_time_milliseconds - active_animator.keyframe_start_time)/keyframe.time_milliseconds, 1)
+
+		-- get the inverse animation progress (used to interpolate away from the last keyframe.)
+		local inverse_keyframe_progress = 1 - keyframe_progress
+
+		local new_target_matrix = matrix.clone(active_animator.origin)
+
+		-- check if this keyframe has a position instruction
+		if keyframe.instructions.position then
+			-- if this is local to the origin
+			---@type PositionalKeyframeInstruction
+			local position_instructions = keyframe.instructions.position --[[@as PositionalKeyframeInstruction]]
+			if not position_instructions.data.is_global then
+				-- get the previous target position local to the matrix.
+				local last_local_target = {
+					x = active_animator.last_matrix[13] - active_animator.origin[13],
+					y = active_animator.last_matrix[14] - active_animator.origin[14],
+					z = active_animator.last_matrix[15] - active_animator.origin[15]
+				}
+
+				-- if interpolation type is linear
+				if position_instructions.data.interpolation_type == "linear" then
+					-- set the new position to set the vehicle to, interpolate with progress
+					new_target_matrix[13] = active_animator.origin[13] + position_instructions.data.x*keyframe_progress + last_local_target.x*inverse_keyframe_progress
+					new_target_matrix[14] = active_animator.origin[14] + position_instructions.data.y*keyframe_progress + last_local_target.y*inverse_keyframe_progress
+					new_target_matrix[15] = active_animator.origin[15] + position_instructions.data.z*keyframe_progress + last_local_target.z*inverse_keyframe_progress
+				-- if interpolation type is quadratic_bezier
+				elseif position_instructions.data.interpolation_type == "quadratic_bezier" then
+					-- x
+					new_target_matrix[13] = math.quadraticBezier(
+						last_local_target.x, -- the previous point
+						position_instructions.data.x, -- the new point
+						position_instructions.data.p[1].x, -- the control point
+						keyframe_progress -- the keyframe progress
+					) + active_animator.origin[13] -- add the origin
+
+					-- y
+					new_target_matrix[14] = math.quadraticBezier(
+						last_local_target.y, -- the previous point
+						position_instructions.data.y, -- the new point
+						position_instructions.data.p[1].y, -- the control point
+						keyframe_progress -- the keyframe progress
+					) + active_animator.origin[14] -- add the origin
+
+					-- z
+					new_target_matrix[15] = math.quadraticBezier(
+						last_local_target.z, -- the previous point
+						position_instructions.data.z, -- the new point
+						position_instructions.data.p[1].z, -- the control point
+						keyframe_progress -- the keyframe progress
+					) + active_animator.origin[15] -- add the origin
+				end
+			end
+		end
+
+		-- move the group's matrix.
+		server.moveGroup(
+			active_animator.group_id,
+			new_target_matrix
+		)
+
+		-- if the progress is 1, then move to the next keyframe.
+		if keyframe_progress == 1 then
+			-- increment the keyframe index
+			active_animator.keyframe_index = active_animator.keyframe_index + 1
+
+			-- if the keyframe index is greater than the number of keyframes, return to the start
+			if active_animator.keyframe_index > #animation.keyframes then
+				-- return to the start
+				active_animator.keyframe_index = 1
+			end
+
+			-- set the keyframe start time to the current time.
+			active_animator.keyframe_start_time = current_time_milliseconds
+
+			-- set the last matrix to the current matrix.
+			active_animator.last_matrix = new_target_matrix
+		end
+	end
+end
+
+--[[
+
+
+	Definitions
+
+
+]]
+
+-- Define a command to start an animation
+Command.registerCommand(
+	"start_animation",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+
+		-- get the specified internal animation name
+		local internal_animation_name = arg[1]
+
+		-- Check if the animation is defined
+		if defined_animations[internal_animation_name] == nil then
+			d.print(("Animation %s is not defined."):format(internal_animation_name), false, 1, peer_id)
+			return
+		end
+
+		-- remove the animation name from the arguments
+		table.remove(arg, 1)
+
+		d.print(("Starting Animation %s"):format(internal_animation_name), false, 0, peer_id)
+
+		-- Call the mission start function
+		defined_animations[internal_animation_name].startAnimation(peer_id, arg)
+	end,
+	"admin",
+	"Starts the specified animation.",
+	"Starts the specified animation, specified animation name must be it's internal name.",
+	{"start_animation <internal_animation_name> [animation_args...]"}
+)
+
+-- Define a command to delete an active animator
+Command.registerCommand(
+	"delete_animator",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+
+		-- get the specified animator id
+		local animator_id = tonumber(arg[1])
+
+		if not animator_id then
+			d.print("Invalid animator id.", false, 1, peer_id)
+			return
+		end
+
+		-- if the animator id is -1, delete all animators.
+		if animator_id == -1 then
+
+			-- iterate through all animators
+			for animator_index = #g_savedata.animator.active_animators, 1, -1 do
+				-- remove the animator
+				Animator.removeAnimator(g_savedata.animator.active_animators[animator_index].animator_id)
+			end
+
+			d.print("Deleted all animators.", false, 0, peer_id)
+			
+		else
+			local is_success = Animator.removeAnimator(animator_id)
+			
+			if is_success then
+				d.print(("Deleted animator with id %s"):format(animator_id), false, 0, peer_id)
+			end
+		end
+	end,
+	"admin_script",
+	"Starts the specified animation.",
+	"Starts the specified animation, specified animation name must be it's internal name.",
+	{"start_animation <internal_animation_name> [animation_args...]"}
+)
+
+-- Flag for detailed debug output.
+Flag.registerBooleanFlag(
+	"animator_debug",
+	false,
+	{
+		"animations",
+		"debug"
+	},
+	"admin",
+	"admin",
+	nil,
+	"Enables detailed debug output for the animator library."
+)
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Constructor for creating close destination rings.
+]]
+
+-- library name
+Animations.markers.closeDestinationRing = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The close destination ring's length and width (in meters), assumed to be square.
+CLOSE_DESTINATION_RING_LENGTH = 4
+
+-- Speed when moving up (m/s)
+CLOSE_DESTINATION_RING_SPEED_UP = 1.25
+
+-- Speed when moving down (m/s)
+CLOSE_DESTINATION_RING_SPEED_DOWN = 0.5
+
+-- The scale of the height of the close destination ring, relative to the smallest of the length and width.
+CLOSE_DESTINATION_RING_HEIGHT_SCALE = 0.5
+
+--[[
+
+
+	Variables
+
+
+]]
+
+INTERNAL_ANIMATION_NAME = "markers.closeDestinationRing"
+ANIMATION_NAME = "Close Destination Ring"
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+	Creating the animation.
+]]
+---@param destination Destination the destination to spawn the ring at.
+function Animations.markers.closeDestinationRing.create(destination)
+	
+	-- define the scale for this animation.
+	local scale = {
+		x = 1,
+		y = CLOSE_DESTINATION_RING_HEIGHT_SCALE,
+		z = 1
+	}
+
+	-- define the origin matrix
+	local origin_matrix = matrix.identity()
+
+	-- if this destination is a zone, scale by the zone dimensions.
+	if destination.type == "zone" then
+		scale.x = destination.zone.size.x/CLOSE_DESTINATION_RING_LENGTH -- set x scale to the zone's x size.
+		scale.z = destination.zone.size.z/CLOSE_DESTINATION_RING_LENGTH -- set z scale to the zone's z size.
+		scale.y = math.min(scale.x, scale.z)*CLOSE_DESTINATION_RING_HEIGHT_SCALE -- set the y scale to half the smallest dimension of the zone.
+
+		-- set the origin matrix to the zone's matrix.
+		origin_matrix = destination.zone.transform
+	
+	-- otherwise if this destination is a matrix, scale by the radius.
+	elseif destination.type == "matrix" then
+		scale.x = destination.radius/CLOSE_DESTINATION_RING_LENGTH -- set x scale to the radius.
+		scale.z = destination.radius/CLOSE_DESTINATION_RING_LENGTH -- set z scale to the radius.
+		scale.y = scale.x*CLOSE_DESTINATION_RING_HEIGHT_SCALE -- set the y scale to half the radius.
+
+		origin_matrix = matrix.translation(
+			destination.position.x,
+			destination.position.y,
+			destination.position.z
+		)
+	end
+
+	-- set the height it should travel
+	local travel_height = scale.y*CLOSE_DESTINATION_RING_LENGTH
+
+	-- create the animation
+	animation = Animator.createAnimation(
+		{
+			-- Keyframe 1: move up
+			Animator.createKeyframe(
+				{ -- move up
+					Animator.createPositionKeyframeInstruction(
+						0,
+						travel_height, -- move up to desired height
+						0,
+						false
+					):setQuadraticBezier(
+						0,
+						travel_height*1.2,
+						0
+					)
+				},
+				3 -- set seconds to match our desired up movement speed
+			),
+			-- Keyframe 2: move down
+			Animator.createKeyframe(
+				{
+					Animator.createPositionKeyframeInstruction(
+						0,
+						-travel_height, -- move down to the lower desired height
+						0,
+						false
+					):setQuadraticBezier(
+						0,
+						travel_height*-1.2,
+						0
+					)
+				},
+				4 -- set seconds to match our desired down movement speed
+			)
+		},
+		true -- remove collision
+	)
+
+	--[[
+		Find the close destination ring vehicle.
+	]]
+
+	-- Create the filter for the close destination ring vehicle.
+	local close_destination_ring_vehicle_filter = ComponentSpawner.createFilter()
+
+	-- Configure the filter to discard env mods
+	close_destination_ring_vehicle_filter:setEnvModHandling(COMPONENT_FILTER_ENV_MOD_HANDLING.NOT_ALLOWED)
+
+	-- Configure the filter to require the tag "imai"
+	close_destination_ring_vehicle_filter:addTag("imai", false)
+
+	-- Configure the filter to require the tag "close_destination_ring"
+	close_destination_ring_vehicle_filter:addTag("close_destination_marker", false)
+
+	-- Get the spawning data for the close destination ring vehicle, fallback to first.
+	local close_destination_ring_vehicle_spawning_data, is_success = close_destination_ring_vehicle_filter:getSpawningData(SPAWNING_DATA_FALLBACK.FIRST)
+
+	-- if the spawning data was not found, stop here to prevent an error.
+	if not is_success then
+		d.print(("Could not find close destination ring vehicle, please make sure it exists."), true, 1)
+		return
+	end
+
+	-- set the scale of the origin matrix
+	--TODO: Currently, will not work if the zone is rotated.
+	origin_matrix[1] = scale.x
+	origin_matrix[6] = scale.y
+	origin_matrix[11] = scale.z
+
+	-- Deploy the animation.
+	local animator_id, deploy_success = Animator.deployAnimation(
+		animation,
+		close_destination_ring_vehicle_spawning_data,
+		origin_matrix
+	)
+
+	return animator_id
+end
+
+--[[
+
+
+	Definitions
+
+
+]]
+
+-- define the animation
+Animator.define(
+	INTERNAL_ANIMATION_NAME,
+	ANIMATION_NAME,
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(peer_id, arg)
+
+		local radius = tonumber(arg[1]) or 5
+
+		local player_pos = server.getPlayerPos(peer_id)
+
+		Animations.markers.closeDestinationRing.create(
+			Objective.destination.matrix(
+				player_pos,
+				radius
+			)
+		)
+	end
+)
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[
+	Includes all the missions, this is required by main.lua, and then this will include all the missions to define, to de-clutter main.lua.
+]]
+
+-- library name
+IncludedMissions = {
+	scripted = {
+		transport = {}
+	}
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.included_missions = g_savedata.included_missions or {}
+g_savedata.included_missions.scripted = g_savedata.included_missions.scripted or {}
+g_savedata.included_missions.scripted.transport = g_savedata.included_missions.scripted.transport or {}
+
+--[[
+
+
+	Included Missions
+
+
+]]
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Mission Version 0.0.1
+
+--[[
+
+
+	Mission Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Contains the code for handling transporting an object.
+]]
+
+-- library name
+Objective.type.transportObject = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class ObjectiveTransportObjectData
+---@field object_id integer the object_id to transport
+---@field destination Destination the destination to transport the object to.
+
+---@class ObjectiveTransportObject: Objective
+---@field data ObjectiveTransportObjectData the data of the objective.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- this objective's type.
+OBJECTIVE_TYPE = "transport_object"
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Creates a new transport object objective.
+---@param object_id integer the object_id to transport
+---@param destination Destination the destination to transport the object to.
+---@return ObjectiveTransportObject objective the created objective.
+---@return Destination destination the destination.
+function Objective.type.transportObject.create(object_id, destination)
+	-- Create the objective.
+	---@type ObjectiveTransportObject
+	local objective = {
+		data = {
+			object_id = object_id,
+			destination = destination
+		},
+		money_reward = 0,
+		research_reward = 0,
+		type = OBJECTIVE_TYPE
+	}
+
+	-- if destination instances is 0
+	if destination.instances == 0 then
+		-- create the destination animation.
+		destination.animator_id = Animations.markers.closeDestinationRing.create(destination)
+	end
+
+	destination = Objective.destination.addInstance(destination)
+
+	-- return the objective
+	return objective, destination
+end
+
+--- Check if this transport object objective is complete. Used internally, shouldn't be used anywhere but here and in objectives.lua.
+---@param objective ObjectiveTransportObject the objective to check.
+---@return ObjectiveCompletionStatus status the completition status of the objective.
+local function checkCompletion(objective)
+	-- Get the object_id's location.
+	local object_transform, is_success = server.getObjectPos(objective.data.object_id)
+
+	--- Called by this function whenever the status is either completed or failed.
+	local function onObjectiveEnd()
+		-- remove 1 from the instances of the destination
+		objective.data.destination = Objective.destination.removeInstance(objective.data.destination)
+
+		-- if this is the last instance of the destination, remove the animation.
+		if objective.data.destination.instances == 0 then
+			Animator.removeAnimator(objective.data.destination.animator_id)
+		end
+
+		-- set the object to despawn.
+		server.despawnObject(objective.data.object_id, false)
+	end
+
+	if not is_success then
+		-- The object doesn't exist, so the objective is failed.
+		onObjectiveEnd()
+		return OBJECTIVE_COMPLETION_STATUS.FAILED
+	end
+
+	-- Check if the object is at the destination.
+	local object_at_destination = Objective.destination.hasReachedDestination(
+		object_transform,
+		objective.data.destination
+	)
+
+	-- if the object is at the destination, return that the objective is completed.
+	if object_at_destination then
+		onObjectiveEnd()
+		return OBJECTIVE_COMPLETION_STATUS.COMPLETED
+	-- otherwise, return that the objective is in progress.
+	else
+		return OBJECTIVE_COMPLETION_STATUS.IN_PROGRESS
+	end
+end
+
+--[[
+	
+
+	Definitions
+
+
+]]
+
+-- Define the objective
+Objective.defineType(
+	OBJECTIVE_TYPE,
+	checkCompletion
+)
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	LIBRARY DESCRIPTION
+]]
+
+-- library name
+--LibraryName = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Mission Version 0.0.1
+
+--[[
+
+
+	Mission Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Testing mission for demoing transport missions.
+]]
+
+-- library name
+IncludedMissions.scripted.transport.demo = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.included_missions.scripted.transport.demo = g_savedata.included_missions.scripted.transport.demo or {
+	started = false
+}
+
+INTERNAL_MISSION_NAME = "scripted.transport.demo"
+MISSION_NAME = "Transport Objects DEMO"
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+	start the mission
+]]
+function IncludedMissions.scripted.transport.demo.create()
+	
+	-- only allow 1 instance.
+	if g_savedata.included_missions.scripted.transport.demo.started then
+		return
+	end
+
+	-- Create the objects to transport. (3 small boxes)
+	-- position is next to ETrain Terminal.
+
+	local object_id1 = server.spawnObject(matrix.translation(2232, 10, -25970), 2)
+	local object_id2 = server.spawnObject(matrix.translation(2232, 12, -25970), 2)
+	local object_id3 = server.spawnObject(matrix.translation(2230, 10, -25970), 2)
+
+	-- Create the destination.
+	local destination = Objective.destination.matrix(matrix.translation(2239, 11.25, -26000), 5)
+
+	-- Create the objectives.
+	objective1, destination = Objective.type.transportObject.create(object_id1, destination)
+	objective2, destination = Objective.type.transportObject.create(object_id2, destination)
+	objective3, destination = Objective.type.transportObject.create(object_id3, destination)
+
+	-- Create the mission
+	Missions.create(
+		INTERNAL_MISSION_NAME,
+		{
+			objective1,
+			objective2,
+			objective3
+		}
+	)
+
+	-- set started to true
+	g_savedata.included_missions.scripted.transport.demo.started = true
+end
+
+--[[
+
+
+	Definitions
+
+
+]]
+
+-- define the mission
+Missions.define(
+	INTERNAL_MISSION_NAME,
+	MISSION_NAME,
+	IncludedMissions.scripted.transport.demo.create,
+	function(mission)
+		-- set started to false.
+		g_savedata.included_missions.scripted.transport.demo.started = false
+	end
 )
 -- This library is for controlling or getting things about the AI.
 
@@ -8416,52 +10734,6 @@ end
 
 
 -- required libraries
--- required libraries
-
--- library name
-Tags = {}
-
-function Tags.has(tags, tag, decrement)
-	if type(tags) ~= "table" then
-		d.print("(Tags.has) was expecting a table, but got a "..type(tags).." instead! searching for tag: "..tag.." (this can be safely ignored)", true, 1)
-		return false
-	end
-
-	if not decrement then
-		for tag_index = 1, #tags do
-			if tags[tag_index] == tag then
-				return true
-			end
-		end
-	else
-		for tag_index = #tags, 1, -1 do
-			if tags[tag_index] == tag then
-				return true
-			end 
-		end
-	end
-
-	return false
-end
-
--- gets the value of the specifed tag, returns nil if tag not found
-function Tags.getValue(tags, tag, as_string)
-	if type(tags) ~= "table" then
-		d.print("(Tags.getValue) was expecting a table, but got a "..type(tags).." instead! searching for tag: "..tag.." (this can be safely ignored)", true, 1)
-	end
-
-	for k, v in pairs(tags) do
-		if string.match(v, tag.."=") then
-			if not as_string then
-				return tonumber(tostring(string.gsub(v, tag.."=", "")))
-			else
-				return tostring(string.gsub(v, tag.."=", ""))
-			end
-		end
-	end
-	
-	return nil
-end
 -- This library is for controlling or getting things about the Enemy AI.
 
 -- required libraries
@@ -9842,6 +12114,39 @@ function onTick(game_ticks)
 	Effects.onTick(game_ticks)
 
 	Citizens.onTick(game_ticks)
+
+	Missions.onTick(game_ticks)
+
+	Animator.onTick(game_ticks)
+
+	g_savedata.test_close_dest_ring = g_savedata.test_close_dest_ring or {
+		spawned = false,
+		ring_group_id = -1,
+		y_modifier = 0,
+		y_modifier_direction = 1
+	}
+
+	--[[if trueg_savedata.test_close_dest_ring.spawned and isTickID(0, 0) then
+		if math.abs(g_savedata.test_close_dest_ring.y_modifier) >= 4 then
+			g_savedata.test_close_dest_ring.y_modifier_direction = -g_savedata.test_close_dest_ring.y_modifier_direction
+		end
+
+		local y_movement = g_savedata.test_close_dest_ring.y_modifier_direction * 0.05
+
+		g_savedata.test_close_dest_ring.y_modifier = g_savedata.test_close_dest_ring.y_modifier + y_movement
+
+		local vehicle_ids = server.getVehicleGroup(g_savedata.test_close_dest_ring.ring_group_id)
+
+		local vehicle_id = vehicle_ids[1]
+
+		local vehicle_pos = server.getVehiclePos(vehicle_id)
+
+		local new_vehicle_pos = vehicle_pos
+
+		new_vehicle_pos[14] = new_vehicle_pos[14] + y_movement
+
+		server.moveVehicle(vehicle_id, new_vehicle_pos)
+	end]]
 end
 
 --------------------------------------------------------------------------------
@@ -9862,4 +12167,88 @@ end
 function millisecondsSince(start_ms)
 	return s.getTimeMillisec() - start_ms
 end
+
+Command.registerCommand(
+	"close_dest_ring",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		g_savedata.test_close_dest_ring = g_savedata.test_close_dest_ring or {
+			spawned = false,
+			ring_group_id = -1,
+			y_modifier = 0,
+			y_modifier_direction = 1
+		}
+
+		if g_savedata.test_close_dest_ring.spawned then
+			local vehicle_ids = server.getVehicleGroup(g_savedata.test_close_dest_ring.ring_group_id)
+
+			for _, vehicle_id in pairs(vehicle_ids) do
+				server.despawnVehicle(vehicle_id, true)
+			end
+
+			g_savedata.test_close_dest_ring.spawned = false
+		end
+
+		-- get player pos
+		local player_pos = server.getPlayerPos(peer_id)
+
+		local found_location_index = -1
+		local found_component_index = -1
+
+		local addon_index = server.getAddonIndex()
+		for location_index = 0, server.getAddonData(addon_index).location_count - 1 do
+			local location_data = server.getLocationData(addon_index, location_index)
+
+			-- skip if this is an env mod
+			if location_data.env_mod then
+				goto continue
+			end
+
+			d.print(("Location Name: %s"):format(location_data.name), false, 0, peer_id)
+
+			-- iterate through all components in this location
+			for component_index = 0, location_data.component_count - 1 do
+
+				local component_data, is_success = server.getLocationComponentData(addon_index, location_index, component_index)
+
+				if is_success then
+					if component_data.tags_full == "imai,close_destination_marker" then
+						found_location_index = location_index
+						found_component_index = component_index
+						break
+					end
+				end
+			end
+			::continue::
+		end
+
+		d.print(("Found location index: %d, component index: %d"):format(found_location_index, found_component_index), false, 0, peer_id)
+
+		player_pos[14] = player_pos[14] + 2
+
+		player_pos[1] = 10
+		player_pos[6] = 5
+		player_pos[11] = 10
+
+		-- spawn ring at player's position
+		component_data, is_success = server.spawnAddonComponent(
+			player_pos,
+			server.getAddonIndex(),
+			found_location_index,
+			found_component_index
+		)
+
+		g_savedata.test_close_dest_ring.ring_group_id = component_data.group_id
+
+		g_savedata.test_close_dest_ring.spawned = true
+
+		g_savedata.test_close_dest_ring.y_modifier = 0
+	end,
+	"admin_script",
+	"Starts the specified mission.",
+	"Starts the specified mission, specified mission name must be it's internal name.",
+	{"start_mission <internal_mission_name> [mission_args...]"}
+)
 

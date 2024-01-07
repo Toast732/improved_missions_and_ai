@@ -2,7 +2,7 @@
 require("libraries.addon.script.debugging")
 require("libraries.utils.string")
 require("libraries.spawningUtils")
-require("libraries.tags")
+require("libraries.addon.components.tags")
 require("libraries.addon.script.players")
 require("libraries.addon.script.matrix")
 

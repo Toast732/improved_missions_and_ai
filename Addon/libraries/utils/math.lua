@@ -227,3 +227,23 @@ function math.linearScale(x, x_min, x_max, y_min, y_max)
 	]]
 	return (1-scaled_x)*y_min+scaled_x*y_max
 end
+
+--- Quadratic Bezier interpolation between 3 points.
+---@param last number the previous point
+---@param new number the new target point
+---@param p1 number the control point
+---@param progress number the progress between 0 and 1
+---@return number point the point between last and new
+function math.quadraticBezier(last, new, p1, progress)
+	-- calculate the inverse of the progress
+	local inverse_progress = 1-progress
+
+	-- calculate the progress squared
+	local progress_squared = progress*progress
+
+	-- calculate the inverse progress squared
+	local inverse_progress_squared = inverse_progress*inverse_progress
+
+	-- calculate and return the point.
+	return inverse_progress_squared * last + 2 * inverse_progress * progress * p1 + progress_squared * new
+end

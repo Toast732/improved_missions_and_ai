@@ -27,7 +27,7 @@ limitations under the License.
 -- required libraries
 require("libraries.addon.script.debugging")
 require("libraries.utils.math")
-require("libraries.tags")
+require("libraries.addon.components.tags")
 require("libraries.zones")
 require("libraries.addon.script.modifiables")
 require("libraries.addon.utils.objects.characters.inventory.inventory")

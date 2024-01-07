@@ -26,7 +26,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.10)"
+ADDON_VERSION = "(0.0.1.11)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -195,6 +195,12 @@ require("libraries.imai.effects.effects")
 
 require("libraries.imai.ai.citizens.citizens")
 
+require("libraries.imai.missions.missions")
+
+require("animations.animations")
+
+require("missions.includedMissions")
+
 require("libraries.ai") -- functions relating to their AI
 require("libraries.cache") -- functions relating to the cache
 require("libraries.compatibility") -- functions used for making the mod backwards compatible
@@ -208,7 +214,7 @@ require("libraries.setup") -- functions for script/world setup.
 require("libraries.spawningUtils") -- functions used by the spawn vehicle function
 require("libraries.utils.string") -- custom string functions
 require("libraries.utils.tables") -- custom table functions
-require("libraries.tags") -- functions related to getting tags from components inside of mission and environment locations
+require("libraries.addon.components.tags") -- functions related to getting tags from components inside of mission and environment locations
 require("libraries.ticks") -- functions related to ticks and time
 require("libraries.vehicle") -- functions related to vehicles, and parsing data on them
 
@@ -251,13 +257,9 @@ function onCreate(is_world_create)
 		-- otherwise the game would freeze for a bit after the player loaded in, looking like the game froze
 		-- instead it looks like its taking a bit longer to create the world.
 
-		local empty_matrix = m.identity()
+		local empty_matrix = matrix.identity()
 
 		s.pathfind(empty_matrix, empty_matrix, "", "")
-
-		--d.print("setting up reservable zones...", true, 0)
-		
-		--Zones.setup()
 	end
 
 	-- send out discovery message (AddonDiscoveryAPI)
@@ -281,6 +283,10 @@ function onTick(game_ticks)
 	Effects.onTick(game_ticks)
 
 	Citizens.onTick(game_ticks)
+
+	Missions.onTick(game_ticks)
+
+	Animator.onTick(game_ticks)
 end
 
 --------------------------------------------------------------------------------

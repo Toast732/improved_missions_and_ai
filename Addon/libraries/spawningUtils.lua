@@ -1,6 +1,6 @@
 -- required libraries
 require("libraries.addon.script.debugging")
-require("libraries.tags")
+require("libraries.addon.components.tags")
 
 -- library name
 SpawningUtils = {}

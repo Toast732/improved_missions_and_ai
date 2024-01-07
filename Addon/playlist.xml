@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<playlist path_id="app_data/data/missions/Improved_Missions_and_AI" folder_path="data/missions/Improved_Missions_and_AI" file_store="4" name="Improved Missions and AI (0.0.1.dev)">
-	<locations location_id_counter="201" component_id_counter="4348">
+<playlist folder_path="data/missions/Improved_Missions_and_AI" file_store="4" name="Improved Missions and AI (0.0.1.dev)">
+	<locations location_id_counter="202" component_id_counter="4349">
 		<locations>
 			<l id="1" tile="data/tiles/island_15.xml" name="CREATIVE BASE" is_env_mod="true" env_mod_spawn_num="1">
 				<components>
@@ -31642,19 +31642,6 @@
 					</c>
 				</components>
 			</l>
-			<l id="165" name="LICENSE" env_mod_spawn_num="1">
-				<components>
-					<c component_type="3" name="LICENSE" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_name="data/missions_working/vehicle_0.xml" vehicle_file_store="4">
-						<spawn_transform 30="-22.512417" 31="4.375004" 32="-11.289178"/>
-						<spawn_bounds>
-							<min x="-4.125" y="-7.875" z="-26.625"/>
-							<max x="4.125" y="10.625" z="28.125"/>
-						</spawn_bounds>
-						<spawn_local_offset y="-1.375" z="-0.75"/>
-						<graph_links/>
-					</c>
-				</components>
-			</l>
 			<l id="166" tile="data/tiles/volcanic_9_6.xml" name="THALES CAVERN" is_env_mod="true" env_mod_spawn_num="1">
 				<components>
 					<c component_type="11" id="3224" name="ocean_path,precision=0" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
@@ -36232,6 +36219,19 @@
 						<graph_links>
 							<l value="4255"/>
 						</graph_links>
+					</c>
+				</components>
+			</l>
+			<l id="202" name="OCEAN" env_mod_spawn_num="1">
+				<components>
+					<c component_type="3" id="4349" name="imai,close_destination_marker" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_name="data/missions_working/vehicle_4349.xml" vehicle_file_store="4" vehicle_is_static="true" vehicle_is_invulnerable="true">
+						<spawn_transform 30="-0.221022" 31="0.019659" 32="-0.22911"/>
+						<spawn_bounds>
+							<min x="-4.375" y="-0.125" z="-3.125"/>
+							<max x="-0.375" y="0.125" z="0.875"/>
+						</spawn_bounds>
+						<spawn_local_offset x="2.375" z="1.125"/>
+						<graph_links/>
 					</c>
 				</components>
 			</l>
