@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.12)"
+ADDON_VERSION = "(0.0.1.13)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -7848,6 +7848,136 @@ limitations under the License.
 ]]
 
 -- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Contains some code for math on Vector 3s, as in, a 3D vector.
+]]
+
+-- library name
+Vector3 = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class Vector3
+---@field x number x axis
+---@field y number y axis (up/down)
+---@field z number z axis
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for getting the euclidean distance
+---@param a Vector3
+---@param b Vector3
+---@return number euclidean_distance euclidean distance between the two 3D vectors.
+function Vector3.euclideanDistance(a, b)
+	-- get the relative x position
+	local rx = a.x - b.x
+
+	-- get the relative y position
+	local ry = a.y - b.y
+
+	-- get the relative z position
+	local rz = a.z - b.z
+
+	-- return the distance
+	return math.sqrt(rx*rx+ry*ry+rz*rz)
+end
+
+--- Function for getting the manhattan distance
+---@param a Vector3
+---@param b Vector3
+---@return number manhattan_distance manhattan distance between the two 3D vectors.
+function Vector3.manhattanDistance(a, b)
+	-- return the distance
+	return (
+		math.abs(a.x - b.x) + -- get manhattan distance on x axis
+		math.abs(a.y - b.y) + -- get manhattan distance on y axis
+		math.abs(a.z - b.z) -- get manhattan distance on z axis
+	)
+end
+
+--- Function for turning a Matrix into a Vector3
+---@param target_matrix SWMatrix
+---@param raw_coordinates boolean? whether or not to return the raw coordinates of the matrix (true), or the transformed coordinates (false/nil).
+---@return Vector3 vector the vector created from the matrix.
+function Vector3.fromMatrix(target_matrix, raw_coordinates)
+	-- if raw_coordinates is true
+	if raw_coordinates then
+		-- return the raw coordinates
+		return {
+			x = target_matrix[13],
+			y = target_matrix[14],
+			z = target_matrix[15]
+		}
+	end
+
+	--* raw coordinates is false, return the transformed coordinates
+
+	-- get transformed coordinates (I assume this function properly applies the rotations, scaling, etc to the matrix.)
+	local x, y, z = matrix.position(target_matrix)
+
+	-- return the transformed coordinates
+	return {
+		x = x,
+		y = y,
+		z = z
+	}
+end
+
+
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -7885,7 +8015,7 @@ Objective = {
 ---@class Destination
 ---@field type DestinationType the type of destination.
 ---@field zone SWZone|nil the zone the destination is in. Only used if the type is "zone".
----@field position SWVoxelPos|nil the position of the destination. Only used if the type is "matrix". Stored as voxel pos to avoid higher memory usage.
+---@field position Vector3|nil the position of the destination. Only used if the type is "matrix". Stored as voxel pos to avoid higher memory usage.
 ---@field radius number|nil the radius of the destination. Only used if the type is "matrix".
 ---@field instances integer the amount of instances of this destination. Used to know if it can be removed or not.
 ---@field animator_id AnimatorID? The animator id for this destination.
@@ -7963,16 +8093,8 @@ end
 ---@return Destination destination the destination.
 function Objective.destination.matrix(dest_matrix, radius)
 
-	-- extract position from the matrix (I assume this function properly applies the rotations, scaling, etc to the matrix.)
-	local x, y, z = matrix.position(dest_matrix)
-
-	-- Turn into 3D position ("SWVoxelPos")
-	---@type SWVoxelPos
-	local dest_pos = {
-		x = x,
-		y = y,
-		z = z
-	}
+	-- turn the dest matrix into a vector 3
+	local dest_pos = Vector3.fromMatrix(dest_matrix, false)
 
 	-- create the destination using the matrix
 	---@type Destination
@@ -8006,17 +8128,13 @@ function Objective.destination.hasReachedDestination(current_matrix, destination
 
 	--* this destination is a matrix.
 
-	-- extract position from the matrix (I assume this function properly applies the rotations, scaling, etc to the matrix.)
-	local current_x, current_y, current_z = matrix.position(current_matrix)
+	-- get vector3 of the current matrix
+	local current_pos = Vector3.fromMatrix(current_matrix, false)
 
 	-- get the distance from the current position to the target position
-	local destination_distance = math.euclideanDistance(
-		current_x,
-		destination.position.x,
-		current_z,
-		destination.position.z,
-		current_y,
-		destination.position.y
+	local destination_distance = Vector3.manhattanDistance(
+		current_pos,
+		destination.position
 	)
 
 	-- return if the distance from the current position to the target position is within the radius
@@ -8075,7 +8193,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8061: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("8179: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -8288,6 +8406,48 @@ Command.registerCommand(
 	"Starts the specified mission.",
 	"Starts the specified mission, specified mission name must be it's internal name.",
 	{"start_mission <internal_mission_name> [mission_args...]"}
+)
+
+-- Define a command to list all registered missions.
+Command.registerCommand(
+	"list_defined_missions",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- get the number of missions
+		local mission_count = table.length(defined_missions)
+
+		-- if there are no missions, return
+		if mission_count == 0 then
+			d.print("There are no missions.", false, 1, peer_id)
+			return
+		end
+
+		-- iterate through all missions
+		for internal_mission_name, mission_definition in pairs(defined_missions) do
+
+			-- if the mission definition does not exist for whatever reason, go to the next mission to prevent an error
+			if mission_definition == nil then
+				d.print(("Failed to find definition for mission \"%s\"."):format(internal_mission_name), false, 1, peer_id)
+				goto continue
+			end
+
+			-- print the mission
+			d.print(
+				("Mission Internal Name: \"%s\"\nMission Name: \"%s\""):format(mission_definition.internal_name, mission_definition.name),
+				false,
+				0,
+				peer_id
+			)
+
+			::continue::
+		end
+	end,
+	"admin_script",
+	"Lists all missions.",
+	"Lists all missions, and their mission_index.",
+	{"list_missions"}
 )
 
 -- Define a command to stop a mission.

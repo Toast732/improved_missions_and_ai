@@ -27,6 +27,7 @@ limitations under the License.
 ]]
 
 -- required libraries
+require("libraries.utils.vector3")
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -64,7 +65,7 @@ Objective = {
 ---@class Destination
 ---@field type DestinationType the type of destination.
 ---@field zone SWZone|nil the zone the destination is in. Only used if the type is "zone".
----@field position SWVoxelPos|nil the position of the destination. Only used if the type is "matrix". Stored as voxel pos to avoid higher memory usage.
+---@field position Vector3|nil the position of the destination. Only used if the type is "matrix". Stored as voxel pos to avoid higher memory usage.
 ---@field radius number|nil the radius of the destination. Only used if the type is "matrix".
 ---@field instances integer the amount of instances of this destination. Used to know if it can be removed or not.
 ---@field animator_id AnimatorID? The animator id for this destination.
@@ -142,16 +143,8 @@ end
 ---@return Destination destination the destination.
 function Objective.destination.matrix(dest_matrix, radius)
 
-	-- extract position from the matrix (I assume this function properly applies the rotations, scaling, etc to the matrix.)
-	local x, y, z = matrix.position(dest_matrix)
-
-	-- Turn into 3D position ("SWVoxelPos")
-	---@type SWVoxelPos
-	local dest_pos = {
-		x = x,
-		y = y,
-		z = z
-	}
+	-- turn the dest matrix into a vector 3
+	local dest_pos = Vector3.fromMatrix(dest_matrix, false)
 
 	-- create the destination using the matrix
 	---@type Destination
@@ -185,17 +178,13 @@ function Objective.destination.hasReachedDestination(current_matrix, destination
 
 	--* this destination is a matrix.
 
-	-- extract position from the matrix (I assume this function properly applies the rotations, scaling, etc to the matrix.)
-	local current_x, current_y, current_z = matrix.position(current_matrix)
+	-- get vector3 of the current matrix
+	local current_pos = Vector3.fromMatrix(current_matrix, false)
 
 	-- get the distance from the current position to the target position
-	local destination_distance = math.euclideanDistance(
-		current_x,
-		destination.position.x,
-		current_z,
-		destination.position.z,
-		current_y,
-		destination.position.y
+	local destination_distance = Vector3.manhattanDistance(
+		current_pos,
+		destination.position
 	)
 
 	-- return if the distance from the current position to the target position is within the radius

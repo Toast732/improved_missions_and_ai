@@ -27,6 +27,7 @@ limitations under the License.
 ]]
 
 -- required libraries
+require("libraries.utils.tables")
 require("libraries.addon.commands.command.command")
 require("libraries.imai.missions.objectives.objective")
 
@@ -234,6 +235,48 @@ Command.registerCommand(
 	"Starts the specified mission.",
 	"Starts the specified mission, specified mission name must be it's internal name.",
 	{"start_mission <internal_mission_name> [mission_args...]"}
+)
+
+-- Define a command to list all registered missions.
+Command.registerCommand(
+	"list_defined_missions",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- get the number of missions
+		local mission_count = table.length(defined_missions)
+
+		-- if there are no missions, return
+		if mission_count == 0 then
+			d.print("There are no missions.", false, 1, peer_id)
+			return
+		end
+
+		-- iterate through all missions
+		for internal_mission_name, mission_definition in pairs(defined_missions) do
+
+			-- if the mission definition does not exist for whatever reason, go to the next mission to prevent an error
+			if mission_definition == nil then
+				d.print(("Failed to find definition for mission \"%s\"."):format(internal_mission_name), false, 1, peer_id)
+				goto continue
+			end
+
+			-- print the mission
+			d.print(
+				("Mission Internal Name: \"%s\"\nMission Name: \"%s\""):format(mission_definition.internal_name, mission_definition.name),
+				false,
+				0,
+				peer_id
+			)
+
+			::continue::
+		end
+	end,
+	"admin_script",
+	"Lists all missions.",
+	"Lists all missions, and their mission_index.",
+	{"list_missions"}
 )
 
 -- Define a command to stop a mission.
