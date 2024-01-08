@@ -159,20 +159,6 @@ function Missions.onTick(game_ticks)
 		-- get the number of objectives in this mission
 		local objective_count = #mission.objectives
 
-		-- if the number of objectives in this mission is 0, remove the mission.
-		if objective_count == 0 then
-			table.remove(g_savedata.missions.missions_list, mission_index)
-
-			server.notify(
-				-1,
-				"Mission",
-				"A mission has been completed.",
-				4
-			)
-
-			goto continue
-		end
-
 		-- iterate through all of the objectives
 		for objective_index = objective_count, 1, -1 do
 
@@ -198,10 +184,23 @@ function Missions.onTick(game_ticks)
 					"A mission objective has been failed.",
 					2
 				)
+				
+				-- remove the objective
+				table.remove(mission.objectives, objective_index)
 			end
 		end
 
-		::continue::
+		-- if the number of objectives in this mission is 0, remove the mission.
+		if #mission.objectives == 0 then
+			table.remove(g_savedata.missions.missions_list, mission_index)
+
+			server.notify(
+				-1,
+				"Mission",
+				"A mission has been completed.",
+				4
+			)
+		end
 	end
 end
 
