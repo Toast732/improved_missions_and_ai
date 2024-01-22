@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Mission Version 0.0.1
+-- Mission Version 0.0.2
 
 --[[
 
@@ -92,9 +92,9 @@ function IncludedMissions.scripted.transport.demo.create()
 	local destination = Objective.destination.matrix(matrix.translation(2239, 11.25, -26000), 5)
 
 	-- Create the objectives.
-	objective1, destination = Objective.type.transportObject.create(object_id1, destination)
-	objective2, destination = Objective.type.transportObject.create(object_id2, destination)
-	objective3, destination = Objective.type.transportObject.create(object_id3, destination)
+	objective1, destination = Objective.type.transportObject.create(object_id1, destination, TRANSPORT_OBJECT_REMOVAL_METHOD.CONSUME_OBJECT)
+	objective2, destination = Objective.type.transportObject.create(object_id2, destination, TRANSPORT_OBJECT_REMOVAL_METHOD.CONSUME_OBJECT)
+	objective3, destination = Objective.type.transportObject.create(object_id3, destination, TRANSPORT_OBJECT_REMOVAL_METHOD.CONSUME_OBJECT)
 
 	-- Create the mission
 	Missions.create(

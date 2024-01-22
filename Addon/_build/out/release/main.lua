@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.14)"
+ADDON_VERSION = "(0.0.1.15)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -7808,7 +7808,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -7837,7 +7837,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -8023,6 +8023,7 @@ Objective = {
 ---@class DefinedObjective
 ---@field name string the name of the objective.
 ---@field checkCompletion fun(objective: Objective):ObjectiveCompletionStatus the function to check if the objective is complete.
+---@field removeObjective fun(objective: Objective) the function to call when the objective is completed.
 
 --[[
 
@@ -8175,11 +8176,13 @@ end
 --- Define a new objective type. (Should only be used when creating new objective types)
 ---@param name string the name of the objective type.
 ---@param checkCompletion fun(objective: Objective):ObjectiveCompletionStatus the function to check if the objective is complete.
-function Objective.defineType(name, checkCompletion)
+---@param removeObjective fun(objective: Objective) the function to call when the objective is completed.
+function Objective.defineType(name, checkCompletion, removeObjective)
 	-- create the objective type
 	defined_objectives[name] = {
 		name = name,
-		checkCompletion = checkCompletion
+		checkCompletion = checkCompletion,
+		removeObjective = removeObjective
 	}
 end
 
@@ -8193,12 +8196,25 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8179: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("8182: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
 	-- check if the objective is completed
 	return defined_objectives[objective.type].checkCompletion(objective)
+end
+
+--- Remove an objective
+---@param objective Objective the objective to remove.
+function Objective.remove(objective)
+	-- check if the objective type is defined
+	if not defined_objectives[objective.type] then
+		d.print(("8195: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		return
+	end
+
+	-- remove the objective
+	defined_objectives[objective.type].removeObjective(objective)
 end
 
 
@@ -8242,7 +8258,7 @@ Missions = {}
 ]]
 
 -- The tickrate of missions, the number of ticks between each time the mission is ticked.
-MISSION_TICK_RATE = 45
+MISSION_TICK_RATE = 15
 
 --[[
 
@@ -8443,9 +8459,9 @@ Command.registerCommand(
 			::continue::
 		end
 	end,
-	"admin_script",
+	"admin",
+	"Lists all missions, with their internal name, and their proper name. The internal names are useful for when trying to manually start a mission.",
 	"Lists all missions.",
-	"Lists all missions, and their mission_index.",
 	{"list_missions"}
 )
 
@@ -8480,6 +8496,11 @@ Command.registerCommand(
 			return
 		end
 
+		-- remove all objectives
+		for objective_index = #mission.objectives, 1, -1 do
+			Objective.remove(mission.objectives[objective_index])
+		end
+
 		-- Call the mission stop function
 		mission_definition.onCompletion(mission)
 	end,
@@ -8506,7 +8527,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -8528,6 +8549,7 @@ limitations under the License.
 
 -- library name
 Animations = {
+	effects = {},
 	markers = {}
 }
 
@@ -8540,19 +8562,24 @@ Animations = {
 ]]
 
 included_animations = {
+	effects = {},
 	markers = {}
 }
 
---g_savedata.included_animations = g_savedata.included_animations or {}
---g_savedata.included_animations.markers = g_savedata.included_animations.markers or {}
+g_savedata.included_animations = {
+	effects = {},
+	markers = {}
+}
 
 --[[
 
 
-	Included Missions
+	Included Animations
 
 
 ]]
+
+-- effects
 --[[
 	
 Copyright 2024 Liam Matthews
@@ -8601,6 +8628,232 @@ limitations under the License.
 ]]
 
 -- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Allows a library to easily bind to a callback, so it doesn't have to inject itself into each callback.
+]]
+
+-- library name
+Binder = {
+	bind = {}
+}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+-- onGroupSpawn
+---@alias CallbackOnGroupSpawn fun(group_id: integer, peer_id: integer, x: number, y: number, z: number, group_cost: number)
+
+-- onVehicleLoad
+---@alias CallbackOnVehicleLoad fun(vehicle_id: integer)
+
+---@alias Callback
+---| CallbackOnGroupSpawn
+---| CallbackOnVehicleLoad
+
+---@class BindedCallback
+---@field callback Callback the callback to call
+---@field priority number the priority of the callback.
+
+--[[
+
+
+	Variables
+
+
+]]
+
+---@type table<string, table<integer, BindedCallback>>
+binded_callbacks = {
+	onGroupSpawn = {},
+	onVehicleLoad = {}
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+---@param callback_name string the name of the callback to bind to.
+---@param callback Callback the callback to bind to the callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first.
+local function bindCallback(callback_name, callback, priority)
+
+	-- default the priority to 0 if not specified.
+	priority = priority or 0
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks[callback_name]
+
+	-- check if the list exists
+	if not binds then
+		-- print an error
+		d.print(("The callback %s is not a valid callback."):format(callback_name), true, 1)
+		return
+	end
+
+	-- define the index to insert the callback at.
+	local insert_index = 1
+
+	-- find the index to insert the callback at (sorted by priority, goes to behind an existing callback if they share the same priority.)
+	for bind_index = 1, #binds do
+		-- if the priority is higher than the current bind's priority, break.
+		if binds[bind_index].priority > priority then
+			break
+		end
+
+		-- otherwise, set insert index to above this one.
+		insert_index = bind_index + 1
+	end
+
+	-- insert the callback at the insert index.
+	table.insert(binds, insert_index, 
+		{
+			callback = callback,
+			priority = priority
+		}
+	)
+end
+
+--[[
+
+	onGroupSpawn
+
+]]
+
+--[[
+	Inject.
+]]
+
+---@diagnostic disable-next-line: undefined-global
+old_onGroupSpawn = onGroupSpawn
+
+---@private
+function onGroupSpawn(...)
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.onGroupSpawn
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+
+	-- call old callback, if it exists
+	if old_onGroupSpawn then
+		old_onGroupSpawn(...)
+	end
+end
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the onGroupSpawn callback.
+---@param callback CallbackOnGroupSpawn the callback to bind to the onGroupSpawn callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.onGroupSpawn(callback, priority)
+	bindCallback(
+		"onGroupSpawn",
+		callback,
+		priority
+	)
+end
+
+--[[
+
+	onVehicleLoad
+
+]]
+
+--[[
+	Inject.
+]]
+
+old_onVehicleLoad = onVehicleLoad
+
+---@private
+function onVehicleLoad(...)
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.onVehicleLoad
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+
+	-- call old callback, if it exists
+	if old_onVehicleLoad then
+		old_onVehicleLoad(...)
+	end
+end
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the onVehicleLoad callback.
+---@param callback CallbackOnVehicleLoad the callback to bind to the onVehicleLoad callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.onVehicleLoad(callback, priority)
+	bindCallback(
+		"onVehicleLoad",
+		callback,
+		priority
+	)
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
 
 --[[
 
@@ -8993,6 +9246,7 @@ Animator = {}
 ---@field keyframes Keyframes the keyframes for the animation.
 ---@field remove_collision boolean if you want to have collision removed on the animation. NOTE: ONLY WORKS FOR HOST IN MULTIPLAYER.
 ---@field animation_id AnimationID the id of the animation. (primary key for the registered_animations table)
+---@field run_count integer how many times the animation should run before being deleted, -1 for infinite.
 
 ---@alias AnimationID integer the id of the animation. (primary key for the registered_animations table)
 ---@alias AnimatorID integer the id of the animator. (primary key for the animator_ids table)
@@ -9007,6 +9261,7 @@ Animator = {}
 ---@field keyframe_start_time number the time the last keyframe of the animation ended.
 ---@field keyframe_index integer the index of the current keyframe.
 ---@field last_matrix SWMatrix the matrix the time the last keyframe ended.
+---@field times_ran integer how many times the animation has ran.
 
 ---@class DefinedAnimation
 ---@field internal_name string the internal name of the animation.
@@ -9014,6 +9269,18 @@ Animator = {}
 ---@field startAnimation fun(...) the function to call to start the animation.
 
 ---@alias DefinedAnimations table<string, DefinedAnimation> indexed by the internal name of the animation.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+UPPER_REMOVE_COLLISION_SCALE = 1.05 -- The upper scale to set the axis to in order to remove collision. Axis set to this, if it's scale is > 1 and < this
+
+LOWER_REMOVE_COLLISION_SCALE = 0.95 -- The lower scale to set the axis to in order to remove collision. Axis set to this, if it's scale is < 1 and > this
 
 --[[
 
@@ -9080,23 +9347,36 @@ function Animator.deployAnimation(animation, spawning_data, origin)
 
 	-- if the animation is set to make sure it has no collision
 	if animation.remove_collision then
+
+		--- Function for removing the collision on an axis.
+		---@param axis_scale number the scale of the axis.
+		---@return number collsionless_axis_scale the scale, but made to remove the collision.
+		function removeAxisCollision(axis_scale)
+			-- remove collision via the upper scale if it's greater than or equal to 1, and less than the upper scale.
+			if axis_scale >= 1 and axis_scale < UPPER_REMOVE_COLLISION_SCALE then
+				return UPPER_REMOVE_COLLISION_SCALE
+			end
+
+			-- remove collision via the lower scale if it's less than 1, and greater than the lower scale.
+			if axis_scale < 1 and axis_scale > LOWER_REMOVE_COLLISION_SCALE then
+				return LOWER_REMOVE_COLLISION_SCALE
+			end
+
+			-- return current axis scale, is fine.
+			return axis_scale
+		end
+
 		-- ensure no scales are exactly 1.
 		--TODO: Does not work if the zone is rotated.
 		
-		-- ensure x scale is not 1
-		if origin[1] == 1 then
-			origin[1] = 1.05
-		end
+		-- ensure x axis is collisionless
+		origin[1] = removeAxisCollision(origin[1])
 
-		-- ensure y scale is not 1
-		if origin[6] == 1 then
-			origin[6] = 1.05
-		end
+		-- ensure y axis is collisionless
+		origin[6] = removeAxisCollision(origin[6])
 
-		-- ensure z scale is not 1
-		if origin[11] == 1 then
-			origin[11] = 1.05
-		end
+		-- ensure z axis is collisionless
+		origin[11] = removeAxisCollision(origin[11])
 	end
 
 	-- spawn the component
@@ -9128,7 +9408,8 @@ function Animator.deployAnimation(animation, spawning_data, origin)
 			animation_id = animation.animation_id,
 			keyframe_start_time = server.getTimeMillisec(),
 			keyframe_index = 1,
-			last_matrix = origin
+			last_matrix = origin,
+			times_ran = 0
 		}
 	)
 
@@ -9144,8 +9425,9 @@ end
 --- Function for creating an animation from a set of keyframes.
 ---@param keyframes Keyframes the keyframes for the animation.
 ---@param remove_collision boolean if you want to have collision removed on the animation. NOTE: ONLY WORKS FOR HOST IN MULTIPLAYER.
+---@param run_count integer how many times the animation should run before being deleted, -1 for infinite.
 ---@return Animation animation
-function Animator.createAnimation(keyframes, remove_collision)
+function Animator.createAnimation(keyframes, remove_collision, run_count)
 
 	-- if animator_debug is enabled, print the keyframes.
 	if g_savedata.flags.animator_debug then
@@ -9161,7 +9443,8 @@ function Animator.createAnimation(keyframes, remove_collision)
 	g_savedata.animator.registered_animations[animation_id] = {
 		keyframes = keyframes,
 		remove_collision = remove_collision,
-		animation_id = animation_id
+		animation_id = animation_id,
+		run_count = run_count
 	}
 	
 	-- return the animation
@@ -9277,6 +9560,12 @@ function Animator.removeAnimator(animator_id)
 	-- get the animator index
 	local animator_index = g_savedata.animator.animator_ids[animator_id]
 
+	-- check if this active animator exists
+	if g_savedata.animator.active_animators[animator_index] == nil then
+		d.print(("Animator %s no longer exists."):format(animator_id), true, 1)
+		return false
+	end
+
 	-- go through all vehicle ids in the group and despawn in
 	local vehicle_ids = server.getVehicleGroup(g_savedata.animator.active_animators[animator_index].group_id)
 
@@ -9297,6 +9586,28 @@ function Animator.removeAnimator(animator_id)
 	end
 
 	return true
+end
+
+--- Get an animator from it's ID
+---@param animator_id AnimatorID the id of the animator to get.
+---@return ActiveAnimator|nil animator returns nil if theres an error
+function Animator.getAnimator(animator_id)
+	-- Check if the animator exists
+	if g_savedata.animator.animator_ids[animator_id] == nil then
+		d.print(("Animator %s is not defined."):format(animator_id), true, 1)
+		return nil
+	end
+
+	-- get the animator index
+	local animator_index = g_savedata.animator.animator_ids[animator_id]
+
+	-- check if this active animator exists
+	if g_savedata.animator.active_animators[animator_index] == nil then
+		d.print(("Animator %s no longer exists."):format(animator_id), true, 1)
+		return nil
+	end
+
+	return g_savedata.animator.active_animators[animator_index]
 end
 
 --[[
@@ -9411,6 +9722,15 @@ function Animator.onTick(game_ticks)
 			if active_animator.keyframe_index > #animation.keyframes then
 				-- return to the start
 				active_animator.keyframe_index = 1
+
+				-- increment run count
+				active_animator.times_ran = active_animator.times_ran + 1
+
+				-- if the number of times ran is greater than or equal to the run count, and if run count is not -1, remove the animator.
+				if active_animator.times_ran >= animation.run_count and animation.run_count ~= -1 then
+					-- remove the animator
+					Animator.removeAnimator(active_animator.animator_id)
+				end
 			end
 
 			-- set the keyframe start time to the current time.
@@ -9520,6 +9840,305 @@ Flag.registerBooleanFlag(
 ---@diagnostic disable:duplicate-set-field
 
 --[[ 
+	Constructor for creating object consumers.
+]]
+
+-- library name
+Animations.effects.objectConsumer = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The object consumer's length and width (in meters), assumed to be square.
+OBJECT_CONSUMER_LENGTH = 1.5
+
+-- The time it just waits at the top.
+OBJECT_CONSUMER_UP_WAIT_TIME = 0.1
+
+-- The time it takes to move down fully
+OBJECT_CONSUMER_MOVE_DOWN_TIME = 0.5
+
+-- The time it waits at the bottom.
+OBJECT_CONSUMER_DOWN_WAIT_TIME = 2
+
+-- The height of the object consumer (m)
+OBJECT_CONSUMER_HEIGHT = 6
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.included_animations.effects.objectConsumer = {
+	---@type table<integer, integer> the vehicle_ids of the animators we are waiting for to spawn.
+	awaiting_animator_vehicle_ids = {}
+}
+
+INTERNAL_ANIMATION_NAME = "effects.objectConsumer"
+ANIMATION_NAME = "Object Consumer"
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+	Creating the animation.
+]]
+---@param object_id integer the object to consume.
+function Animations.effects.objectConsumer.create(object_id)
+
+	-- get the object radius (right now, just assumed to be 1, will need to put in a proper system for this later.)
+	local object_radius = 1
+
+	local animation_xz_scale = object_radius/OBJECT_CONSUMER_LENGTH * 1.25
+	
+	-- define the scale for this animation.
+	local scale = {
+		x = animation_xz_scale,
+		y = 1,
+		z = animation_xz_scale
+	}
+
+	-- get the object's position
+	local object_matrix = server.getObjectPos(object_id)
+
+	-- define the origin matrix
+	local origin_matrix = matrix.translation(
+		object_matrix[13],
+		object_matrix[14],
+		object_matrix[15]
+	)
+
+	-- get the wait height
+	local wait_height = object_radius + origin_matrix[14] - OBJECT_CONSUMER_HEIGHT * 0.5
+
+	-- set the origin matrix y to the wait height
+	origin_matrix[14] = wait_height
+
+	-- create the animation
+	animation = Animator.createAnimation(
+		{
+			-- Keyframe 1: wait at the top
+			Animator.createKeyframe(
+				{ -- move up
+					Animator.createPositionKeyframeInstruction(
+						0,
+						0, -- stay at wait height.
+						0,
+						false
+					)
+				},
+				OBJECT_CONSUMER_UP_WAIT_TIME -- wait for the desired time
+			),
+			-- Keyframe 2: Move Down
+			Animator.createKeyframe(
+				{
+					Animator.createPositionKeyframeInstruction(
+						0,
+						OBJECT_CONSUMER_HEIGHT*-0.5, -- move down to the lower desired height
+						0,
+						false
+					):setQuadraticBezier(
+						0,
+						0,
+						0
+					)
+				},
+				OBJECT_CONSUMER_MOVE_DOWN_TIME -- set seconds to match our desired down movement speed
+			),
+			-- Keyframe 3: Wait at the bottom
+			Animator.createKeyframe(
+				{
+					Animator.createPositionKeyframeInstruction(
+						0,
+						-OBJECT_CONSUMER_HEIGHT, -- stay at the lower desired height
+						0,
+						false
+					)
+				},
+				OBJECT_CONSUMER_DOWN_WAIT_TIME -- wait for the desired time
+			)
+		},
+		true, -- remove collision
+		1 -- only run once.
+	)
+
+	--[[
+		Find the close destination ring vehicle.
+	]]
+
+	-- Create the filter for the close destination ring vehicle.
+	local object_consumer_vehicle_filter = ComponentSpawner.createFilter()
+
+	-- Configure the filter to discard env mods
+	object_consumer_vehicle_filter:setEnvModHandling(COMPONENT_FILTER_ENV_MOD_HANDLING.NOT_ALLOWED)
+
+	-- Configure the filter to require the tag "imai"
+	object_consumer_vehicle_filter:addTag("imai", false)
+
+	-- Configure the filter to require the tag "animation_object"
+	object_consumer_vehicle_filter:addTag("animation_object", false)
+
+	-- Configure the filter to require the tag "object_consumer"
+	object_consumer_vehicle_filter:addTag("object_consumer", false)
+
+	-- Get the spawning data for the object consumer vehicle, fallback to first.
+	local object_consumer_vehicle_spawning_data, is_success = object_consumer_vehicle_filter:getSpawningData(SPAWNING_DATA_FALLBACK.FIRST)
+
+	-- if the spawning data was not found, stop here to prevent an error.
+	if not is_success then
+		d.print(("Could not find object consumer vehicle, please make sure it exists."), true, 1)
+		return
+	end
+
+	-- set the scale of the origin matrix
+	--TODO: Currently, will not work if the zone is rotated.
+	origin_matrix[1] = scale.x
+	origin_matrix[6] = scale.y
+	origin_matrix[11] = scale.z
+
+	-- Deploy the animation.
+	local animator_id, deploy_success = Animator.deployAnimation(
+		animation,
+		object_consumer_vehicle_spawning_data,
+		origin_matrix
+	)
+
+	-- Get the animator
+	local animator = Animator.getAnimator(animator_id)
+
+	-- Check if we got the animator
+	if animator then
+
+		-- Get the list of vehicle_ids for this group_id
+		local vehicle_ids = server.getVehicleGroup(animator.group_id)
+
+		-- add each of the vehicle_ids to the list of vehicle_ids we are waiting for to spawn.
+		for vehicle_index = 1, #vehicle_ids do
+			local vehicle_id = vehicle_ids[vehicle_index]
+			-- Add it to the list of vehicle_ids we are waiting for to spawn.
+			g_savedata.included_animations.effects.objectConsumer.awaiting_animator_vehicle_ids[vehicle_id] = object_id
+		end
+	else
+		-- Otherwise, print an error
+		d.print(("(objectConsumer) Failed to get animator for object consumer animation."),  true, 1)
+
+		-- Just remove the object now.
+		server.despawnObject(object_id, true)
+	end
+
+	return animator_id
+end
+
+--[[
+
+
+	Definitions
+
+
+]]
+
+-- define the animation
+Animator.define(
+	INTERNAL_ANIMATION_NAME,
+	ANIMATION_NAME,
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(peer_id, arg)
+
+		local object_type = tonumber(arg[1]) or 2
+
+		local player_pos = server.getPlayerPos(peer_id)
+
+		local object_id = server.spawnObject(player_pos, object_type)
+
+		Animations.effects.objectConsumer.create(
+			object_id
+		)
+	end
+)
+
+-- define the callback to delete the objects
+Binder.bind.onVehicleLoad(
+	---@param vehicle_id integer the vehicle_id of the spawned vehicle.
+	function(vehicle_id)
+
+		d.print(("(objectConsumer) on group spawn called for vehicle_id %d."):format(vehicle_id), true, 0)
+
+		d.print(string.fromTable(g_savedata.included_animations.effects.objectConsumer.awaiting_animator_vehicle_ids), true, 0)
+		-- get the object_id we are waiting for.
+		local object_id = g_savedata.included_animations.effects.objectConsumer.awaiting_animator_vehicle_ids[vehicle_id]
+
+		-- remove the vehicle_id from the list of vehicle_ids we are waiting for to spawn.
+		g_savedata.included_animations.effects.objectConsumer.awaiting_animator_vehicle_ids[vehicle_id] = nil
+
+		-- if the object_id is nil, stop here.
+		if not object_id then
+			return
+		end
+
+		-- despawn the object.
+		server.despawnObject(object_id, true)
+	end
+)
+
+
+-- markers
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Animation Version 0.0.2
+
+--[[
+
+
+	Animation Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
 	Constructor for creating close destination rings.
 ]]
 
@@ -9546,10 +10165,10 @@ Animations.markers.closeDestinationRing = {}
 CLOSE_DESTINATION_RING_LENGTH = 4
 
 -- Speed when moving up (m/s)
-CLOSE_DESTINATION_RING_SPEED_UP = 1.25
+CLOSE_DESTINATION_RING_MOVE_UP_TIME = 3
 
 -- Speed when moving down (m/s)
-CLOSE_DESTINATION_RING_SPEED_DOWN = 0.5
+CLOSE_DESTINATION_RING_MOVE_DOWN_TIME = 4
 
 -- The scale of the height of the close destination ring, relative to the smallest of the length and width.
 CLOSE_DESTINATION_RING_HEIGHT_SCALE = 0.5
@@ -9631,7 +10250,7 @@ function Animations.markers.closeDestinationRing.create(destination)
 						0
 					)
 				},
-				3 -- set seconds to match our desired up movement speed
+				CLOSE_DESTINATION_RING_MOVE_UP_TIME -- set seconds to match our desired up movement speed
 			),
 			-- Keyframe 2: move down
 			Animator.createKeyframe(
@@ -9647,10 +10266,11 @@ function Animations.markers.closeDestinationRing.create(destination)
 						0
 					)
 				},
-				4 -- set seconds to match our desired down movement speed
+				CLOSE_DESTINATION_RING_MOVE_DOWN_TIME -- set seconds to match our desired down movement speed
 			)
 		},
-		true -- remove collision
+		true, -- remove collision
+		-1 -- loop infinitely
 	)
 
 	--[[
@@ -9665,6 +10285,9 @@ function Animations.markers.closeDestinationRing.create(destination)
 
 	-- Configure the filter to require the tag "imai"
 	close_destination_ring_vehicle_filter:addTag("imai", false)
+
+	-- Configure the filter to require the tag "animation_object"
+	close_destination_ring_vehicle_filter:addTag("animation_object", false)
 
 	-- Configure the filter to require the tag "close_destination_ring"
 	close_destination_ring_vehicle_filter:addTag("close_destination_marker", false)
@@ -9833,7 +10456,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -9867,6 +10490,7 @@ Objective.type.transportObject = {}
 ---@class ObjectiveTransportObjectData
 ---@field object_id integer the object_id to transport
 ---@field destination Destination the destination to transport the object to.
+---@field removal_method TransportObjectRemovalMethod the removal method to use, to remove the object.
 
 ---@class ObjectiveTransportObject: Objective
 ---@field data ObjectiveTransportObjectData the data of the objective.
@@ -9881,6 +10505,14 @@ Objective.type.transportObject = {}
 
 -- this objective's type.
 OBJECTIVE_TYPE = "transport_object"
+
+-- the removal method to use, to remove the object.
+---@enum TransportObjectRemovalMethod
+TRANSPORT_OBJECT_REMOVAL_METHOD = {
+	INSTANT_DESPAWN = 0, -- instantly despawn it.
+	DESPAWN = 1, -- despawn it when it's unloaded.
+	CONSUME_OBJECT = 2 -- consume the object via an animation.
+}
 
 --[[
 
@@ -9899,17 +10531,19 @@ OBJECTIVE_TYPE = "transport_object"
 ]]
 
 --- Creates a new transport object objective.
----@param object_id integer the object_id to transport
+---@param object_id integer the object_id to transport.
 ---@param destination Destination the destination to transport the object to.
+---@param removal_method TransportObjectRemovalMethod? the removal method to use, to remove the object. defaulted to INSTANT_DESPAWN.
 ---@return ObjectiveTransportObject objective the created objective.
 ---@return Destination destination the destination.
-function Objective.type.transportObject.create(object_id, destination)
+function Objective.type.transportObject.create(object_id, destination, removal_method)
 	-- Create the objective.
 	---@type ObjectiveTransportObject
 	local objective = {
 		data = {
 			object_id = object_id,
-			destination = destination
+			destination = destination,
+			removal_method = removal_method or TRANSPORT_OBJECT_REMOVAL_METHOD.INSTANT_DESPAWN
 		},
 		money_reward = 0,
 		research_reward = 0,
@@ -9928,6 +10562,31 @@ function Objective.type.transportObject.create(object_id, destination)
 	return objective, destination
 end
 
+--- remove the objective. Used internally, shouldn't be used anywhere but here and in objectives.lua.
+---@param objective ObjectiveTransportObject the objective to remove.
+local function removeObjective(objective)
+	-- remove 1 from the instances of the destination
+	objective.data.destination = Objective.destination.removeInstance(objective.data.destination)
+
+	-- if this is the last instance of the destination, remove the animation.
+	if objective.data.destination.instances == 0 then
+		Animator.removeAnimator(objective.data.destination.animator_id)
+	end
+
+	-- if the removal method is INSTANT_DESPAWN, instantly despawn the object.
+	if objective.data.removal_method == TRANSPORT_OBJECT_REMOVAL_METHOD.INSTANT_DESPAWN then
+		-- despawn the object instantly.
+		server.despawnObject(objective.data.object_id, true)
+	-- if the removal method is DESPAWN, despawn the object when it's unloaded.
+	elseif objective.data.removal_method == TRANSPORT_OBJECT_REMOVAL_METHOD.DESPAWN then
+		-- set the object to despawn when unloaded.
+		server.despawnObject(objective.data.object_id, false)
+	elseif objective.data.removal_method == TRANSPORT_OBJECT_REMOVAL_METHOD.CONSUME_OBJECT then
+		-- consume the object via an animation.
+		Animations.effects.objectConsumer.create(objective.data.object_id)
+	end
+end
+
 --- Check if this transport object objective is complete. Used internally, shouldn't be used anywhere but here and in objectives.lua.
 ---@param objective ObjectiveTransportObject the objective to check.
 ---@return ObjectiveCompletionStatus status the completition status of the objective.
@@ -9935,23 +10594,9 @@ local function checkCompletion(objective)
 	-- Get the object_id's location.
 	local object_transform, is_success = server.getObjectPos(objective.data.object_id)
 
-	--- Called by this function whenever the status is either completed or failed.
-	local function onObjectiveEnd()
-		-- remove 1 from the instances of the destination
-		objective.data.destination = Objective.destination.removeInstance(objective.data.destination)
-
-		-- if this is the last instance of the destination, remove the animation.
-		if objective.data.destination.instances == 0 then
-			Animator.removeAnimator(objective.data.destination.animator_id)
-		end
-
-		-- set the object to despawn.
-		server.despawnObject(objective.data.object_id, false)
-	end
-
 	if not is_success then
 		-- The object doesn't exist, so the objective is failed.
-		onObjectiveEnd()
+		removeObjective(objective)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -9963,7 +10608,7 @@ local function checkCompletion(objective)
 
 	-- if the object is at the destination, return that the objective is completed.
 	if object_at_destination then
-		onObjectiveEnd()
+		removeObjective(objective)
 		return OBJECTIVE_COMPLETION_STATUS.COMPLETED
 	-- otherwise, return that the objective is in progress.
 	else
@@ -9972,7 +10617,7 @@ local function checkCompletion(objective)
 end
 
 --[[
-	
+
 
 	Definitions
 
@@ -9982,7 +10627,8 @@ end
 -- Define the objective
 Objective.defineType(
 	OBJECTIVE_TYPE,
-	checkCompletion
+	checkCompletion,
+	removeObjective
 )
 
 
@@ -10038,7 +10684,7 @@ limitations under the License.
 
 ]]
 
--- Mission Version 0.0.1
+-- Mission Version 0.0.2
 
 --[[
 
@@ -10113,9 +10759,9 @@ function IncludedMissions.scripted.transport.demo.create()
 	local destination = Objective.destination.matrix(matrix.translation(2239, 11.25, -26000), 5)
 
 	-- Create the objectives.
-	objective1, destination = Objective.type.transportObject.create(object_id1, destination)
-	objective2, destination = Objective.type.transportObject.create(object_id2, destination)
-	objective3, destination = Objective.type.transportObject.create(object_id3, destination)
+	objective1, destination = Objective.type.transportObject.create(object_id1, destination, TRANSPORT_OBJECT_REMOVAL_METHOD.CONSUME_OBJECT)
+	objective2, destination = Objective.type.transportObject.create(object_id2, destination, TRANSPORT_OBJECT_REMOVAL_METHOD.CONSUME_OBJECT)
+	objective3, destination = Objective.type.transportObject.create(object_id3, destination, TRANSPORT_OBJECT_REMOVAL_METHOD.CONSUME_OBJECT)
 
 	-- Create the mission
 	Missions.create(

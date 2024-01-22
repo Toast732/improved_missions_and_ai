@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -73,6 +73,7 @@ Objective = {
 ---@class DefinedObjective
 ---@field name string the name of the objective.
 ---@field checkCompletion fun(objective: Objective):ObjectiveCompletionStatus the function to check if the objective is complete.
+---@field removeObjective fun(objective: Objective) the function to call when the objective is completed.
 
 --[[
 
@@ -225,11 +226,13 @@ end
 --- Define a new objective type. (Should only be used when creating new objective types)
 ---@param name string the name of the objective type.
 ---@param checkCompletion fun(objective: Objective):ObjectiveCompletionStatus the function to check if the objective is complete.
-function Objective.defineType(name, checkCompletion)
+---@param removeObjective fun(objective: Objective) the function to call when the objective is completed.
+function Objective.defineType(name, checkCompletion, removeObjective)
 	-- create the objective type
 	defined_objectives[name] = {
 		name = name,
-		checkCompletion = checkCompletion
+		checkCompletion = checkCompletion,
+		removeObjective = removeObjective
 	}
 end
 
@@ -249,4 +252,17 @@ function Objective.checkCompletion(objective)
 
 	-- check if the objective is completed
 	return defined_objectives[objective.type].checkCompletion(objective)
+end
+
+--- Remove an objective
+---@param objective Objective the objective to remove.
+function Objective.remove(objective)
+	-- check if the objective type is defined
+	if not defined_objectives[objective.type] then
+		d.print(("<line>: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		return
+	end
+
+	-- remove the objective
+	defined_objectives[objective.type].removeObjective(objective)
 end

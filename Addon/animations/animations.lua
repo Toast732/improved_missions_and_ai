@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -38,6 +38,7 @@ limitations under the License.
 
 -- library name
 Animations = {
+	effects = {},
 	markers = {}
 }
 
@@ -50,18 +51,25 @@ Animations = {
 ]]
 
 included_animations = {
+	effects = {},
 	markers = {}
 }
 
---g_savedata.included_animations = g_savedata.included_animations or {}
---g_savedata.included_animations.markers = g_savedata.included_animations.markers or {}
+g_savedata.included_animations = {
+	effects = {},
+	markers = {}
+}
 
 --[[
 
 
-	Included Missions
+	Included Animations
 
 
 ]]
 
+-- effects
+require("animations.effects.objectConsumer.animation")
+
+-- markers
 require("animations.markers.closeDestinationRing.animation")

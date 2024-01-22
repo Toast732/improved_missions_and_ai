@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -87,6 +87,7 @@ Animator = {}
 ---@field keyframes Keyframes the keyframes for the animation.
 ---@field remove_collision boolean if you want to have collision removed on the animation. NOTE: ONLY WORKS FOR HOST IN MULTIPLAYER.
 ---@field animation_id AnimationID the id of the animation. (primary key for the registered_animations table)
+---@field run_count integer how many times the animation should run before being deleted, -1 for infinite.
 
 ---@alias AnimationID integer the id of the animation. (primary key for the registered_animations table)
 ---@alias AnimatorID integer the id of the animator. (primary key for the animator_ids table)
@@ -101,6 +102,7 @@ Animator = {}
 ---@field keyframe_start_time number the time the last keyframe of the animation ended.
 ---@field keyframe_index integer the index of the current keyframe.
 ---@field last_matrix SWMatrix the matrix the time the last keyframe ended.
+---@field times_ran integer how many times the animation has ran.
 
 ---@class DefinedAnimation
 ---@field internal_name string the internal name of the animation.
@@ -108,6 +110,18 @@ Animator = {}
 ---@field startAnimation fun(...) the function to call to start the animation.
 
 ---@alias DefinedAnimations table<string, DefinedAnimation> indexed by the internal name of the animation.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+UPPER_REMOVE_COLLISION_SCALE = 1.05 -- The upper scale to set the axis to in order to remove collision. Axis set to this, if it's scale is > 1 and < this
+
+LOWER_REMOVE_COLLISION_SCALE = 0.95 -- The lower scale to set the axis to in order to remove collision. Axis set to this, if it's scale is < 1 and > this
 
 --[[
 
@@ -174,23 +188,36 @@ function Animator.deployAnimation(animation, spawning_data, origin)
 
 	-- if the animation is set to make sure it has no collision
 	if animation.remove_collision then
+
+		--- Function for removing the collision on an axis.
+		---@param axis_scale number the scale of the axis.
+		---@return number collsionless_axis_scale the scale, but made to remove the collision.
+		function removeAxisCollision(axis_scale)
+			-- remove collision via the upper scale if it's greater than or equal to 1, and less than the upper scale.
+			if axis_scale >= 1 and axis_scale < UPPER_REMOVE_COLLISION_SCALE then
+				return UPPER_REMOVE_COLLISION_SCALE
+			end
+
+			-- remove collision via the lower scale if it's less than 1, and greater than the lower scale.
+			if axis_scale < 1 and axis_scale > LOWER_REMOVE_COLLISION_SCALE then
+				return LOWER_REMOVE_COLLISION_SCALE
+			end
+
+			-- return current axis scale, is fine.
+			return axis_scale
+		end
+
 		-- ensure no scales are exactly 1.
 		--TODO: Does not work if the zone is rotated.
 		
-		-- ensure x scale is not 1
-		if origin[1] == 1 then
-			origin[1] = 1.05
-		end
+		-- ensure x axis is collisionless
+		origin[1] = removeAxisCollision(origin[1])
 
-		-- ensure y scale is not 1
-		if origin[6] == 1 then
-			origin[6] = 1.05
-		end
+		-- ensure y axis is collisionless
+		origin[6] = removeAxisCollision(origin[6])
 
-		-- ensure z scale is not 1
-		if origin[11] == 1 then
-			origin[11] = 1.05
-		end
+		-- ensure z axis is collisionless
+		origin[11] = removeAxisCollision(origin[11])
 	end
 
 	-- spawn the component
@@ -222,7 +249,8 @@ function Animator.deployAnimation(animation, spawning_data, origin)
 			animation_id = animation.animation_id,
 			keyframe_start_time = server.getTimeMillisec(),
 			keyframe_index = 1,
-			last_matrix = origin
+			last_matrix = origin,
+			times_ran = 0
 		}
 	)
 
@@ -238,8 +266,9 @@ end
 --- Function for creating an animation from a set of keyframes.
 ---@param keyframes Keyframes the keyframes for the animation.
 ---@param remove_collision boolean if you want to have collision removed on the animation. NOTE: ONLY WORKS FOR HOST IN MULTIPLAYER.
+---@param run_count integer how many times the animation should run before being deleted, -1 for infinite.
 ---@return Animation animation
-function Animator.createAnimation(keyframes, remove_collision)
+function Animator.createAnimation(keyframes, remove_collision, run_count)
 
 	-- if animator_debug is enabled, print the keyframes.
 	if g_savedata.flags.animator_debug then
@@ -255,7 +284,8 @@ function Animator.createAnimation(keyframes, remove_collision)
 	g_savedata.animator.registered_animations[animation_id] = {
 		keyframes = keyframes,
 		remove_collision = remove_collision,
-		animation_id = animation_id
+		animation_id = animation_id,
+		run_count = run_count
 	}
 	
 	-- return the animation
@@ -371,6 +401,12 @@ function Animator.removeAnimator(animator_id)
 	-- get the animator index
 	local animator_index = g_savedata.animator.animator_ids[animator_id]
 
+	-- check if this active animator exists
+	if g_savedata.animator.active_animators[animator_index] == nil then
+		d.print(("Animator %s no longer exists."):format(animator_id), true, 1)
+		return false
+	end
+
 	-- go through all vehicle ids in the group and despawn in
 	local vehicle_ids = server.getVehicleGroup(g_savedata.animator.active_animators[animator_index].group_id)
 
@@ -391,6 +427,28 @@ function Animator.removeAnimator(animator_id)
 	end
 
 	return true
+end
+
+--- Get an animator from it's ID
+---@param animator_id AnimatorID the id of the animator to get.
+---@return ActiveAnimator|nil animator returns nil if theres an error
+function Animator.getAnimator(animator_id)
+	-- Check if the animator exists
+	if g_savedata.animator.animator_ids[animator_id] == nil then
+		d.print(("Animator %s is not defined."):format(animator_id), true, 1)
+		return nil
+	end
+
+	-- get the animator index
+	local animator_index = g_savedata.animator.animator_ids[animator_id]
+
+	-- check if this active animator exists
+	if g_savedata.animator.active_animators[animator_index] == nil then
+		d.print(("Animator %s no longer exists."):format(animator_id), true, 1)
+		return nil
+	end
+
+	return g_savedata.animator.active_animators[animator_index]
 end
 
 --[[
@@ -505,6 +563,15 @@ function Animator.onTick(game_ticks)
 			if active_animator.keyframe_index > #animation.keyframes then
 				-- return to the start
 				active_animator.keyframe_index = 1
+
+				-- increment run count
+				active_animator.times_ran = active_animator.times_ran + 1
+
+				-- if the number of times ran is greater than or equal to the run count, and if run count is not -1, remove the animator.
+				if active_animator.times_ran >= animation.run_count and animation.run_count ~= -1 then
+					-- remove the animator
+					Animator.removeAnimator(active_animator.animator_id)
+				end
 			end
 
 			-- set the keyframe start time to the current time.

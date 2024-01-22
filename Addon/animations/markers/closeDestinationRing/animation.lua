@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Animation Version 0.0.1
+-- Animation Version 0.0.2
 
 --[[
 
@@ -63,10 +63,10 @@ Animations.markers.closeDestinationRing = {}
 CLOSE_DESTINATION_RING_LENGTH = 4
 
 -- Speed when moving up (m/s)
-CLOSE_DESTINATION_RING_SPEED_UP = 1.25
+CLOSE_DESTINATION_RING_MOVE_UP_TIME = 3
 
 -- Speed when moving down (m/s)
-CLOSE_DESTINATION_RING_SPEED_DOWN = 0.5
+CLOSE_DESTINATION_RING_MOVE_DOWN_TIME = 4
 
 -- The scale of the height of the close destination ring, relative to the smallest of the length and width.
 CLOSE_DESTINATION_RING_HEIGHT_SCALE = 0.5
@@ -148,7 +148,7 @@ function Animations.markers.closeDestinationRing.create(destination)
 						0
 					)
 				},
-				3 -- set seconds to match our desired up movement speed
+				CLOSE_DESTINATION_RING_MOVE_UP_TIME -- set seconds to match our desired up movement speed
 			),
 			-- Keyframe 2: move down
 			Animator.createKeyframe(
@@ -164,10 +164,11 @@ function Animations.markers.closeDestinationRing.create(destination)
 						0
 					)
 				},
-				4 -- set seconds to match our desired down movement speed
+				CLOSE_DESTINATION_RING_MOVE_DOWN_TIME -- set seconds to match our desired down movement speed
 			)
 		},
-		true -- remove collision
+		true, -- remove collision
+		-1 -- loop infinitely
 	)
 
 	--[[
@@ -182,6 +183,9 @@ function Animations.markers.closeDestinationRing.create(destination)
 
 	-- Configure the filter to require the tag "imai"
 	close_destination_ring_vehicle_filter:addTag("imai", false)
+
+	-- Configure the filter to require the tag "animation_object"
+	close_destination_ring_vehicle_filter:addTag("animation_object", false)
 
 	-- Configure the filter to require the tag "close_destination_ring"
 	close_destination_ring_vehicle_filter:addTag("close_destination_marker", false)

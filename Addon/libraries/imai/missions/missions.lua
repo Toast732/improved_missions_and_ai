@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -71,7 +71,7 @@ Missions = {}
 ]]
 
 -- The tickrate of missions, the number of ticks between each time the mission is ticked.
-MISSION_TICK_RATE = 45
+MISSION_TICK_RATE = 15
 
 --[[
 
@@ -272,9 +272,9 @@ Command.registerCommand(
 			::continue::
 		end
 	end,
-	"admin_script",
+	"admin",
+	"Lists all missions, with their internal name, and their proper name. The internal names are useful for when trying to manually start a mission.",
 	"Lists all missions.",
-	"Lists all missions, and their mission_index.",
 	{"list_missions"}
 )
 
@@ -307,6 +307,11 @@ Command.registerCommand(
 		-- if it's function definition does not exist for whatever reason, return to prevent an error
 		if mission_definition == nil then
 			return
+		end
+
+		-- remove all objectives
+		for objective_index = #mission.objectives, 1, -1 do
+			Objective.remove(mission.objectives[objective_index])
 		end
 
 		-- Call the mission stop function
