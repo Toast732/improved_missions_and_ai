@@ -1,5 +1,5 @@
 --[[
-	
+
 Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -230,6 +230,10 @@ local npc_job_list = {
 ---@field tooltip string the tooltip for the status
 ---@field priority number the priority for this status. Highest priority will be shown.
 
+---@class CitizenVehicleData
+---@field linked_vehicles table<integer, nil> the vehicles linked to this citizen.
+---@field occupating_vehicle_id integer the vehicle_id the citizen is an occupant of. -1 for none.
+
 ---@class Citizen
 ---@field name CitizenName the citizen's name
 ---@field transform SWMatrix the citizen's matrix
@@ -243,7 +247,7 @@ local npc_job_list = {
 ---@field suppress_next_health_change boolean if the next health change should be suppressed, used to avoid false positives from the addon's health overrides.
 ---@field object_type "citizen"
 ---@field statuses table<integer, Status> stores the statuses of the citizen.
-
+---@field vehicle_data CitizenVehicleData
 
 --[[
 
@@ -269,7 +273,7 @@ function Citizens.generateName(last_name)
 	local first_name = available_first_names[math.random(#available_first_names)]
 
 	-- only generate last name if not specified
-	local last_name = last_name or last_names[math.random(#last_names)]
+	last_name = last_name or last_names[math.random(#last_names)]
 
 	-- combine into full name
 	local full_name = ("%s %s"):format(first_name, last_name)

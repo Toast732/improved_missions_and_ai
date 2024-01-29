@@ -26,7 +26,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.15)"
+ADDON_VERSION = "(0.0.1.16)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -180,6 +180,7 @@ g_savedata = {
 	graph_nodes = {
 		init = false,
 		init_debug = false,
+		---@type table<string, table<string, YPathfinderNodeData>> the graph nodes, indexed by x coordinate, then z.
 		nodes = {}
 	},
 	libraries = {}
@@ -201,6 +202,10 @@ require("animations.animations")
 
 require("missions.includedMissions")
 
+require("libraries.imai.vehicles.routing.routing")
+
+require("libraries.imai.vehicles.vehiclePrefab")
+
 require("libraries.ai") -- functions relating to their AI
 require("libraries.cache") -- functions relating to the cache
 require("libraries.compatibility") -- functions used for making the mod backwards compatible
@@ -208,7 +213,7 @@ require("libraries.addon.script.debugging") -- functions for debugging
 require("libraries.map") -- functions for drawing on the map
 require("libraries.utils.math") -- custom math functions
 require("libraries.addon.script.matrix") -- custom matrix functions
-require("libraries.addon.script.pathfinding") -- functions for pathfinding
+require("libraries.pathing.pathfinding") -- functions for pathfinding
 require("libraries.addon.script.players") -- functions relating to Players
 require("libraries.setup") -- functions for script/world setup.
 require("libraries.spawningUtils") -- functions used by the spawn vehicle function
@@ -217,6 +222,7 @@ require("libraries.utils.tables") -- custom table functions
 require("libraries.addon.components.tags") -- functions related to getting tags from components inside of mission and environment locations
 require("libraries.ticks") -- functions related to ticks and time
 require("libraries.vehicle") -- functions related to vehicles, and parsing data on them
+require("libraries.addon.script.addonCommunication")
 
 function onCreate(is_world_create)
 
@@ -247,7 +253,7 @@ function onCreate(is_world_create)
 		end
 	end
 
-	p.updatePathfinding()
+	Pathfinding.updatePathfinding()
 
 	if is_world_create then
 		d.print("setting up world...", true, 0)
@@ -267,7 +273,27 @@ function onCreate(is_world_create)
 
 	d.print("Loaded Script: "..s.getAddonData((s.getAddonIndex())).name..", Version: "..ADDON_VERSION, true, 0, -1)
 
+	ac.executeOnReply( -- setup world after 1 tick, to prevent issues with the addon indexes getting mixed up
+		SHORT_ADDON_NAME, -- addon we're expecting the reply from
+		"onCreate()", -- the message content
+		0, -- the port to recieve this from
+		function()
+			setupMain(is_world_create)
+		end, -- function to execute when we get the reply
+		1, -- how many times this can be triggered
+		20 -- how many seconds to wait till we expire it
+	)
+
+	ac.sendCommunication("onCreate()", 0)
+
 	d.print(("World setup complete! took: %.3fs"):format(Ticks.millisecondsSince(world_setup_time)/1000), true, 0, -1)
+end
+
+--- Called 1 tick after the world has been created, to prevent issues with the addon indexes getting mixed up
+---@param is_world_create boolean if the world is being created
+function setupMain(is_world_create)
+	-- Setup the prefabs
+	VehiclePrefab.generatePrefabs()
 end
 
 function onPlayerJoin(steam_id, name, peer_id, is_admin, is_auth)
@@ -279,6 +305,8 @@ function onTick(game_ticks)
 	g_savedata.tick_counter = g_savedata.tick_counter + 1
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
+
+	VehiclePrefab.onTick(game_ticks)
 
 	Effects.onTick(game_ticks)
 

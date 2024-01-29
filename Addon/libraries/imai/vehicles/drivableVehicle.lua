@@ -33,11 +33,11 @@ limitations under the License.
 ---@diagnostic disable:duplicate-set-field
 
 --[[ 
-	LIBRARY DESCRIPTION
+	Stores and handles the data for drivable vehicles.
 ]]
 
 -- library name
-LibraryName = {}
+DrivableVehicle = {}
 
 --[[
 
@@ -63,6 +63,12 @@ LibraryName = {}
 
 ]]
 
+g_savedata.drivable_vehicles = {
+	vehicles = {},
+	loaded = {},
+	unloaded = {}
+}
+
 --[[
 
 
@@ -71,3 +77,20 @@ LibraryName = {}
 
 ]]
 
+--[[
+
+	Callbacks
+
+]]
+
+--- Ticks the loaded drivable vehicles.
+function DrivableVehicle.onTick(game_ticks)
+end
+
+--[[
+
+	Driving Behaviour Types
+
+]]
+
+--- Land Vehicle driving behaviour.

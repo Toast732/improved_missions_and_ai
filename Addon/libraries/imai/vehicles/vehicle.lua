@@ -37,7 +37,7 @@ limitations under the License.
 ]]
 
 -- library name
-LibraryName = {}
+Vehicle = {}
 
 --[[
 

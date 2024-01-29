@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -67,6 +67,51 @@ Vector2 = {}
 
 ]]
 
+--- Function for creating a new Vector2
+---@param x number
+---@param y number
+---@return Vector2
+function Vector2.new(x, y)
+	-- create the vector
+	local vector = {
+		x = x,
+		y = y
+	}
+
+	-- return the vector
+	return vector
+end
+
+--- Function for creating a Vector2 from polar coordinates
+---@param distance number the distance from the origin
+---@param angle number the angle from the origin
+---@return Vector2
+function Vector2.fromPolar(distance, angle)
+	-- create the vector from the polar coordinates
+	local vector = {
+		x = distance * math.cos(angle),
+		y = distance * math.sin(angle)
+	}
+
+	-- return the vector
+	return vector
+end
+
+--- Function for adding two Vector2s
+---@param a Vector2
+---@param b Vector2
+---@return Vector2
+function Vector2.add(a, b)
+	-- create the added vector
+	local vector = {
+		x = a.x + b.x,
+		y = a.y + b.y
+	}
+
+	-- return the vector
+	return vector
+end
+
 --- Function for getting the euclidean distance
 ---@param a Vector2
 ---@param b Vector2
@@ -92,4 +137,19 @@ function Vector2.manhattanDistance(a, b)
 		math.abs(a.x - b.x) + -- get manhattan distance on x axis
 		math.abs(a.y - b.y) -- get manhattan distance on y axis
 	)
+end
+
+--- Function for getting the angle from vector a to vector b
+---@param a Vector2
+---@param b Vector2
+---@return number angle the angle from vector a to vector b
+function Vector2.angleBetween(a, b)
+	-- get the relative x position
+	local rx = b.x - a.x
+
+	-- get the relative y position
+	local ry = b.y - a.y
+
+	-- return the angle
+	return math.atan(ry, rx)
 end

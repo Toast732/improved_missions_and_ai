@@ -1,5 +1,5 @@
 -- required libraries
-require("libraries.addon.script.debugging")
+--[[require("libraries.addon.script.debugging")
 require("libraries.utils.string")
 require("libraries.spawningUtils")
 require("libraries.addon.components.tags")
@@ -7,10 +7,10 @@ require("libraries.addon.script.players")
 require("libraries.addon.script.matrix")
 
 -- library name
-Vehicle = {}
+OLD_Vehicle = {}
 
 -- shortened library name
-v = Vehicle
+OLD_v = OLD_Vehicle
 
 ---@param vehicle_object vehicle_object the vehicle you want to get the speed of
 ---@param ignore_terrain_type boolean if false or nil, it will include the terrain type in speed, otherwise it will return the offroad speed (only applicable to land vehicles)
@@ -19,7 +19,7 @@ v = Vehicle
 ---@param aggressiveness_override string \"normal" to override the speed as always normal, "aggressive" to override the speed as always aggressive (only applicable to land vehicles)
 ---@return number speed the speed of the vehicle, 0 if not found
 ---@return boolean got_speed if the speed was found
-function Vehicle.getSpeed(vehicle_object, ignore_terrain_type, ignore_aggressiveness, terrain_type_override, aggressiveness_override, ignore_convoy_modifier)
+function OLD_Vehicle.getSpeed(vehicle_object, ignore_terrain_type, ignore_aggressiveness, terrain_type_override, aggressiveness_override, ignore_convoy_modifier)
 	if not vehicle_object then
 		d.print("(Vehicle.getSpeed) vehicle_object is nil!", true, 1)
 		return 0, false
@@ -54,7 +54,7 @@ function Vehicle.getSpeed(vehicle_object, ignore_terrain_type, ignore_aggressive
 
 		if vehicle_object.vehicle_type == VEHICLE.TYPE.LAND then
 			-- land vehicle
-			local terrain_type = v.getTerrainType(vehicle_object.transform)
+			local terrain_type = OLD_v.getTerrainType(vehicle_object.transform)
 			local aggressive = agressiveness_override or not ignore_aggressiveness and vehicle_object.is_aggressive or false
 			if aggressive then
 				speed = speed * VEHICLE.SPEED.MULTIPLIERS.LAND.AGGRESSIVE
@@ -72,7 +72,7 @@ end
 ---@param transform SWMatrix the transform of where you want to check
 ---@return string terrain_type the terrain type the transform is on
 ---@return boolean found_terrain_type if the terrain type was found
-function Vehicle.getTerrainType(transform)
+function OLD_Vehicle.getTerrainType(transform)
 	local found_terrain_type = false
 	local terrain_type = "offroad"
 	
@@ -93,7 +93,7 @@ end
 ---@param vehicle_id integer the id of the vehicle
 ---@return prefab prefab the prefab of the vehicle if it was created
 ---@return boolean was_created if the prefab was created
-function Vehicle.createPrefab(vehicle_id)
+function OLD_Vehicle.createPrefab(vehicle_id)
 	if not vehicle_id then
 		d.print("(Vehicle.createPrefab) vehicle_id is nil!", true, 1)
 		return nil, false
@@ -117,7 +117,7 @@ function Vehicle.createPrefab(vehicle_id)
 	local prefab = {
 		voxels = vehicle_data.voxels,
 		mass = vehicle_data.mass,
-		powertrain_types = v.getPowertrainTypes(vehicle_object),
+		powertrain_types = OLD_v.getPowertrainTypes(vehicle_object),
 		role = vehicle_object.role,
 		vehicle_type = vehicle_object.vehicle_type,
 		strategy = vehicle_object.strategy,
@@ -132,7 +132,7 @@ end
 ---@param vehicle_name string the name of the vehicle
 ---@return prefab prefab the prefab data of the vehicle
 ---@return got_prefab boolean if the prefab data was found
-function Vehicle.getPrefab(vehicle_name)
+function OLD_Vehicle.getPrefab(vehicle_name)
 	if not vehicle_name then
 		d.print("(Vehicle.getPrefab) vehicle_name is nil!", true, 1)
 		return nil, false
@@ -150,7 +150,7 @@ end
 ---@param vehicle_object vehicle_object the vehicle_object of the vehicle you want to get the powertrain type of
 ---@return powertrain_types powertrain_types the powertrain type(s) of the vehicle
 ---@return boolean got_powertrain_type if the powertrain type was found
-function Vehicle.getPowertrainTypes(vehicle_object)
+function OLD_Vehicle.getPowertrainTypes(vehicle_object)
 
 	if not vehicle_object then
 		d.print("(Vehicle.getPowertrainType) vehicle_object is nil!", true, 1)
@@ -202,7 +202,7 @@ end
 ---@param purchase_type integer 0 for dont buy, 1 for free (cost will be 0 no matter what), 2 for free but it has lower stats, 3 for spend as much as you can but the less spent will result in lower stats. 
 ---@return boolean spawned_vehicle if the vehicle successfully spawned or not
 ---@return vehicle_object vehicle_object the vehicle's data if the the vehicle successfully spawned, otherwise its returns the error code
-function Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type)
+function OLD_Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type)
 	local plane_count = 0
 	local heli_count = 0
 	local army_count = 0
@@ -335,7 +335,7 @@ function Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_is
 			if not target then
 				sm.train(PUNISH, attack, 5) -- we can no longer spawn attack vehicles
 				sm.train(PUNISH, attack, 5)
-				v.spawn(nil, nil, nil, nil, purchase_type)
+				OLD_v.spawn(nil, nil, nil, nil, purchase_type)
 				return false, "no islands to attack! cancelling spawning of attack vehicle"
 			end
 			for island_index, island in pairs(g_savedata.islands) do
@@ -530,7 +530,7 @@ function Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_is
 
 	d.print("(Vehicle.spawn) calculating cost of vehicle... (purchase type: "..tostring(purchase_type)..")", true, 0)
 	-- check if we can afford the vehicle
-	local cost, cost_existed, was_purchased, stats_multiplier = v.purchaseVehicle(string.removePrefix(selected_prefab.location.data.name), island.name, purchase_type, true)
+	local cost, cost_existed, was_purchased, stats_multiplier = OLD_v.purchaseVehicle(string.removePrefix(selected_prefab.location.data.name), island.name, purchase_type, true)
 
 	d.print("(Vehicle.spawn) cost: "..tostring(cost).." Purchase Type: "..purchase_type, true, 0)
 
@@ -669,14 +669,14 @@ function Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_is
 			setSquadCommand(squad, SQUAD.COMMAND.CARGO)
 		end
 
-		local prefab, got_prefab = v.getPrefab(selected_prefab.location.data.name)
+		local prefab, got_prefab = OLD_v.getPrefab(selected_prefab.location.data.name)
 
 		if not got_prefab then
-			v.createPrefab(spawned_objects.spawned_vehicle.id)
+			OLD_v.createPrefab(spawned_objects.spawned_vehicle.id)
 		end
 
 		if cost_existed then
-			local cost, cost_existed, was_purchased = v.purchaseVehicle(string.removePrefix(selected_prefab.location.data.name), (g_savedata.islands[selected_spawn].name or g_savedata.ai_base_island.name), purchase_type)
+			local cost, cost_existed, was_purchased = OLD_v.purchaseVehicle(string.removePrefix(selected_prefab.location.data.name), (g_savedata.islands[selected_spawn].name or g_savedata.ai_base_island.name), purchase_type)
 			if not was_purchased then
 				vehicle_data.costs.buy_on_load = true
 			end
@@ -696,12 +696,12 @@ end
 ---@param retry_count integer how many times to retry spawning the vehicle if it fails
 ---@return boolean spawned_vehicle if the vehicle successfully spawned or not
 ---@return vehicle_data[] vehicle_data the vehicle's data if the the vehicle successfully spawned, otherwise its nil
-function Vehicle.spawnRetry(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type, retry_count)
+function OLD_Vehicle.spawnRetry(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type, retry_count)
 	local spawned = nil
 	local vehicle_data = nil
 	d.print("(Vehicle.spawnRetry) attempting to spawn vehicle...", true, 0)
 	for i = 1, retry_count do
-		spawned, vehicle_data = v.spawn(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type)
+		spawned, vehicle_data = OLD_v.spawn(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type)
 		if spawned then
 			return spawned, vehicle_data
 		else
@@ -715,7 +715,7 @@ end
 ---@param vehicle_id integer the id of the vehicle which to teleport
 ---@param transform SWMatrix where to teleport the vehicle and characters to
 ---@return boolean is_success if it successfully teleported all of the vehicles and characters
-function Vehicle.teleport(vehicle_id, transform)
+function OLD_Vehicle.teleport(vehicle_id, transform)
 
 	-- make sure vehicle_id is not nil
 	if not vehicle_id then
@@ -751,4 +751,4 @@ function Vehicle.teleport(vehicle_id, transform)
 	end
 
 	return none_failed
-end
+end]]

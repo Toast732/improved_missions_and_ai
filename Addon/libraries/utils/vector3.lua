@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -67,6 +67,23 @@ Vector3 = {}
 
 
 ]]
+
+--- Function for creating a new Vector3
+---@param x number
+---@param y number
+---@param z number
+---@return Vector3
+function Vector3.new(x, y, z)
+	-- create the vector
+	local vector = {
+		x = x,
+		y = y,
+		z = z
+	}
+
+	-- return the vector
+	return vector
+end
 
 --- Function for getting the euclidean distance
 ---@param a Vector3
@@ -125,4 +142,15 @@ function Vector3.fromMatrix(target_matrix, raw_coordinates)
 		y = y,
 		z = z
 	}
+end
+
+--- Function for turning a Vector3 into a Matrix
+---@param target_vector Vector3
+---@return SWMatrix matrix the matrix created from the vector.
+function Vector3.toMatrix(target_vector)
+	-- create the matrix
+	local matrix = matrix.translation(target_vector.x, target_vector.y, target_vector.z)
+
+	-- return the matrix
+	return matrix
 end

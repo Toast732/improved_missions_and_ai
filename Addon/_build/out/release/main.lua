@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.15)"
+ADDON_VERSION = "(0.0.1.16)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -198,6 +198,7 @@ g_savedata = {
 	graph_nodes = {
 		init = false,
 		init_debug = false,
+		---@type table<string, table<string, YPathfinderNodeData>> the graph nodes, indexed by x coordinate, then z.
 		nodes = {}
 	},
 	libraries = {}
@@ -265,7 +266,7 @@ function Object.addObject(object_id)
 
 	-- the object doesn't actually exist
 	if not object_data then
-		d.print(("251: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
+		d.print(("252: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
 		return false
 	end
 
@@ -3414,19 +3415,19 @@ function Effects.apply(name, object, duration, strength)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("3400: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("3401: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3406: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("3407: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false
 	end
 
 	-- if the object cannot have this effect applied.
 	if not effect_applicable_objects[name] or not effect_applicable_objects[name][object.object_type] then
-		d.print(("3412: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
+		d.print(("3413: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -3435,7 +3436,7 @@ function Effects.apply(name, object, duration, strength)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3421: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("3422: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -3478,7 +3479,7 @@ end
 function Effects.remove(object, name)
 	-- if the object was never given
 	if not object then
-		d.print(("3464: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
+		d.print(("3465: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
 		return false, false
 	end
 
@@ -3487,13 +3488,13 @@ function Effects.remove(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("3473: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("3474: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3479: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("3480: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -3502,7 +3503,7 @@ function Effects.remove(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3488: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("3489: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -3554,13 +3555,13 @@ end
 function Effects.removeAll(object)
 	-- if the object was never given
 	if not object then
-		d.print("3540: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
+		d.print("3541: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
 		return 0, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3546: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("3547: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return 0, false
 	end
 
@@ -3569,7 +3570,7 @@ function Effects.removeAll(object)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3555: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
+		d.print(("3556: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
 		return 0, false
 	end
 
@@ -3597,7 +3598,7 @@ function Effects.removeAll(object)
 		
 		-- if this effect does not exist.
 		if not effect_definition then
-			d.print(("3583: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
+			d.print(("3584: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -3635,13 +3636,13 @@ function Effects.has(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("3621: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("3622: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3627: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("3628: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -3650,7 +3651,7 @@ function Effects.has(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3636: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("3637: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -3715,7 +3716,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("3701: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("3702: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -3731,7 +3732,7 @@ function Effects.onTick(game_ticks)
 
 		-- if this effect definition does not exist.
 		if not effect_definition then
-			d.print(("3717: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
+			d.print(("3718: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -3742,7 +3743,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("3728: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("3729: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -3754,7 +3755,7 @@ function Effects.onTick(game_ticks)
 	end
 end
 --[[
-	
+
 Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -4172,21 +4173,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("4158: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("4159: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("4165: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("4166: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("4172: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("4173: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -4224,14 +4225,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("4210: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("4211: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("4217: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("4218: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -4241,7 +4242,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("4227: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("4228: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -4275,7 +4276,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("4261: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("4262: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -4286,7 +4287,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("4272: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("4273: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -4342,7 +4343,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("4328: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("4329: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -4494,7 +4495,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("4480: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("4481: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -4503,7 +4504,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("4489: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("4490: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -4524,7 +4525,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("4510: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("4511: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -4533,7 +4534,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("4519: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("4520: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -4739,6 +4740,10 @@ local npc_job_list = {
 ---@field tooltip string the tooltip for the status
 ---@field priority number the priority for this status. Highest priority will be shown.
 
+---@class CitizenVehicleData
+---@field linked_vehicles table<integer, nil> the vehicles linked to this citizen.
+---@field occupating_vehicle_id integer the vehicle_id the citizen is an occupant of. -1 for none.
+
 ---@class Citizen
 ---@field name CitizenName the citizen's name
 ---@field transform SWMatrix the citizen's matrix
@@ -4752,7 +4757,7 @@ local npc_job_list = {
 ---@field suppress_next_health_change boolean if the next health change should be suppressed, used to avoid false positives from the addon's health overrides.
 ---@field object_type "citizen"
 ---@field statuses table<integer, Status> stores the statuses of the citizen.
-
+---@field vehicle_data CitizenVehicleData
 
 --[[
 
@@ -4778,7 +4783,7 @@ function Citizens.generateName(last_name)
 	local first_name = available_first_names[math.random(#available_first_names)]
 
 	-- only generate last name if not specified
-	local last_name = last_name or last_names[math.random(#last_names)]
+	last_name = last_name or last_names[math.random(#last_names)]
 
 	-- combine into full name
 	local full_name = ("%s %s"):format(first_name, last_name)
@@ -5171,7 +5176,7 @@ function Citizens.onTick(game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("5157: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("5162: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -6061,7 +6066,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("6047: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("6052: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -6097,7 +6102,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("6083: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("6088: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -6108,7 +6113,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("6094: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("6099: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -6120,7 +6125,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("6106: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("6111: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -6270,7 +6275,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("6256: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("6261: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -6379,7 +6384,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("6365: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("6370: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -7204,7 +7209,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("7190: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("7195: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -7224,7 +7229,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("7210: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("7215: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -7388,13 +7393,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("7374: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7379: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("7380: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7385: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -7415,17 +7420,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("7401: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("7406: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("7406: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7411: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("7411: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("7416: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -7866,7 +7871,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -7917,6 +7922,23 @@ Vector3 = {}
 
 
 ]]
+
+--- Function for creating a new Vector3
+---@param x number
+---@param y number
+---@param z number
+---@return Vector3
+function Vector3.new(x, y, z)
+	-- create the vector
+	local vector = {
+		x = x,
+		y = y,
+		z = z
+	}
+
+	-- return the vector
+	return vector
+end
 
 --- Function for getting the euclidean distance
 ---@param a Vector3
@@ -7977,6 +7999,16 @@ function Vector3.fromMatrix(target_matrix, raw_coordinates)
 	}
 end
 
+--- Function for turning a Vector3 into a Matrix
+---@param target_vector Vector3
+---@return SWMatrix matrix the matrix created from the vector.
+function Vector3.toMatrix(target_vector)
+	-- create the matrix
+	local matrix = matrix.translation(target_vector.x, target_vector.y, target_vector.z)
+
+	-- return the matrix
+	return matrix
+end
 
 
 ---@diagnostic disable:duplicate-doc-field
@@ -8196,7 +8228,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8182: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("8214: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -8209,7 +8241,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8195: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("8227: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -10795,6 +10827,2117 @@ Missions.define(
 		g_savedata.included_missions.scripted.transport.demo.started = false
 	end
 )
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Contains some code for math on Vector 2s, as in, a 2D vector.
+]]
+
+-- library name
+Vector2 = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class Vector2
+---@field x number
+---@field y number Usually the z axis in disguise.
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for creating a new Vector2
+---@param x number
+---@param y number
+---@return Vector2
+function Vector2.new(x, y)
+	-- create the vector
+	local vector = {
+		x = x,
+		y = y
+	}
+
+	-- return the vector
+	return vector
+end
+
+--- Function for creating a Vector2 from polar coordinates
+---@param distance number the distance from the origin
+---@param angle number the angle from the origin
+---@return Vector2
+function Vector2.fromPolar(distance, angle)
+	-- create the vector from the polar coordinates
+	local vector = {
+		x = distance * math.cos(angle),
+		y = distance * math.sin(angle)
+	}
+
+	-- return the vector
+	return vector
+end
+
+--- Function for adding two Vector2s
+---@param a Vector2
+---@param b Vector2
+---@return Vector2
+function Vector2.add(a, b)
+	-- create the added vector
+	local vector = {
+		x = a.x + b.x,
+		y = a.y + b.y
+	}
+
+	-- return the vector
+	return vector
+end
+
+--- Function for getting the euclidean distance
+---@param a Vector2
+---@param b Vector2
+---@return number euclidean_distance euclidean distance between the two 2D vectors.
+function Vector2.euclideanDistance(a, b)
+	-- get the relative x position
+	local rx = a.x - b.x
+
+	-- get the relative y position
+	local ry = a.y - b.y
+
+	-- return the distance
+	return math.sqrt(rx*rx+ry*ry)
+end
+
+--- Function for getting the manhattan distance
+---@param a Vector2
+---@param b Vector2
+---@return number manhattan_distance manhattan distance between the two 2D vectors.
+function Vector2.manhattanDistance(a, b)
+	-- return the distance
+	return (
+		math.abs(a.x - b.x) + -- get manhattan distance on x axis
+		math.abs(a.y - b.y) -- get manhattan distance on y axis
+	)
+end
+
+--- Function for getting the angle from vector a to vector b
+---@param a Vector2
+---@param b Vector2
+---@return number angle the angle from vector a to vector b
+function Vector2.angleBetween(a, b)
+	-- get the relative x position
+	local rx = b.x - a.x
+
+	-- get the relative y position
+	local ry = b.y - a.y
+
+	-- return the angle
+	return math.atan(ry, rx)
+end
+-- This library is for controlling or getting things about the Enemy AI.
+
+-- required libraries
+
+-- library name
+AI = {}
+
+--- @param vehicle_object vehicle_object the vehicle you want to set the state of
+--- @param state string the state you want to set the vehicle to
+--- @return boolean success if the state was set
+function AI.setState(vehicle_object, state)
+	if vehicle_object then
+		if state ~= vehicle_object.state.s then
+			if state == VEHICLE.STATE.HOLDING then
+				vehicle_object.holding_target = vehicle_object.transform
+			end
+			vehicle_object.state.s = state
+		end
+	else
+		d.print("(AI.setState) vehicle_object is nil!", true, 1)
+	end
+	return false
+end
+
+--# made for use with toggles in buttons (only use for toggle inputs to seats)
+---@param vehicle_id integer the vehicle's id that has the seat you want to set
+---@param seat_name string the name of the seat you want to set
+---@param axis_ws number w/s axis
+---@param axis_ad number a/d axis
+---@param axis_ud number up down axis
+---@param axis_lr number left right axis
+---@param ... boolean buttons (1-7) (7 is trigger)
+---@return boolean set_seat if the seat was set
+function AI.setSeat(vehicle_id, seat_name, axis_ws, axis_ad, axis_ud, axis_lr, ...)
+	
+	if not vehicle_id then
+		d.print("(AI.setSeat) vehicle_id is nil!", true, 1)
+		return false
+	end
+
+	if not seat_name then
+		d.print("(AI.setSeat) seat_name is nil!", true, 1)
+		return false
+	end
+
+	local button = table.pack(...)
+
+	-- sets any nil values to 0 or false
+	axis_ws = axis_ws or 0
+	axis_ad = axis_ad or 0
+	axis_ud = axis_ud or 0
+	axis_lr = axis_lr or 0
+
+	for i = 1, 7 do
+		button[i] = button[i] or false
+	end
+
+	g_savedata.seat_states = g_savedata.seat_states or {}
+
+
+	if not g_savedata.seat_states[vehicle_id] or not g_savedata.seat_states[vehicle_id][seat_name] then
+
+		g_savedata.seat_states[vehicle_id] = g_savedata.seat_states[vehicle_id] or {}
+		g_savedata.seat_states[vehicle_id][seat_name] = {}
+
+		for i = 1, 7 do
+			g_savedata.seat_states[vehicle_id][seat_name][i] = false
+		end
+	end
+
+	for i = 1, 7 do
+		if button[i] ~= g_savedata.seat_states[vehicle_id][seat_name][i] then
+			g_savedata.seat_states[vehicle_id][seat_name][i] = button[i]
+			button[i] = true
+		else
+			button[i] = false
+		end
+	end
+
+	s.setVehicleSeat(vehicle_id, seat_name, axis_ws, axis_ad, axis_ud, axis_lr, button[1], button[2], button[3], button[4], button[5], button[6], button[7])
+	return true
+end
+
+
+--require("libraries.icm.spawnModifiers")
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+-- library name
+Pathfinding = {}
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- Increment the distance by 5m each time.
+PATHFINDING_NUDGE_DISTANCE_INCREMENT = 5
+
+-- The max nudge distance until we increment the angle again.
+PATHFINDING_NUDGE_DISTANCE_MAX = 30
+
+-- Increment angle by a quarter pi (45 degrees) each time, when the nudge distance is reached.
+PATHFINDING_NUDGE_ANGLE_INCREMENT = math.pi/4
+
+-- Increment the angle until we reach the max angle. (360 degrees)
+PATHFINDING_NUDGE_ANGLE_MAX = math.tau
+
+-- The maximum number of nodes in path until it stops trying to add more, to avoid infinite recursion.
+PATHFINDING_MAX_NODES = 700
+
+-- The distance the final path has to be to either the x or z tile border in order to try to start nudging.
+PATHFINDING_START_NUDGING_DISTANCE = 30
+
+--[[
+
+
+	Variables
+   
+
+]]
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class PathNode
+---@field x integer the x coordinate of the path node
+---@field y integer the y coordinate of the path node
+---@field z integer the z coordinate of the path node
+---@field ui_id SWUI_ID the ui id of the path node for debug
+
+--- The path to follow, starting from the end and to the beginning,<br>the last node [#path] is always the destination, [1] is the node we're currently going to, and [0] is the previous one.
+---@alias Path table<integer, PathNode>
+
+---@enum YPathfinderNodeDataNSO
+---| '0' # the node is not specific to vanilla or NSO
+---| '1' # the node is specific for NSO
+---| '2' # the node is specific for vanilla
+
+
+---@class YPathfinderNodeData
+---@field y number the y coordinate of the node
+---@field type "land_path"|"ocean_path"	the type of the node
+---@field NSO YPathfinderNodeDataNSO if the node is for NSO or not
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+
+	Internal Usage
+
+]]
+
+-- Get the distance to the closest tile border
+---@param vector Vector2 the vector2 to get the distance to the closest tile border from
+---@return number distance the distance to the closest tile border
+function Pathfinding.distanceToClosestTileBorder(vector)
+
+	--* Tiles are 1000m by 1000m, so we can just get the distance to the closest tile border by getting the distance to the closest 500m by 500m border.
+
+	-- Get the x distance
+	local x_distance = math.abs((vector.x-250)%1000-250)
+
+	-- Get the z distance
+	local z_distance = math.abs((vector.y-250)%1000-250)
+
+	return math.min(x_distance, z_distance)
+end
+
+-- Get the angle between the two nodes
+---@param node1 PathNode the first node
+---@param node2 PathNode the second node
+---@return number angle the angle between the two nodes
+function angleBetweenNodes(node1, node2)
+	-- Get the vector2 of the first node
+	local node1_vector = Vector2.new(node1.x, node1.z)
+
+	-- Get the vector2 of the second node
+	local node2_vector = Vector2.new(node2.x, node2.z)
+
+	-- Get the angle between the two nodes
+	return Vector2.angleBetween(node1_vector, node2_vector)
+end
+
+--- Returns if two pathfind nodes are the same
+---@param node1 PathNode the first node
+---@param node2 PathNode the second node
+---@return boolean is_same if the two nodes are the same
+function isPathNodeEqual(node1, node2)
+	-- if x is different, return false
+	if node1.x ~= node2.x then
+		return false
+	-- if y is different, return false
+	elseif node1.y ~= node2.y then
+		return false
+	-- if z is different, return false
+	elseif node1.z ~= node2.z then
+		return false
+	-- if ui_id is different, return false
+	elseif node1.ui_id ~= node2.ui_id then
+		return false
+	end
+
+	-- otherwise, return true, they are the same
+	return true
+end
+
+--- Converts a SW node into a PathNode
+---@param sw_node SWPathFindPoint the SW node to turn into a PathNode
+---@return PathNode path_node the path node
+function pathNodeFromSWNode(sw_node)
+	return {
+		x = sw_node.x,
+		---@diagnostic disable-next-line: undefined-field
+		y = sw_node.y,
+		z = sw_node.z,
+		ui_id = server.getMapID()
+	}
+end
+
+--- Converts a Matrix into a PathNode
+---@param matrix_transform SWMatrix the Matrix to turn into a PathNode
+---@return PathNode path_node the path node
+function pathNodeFromMatrix(matrix_transform)
+	return {
+		x = matrix_transform[13],
+		y = matrix_transform[14],
+		z = matrix_transform[15],
+		ui_id = server.getMapID()
+	}
+end
+
+--- Converts a node list returned by the modified server.pathfind or modified server.pathfindOcean into a Path.
+---@param node_list table the node list returned by the modified server.pathfind or modified server.pathfindOcean
+---@return Path path the path
+function getPathFromNodeList(node_list)
+	-- Define the path
+	---@type Path
+	local path = {}
+
+	-- Iterate through each node in the node list.
+	for node_index = 1, #node_list do
+		-- Convert it to a PathNode and add it to the path.
+		table.insert(path, pathNodeFromSWNode(node_list[node_index]))
+	end
+
+	-- Return the path
+	return path
+end
+
+--- Merges two paths together, putting the second path after the first path.<br><h3>NOTE: This function may also modify the original given path1, but this is not accounted for to save on performance.</h3>
+---@param path1 Path the first path (the path to be put first)
+---@param path2 Path the second path (the pathto be put after the first path)
+---@return Path path the merged path
+function mergePaths(path1, path2)
+
+	-- for each node in path2, add it to the end of path1
+	for node_index = 1, #path2 do
+		table.insert(path1, path2[node_index])
+	end
+
+	-- return the merged path
+	return path1
+end
+
+-- Get the pathfinding exclusion tags
+---@return string exclude the pathfinding exclusion tags
+function getPathfindingExclusionTags()
+	-- define the exclude variable
+	local exclude = ""
+
+	-- if NSO is enabled, then exclude vanilla only graph nodes.
+	if g_savedata.info.mods.NSO then
+		exclude = "not_NSO"
+	-- otherwise, exclude NSO only graph nodes.
+	else
+		exclude = "NSO"
+	end
+
+	-- return exclusion tags
+	return exclude
+end
+
+--- More reliable pathfinding, that will nudge the pathfinding start position incrementing bit by bit in each direction if the end position is near a tile border<br> as sometimes, it will be unable to pass through the tile borders normally.
+---@param matrix_start SWMatrix the start position of the path
+---@param matrix_end SWMatrix the end position of the path
+---@param required_tags string the tags that the path must have
+---@param avoided_tags string the tags that the path must not have
+---@param previous_path_count integer? the number of nodes in the previous "parent" path, used by the function itself, leave undefined.
+---@return Path path the path, trying to avoid being stuck on tile borders.
+function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, previous_path_count)
+
+	-- default previous_path_count to 0
+	previous_path_count = previous_path_count or 0
+
+	-- Define the path
+	---@type Path
+	local path = {
+		pathNodeFromMatrix(matrix_start)
+	}
+
+	--- Function to finalise the path, by adding the matrix_end to the end of the path.
+	---@param path Path the path to finalise
+	---@return Path path the finalised path
+	local function finalisePath(path)
+		-- Add the matrix_end to the end of the path
+		table.insert(path, pathNodeFromMatrix(matrix_end))
+
+		-- Return the finalised path
+		return path
+	end
+	
+	--- Function to check if we should nudge the pathfinding again, this checks if it's possible that we're stuck on the tile border.
+	---@param check_path Path the path to check if we should nudge.
+	---@return boolean should_nudge if we should nudge the pathfinding again.
+	local function shouldNudge(check_path)
+		-- Get the number of nodes
+		local node_count = #check_path
+
+		--- Return false if we're over the 5000 node limit
+		if node_count + previous_path_count >= PATHFINDING_MAX_NODES then
+			return false
+		end
+
+		-- Get the last node.
+		local last_node = check_path[node_count]
+
+		-- Get a vector2 of the last node
+		local last_node_vector = Vector2.new(last_node.x, last_node.z)
+
+		-- Get the distance to the closest tile border
+		local distance_to_closest_tile_border = Pathfinding.distanceToClosestTileBorder(last_node_vector)
+
+		-- If we're within the start nudge distance, then we should nudge.
+		if distance_to_closest_tile_border <= PATHFINDING_START_NUDGING_DISTANCE then
+			return true
+		end
+
+		-- Otherwise, we do not need to nudge.
+		return false
+	end
+
+	-- Get the inital path
+	local initial_path = server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags)
+
+	-- Merge the initial path with the path
+	path = mergePaths(path, getPathFromNodeList(initial_path))
+
+	d.print(("Node Count: %s"):format(#path + previous_path_count), true, 0)
+
+	-- Check if we do not need to nudge, if we don't need to, then just return early.
+	if not shouldNudge(path) then
+		-- finalise the path
+		return finalisePath(path)
+	end
+
+	--- Function to get the path from the nudging operation, as a function, so we can just return to exit the loop completely.
+	---@return Path path the path from the nudging operation
+	local function startNudging()
+		-- Get the number of nodes in the path
+		local node_count = #path
+
+		-- Get the last node
+		local last_node = path[node_count]
+
+		-- Get the angle from the second last node to the last node
+		local starting_angle = angleBetweenNodes(path[node_count-1], last_node)
+
+		-- Get the vector 2 of the last node
+		local last_node_vector = Vector2.new(last_node.x, last_node.z)
+
+		-- Iterate through each angle, starting at the starting_angle from the above calculation, and then until we hit the limit + starting_angle from above, and incrementing by the angle increment.
+		for nudge_angle = starting_angle, PATHFINDING_NUDGE_ANGLE_MAX + starting_angle, PATHFINDING_NUDGE_ANGLE_INCREMENT do
+
+			-- Iterate through each distance, starting at the increment, until we hit the limit, and incrementing by the distance increment.
+			for nudge_distance = PATHFINDING_NUDGE_DISTANCE_INCREMENT, PATHFINDING_NUDGE_DISTANCE_MAX, PATHFINDING_NUDGE_DISTANCE_INCREMENT do
+
+				-- Draw blue triangle at the nudge position
+				Map.addMapCircle(
+					-1,
+					server.getMapID(),
+					matrix.translation(
+						last_node_vector.x + nudge_distance * math.sin(nudge_angle),
+						last_node.y,
+						last_node_vector.y + nudge_distance * math.cos(nudge_angle)
+					),
+					5,
+					1,
+					0,
+					25,
+					255,
+					255,
+					3
+				)
+				
+				-- Get the vector from the polar coordinates using the nudge_distance and nudge_angle
+				local nudge_vector = Vector2.fromPolar(nudge_distance, nudge_angle)
+
+				-- Add the nudge vector to the last node vector
+				local nudged_last_node_vector = Vector2.add(last_node_vector, nudge_vector)
+
+				-- Create the matrix for the nudged last node
+				local nudged_new_start_matrix = matrix.translation(
+					nudged_last_node_vector.x,
+					last_node.y,
+					nudged_last_node_vector.y
+				)
+
+				-- Get the path from the nudged last node
+				local nudged_node_list = server.pathfind(nudged_new_start_matrix, matrix_end, required_tags, avoided_tags)
+
+				-- Convert the node list into a path
+				local nudged_path = getPathFromNodeList(nudged_node_list)
+
+				--[[
+					If the last node of the nudged path is the same as the last node of the current path, 
+					then continue to the next iteration, as we've not moved past the tile border.
+				]]
+				if isPathNodeEqual(nudged_path[#nudged_path], last_node) then
+					goto continue
+				end
+
+				--[[
+					We've found a path with a different last node, so we can merge the paths together, and then return the path, but before we do, 
+					send the path to nudgePathfind again, to check if it's now stuck on a tile border in another area.
+				]]
+
+				-- Merge the paths together
+				path = mergePaths(path, nudged_path)
+
+				--[[
+					return the path after we check it again for nudging
+				]]
+
+				--* "do end" required to avoid it yelling that it expected EOF :)
+				do
+					return mergePaths(
+						path,
+						-- nudge the pathfinding again, and return the result, as we want to make sure we did not get stuck on another tile border.
+						nudgePathfind(
+							matrix.translation( -- Set the start matrix as our last matrix.
+								nudged_path[#nudged_path].x,
+								nudged_path[#nudged_path].y,
+								nudged_path[#nudged_path].z
+							),
+							matrix_end,
+							required_tags,
+							avoided_tags,
+							#path + previous_path_count
+						)
+					)
+				end
+
+				::continue::
+			end
+		end
+
+		-- Just in case if we somehow get here, return an empty table.
+		return {}
+	end
+
+	--[[
+		Otherwise, we need to nudge, so start nudging, and return the result after finalising it.
+	]]
+	return finalisePath(startNudging())
+end
+
+--[[
+
+	External Usage
+
+]]
+
+--- Gets the path for a land vehicle
+---@param origin SWMatrix the origin, start position of the path
+---@param destination SWMatrix the destination, end position of the path
+function Pathfinding.getLandPath(origin, destination)
+	-- get the tags to exclude
+	local exclude = getPathfindingExclusionTags()
+
+	-- Set the inclusion tag to "land_path"
+	local include = "land_path"
+
+	-- Get the path
+	local path = nudgePathfind(origin, destination, include, exclude)
+
+	-- Return the path
+	return path
+end
+
+-- ---@param vehicle_object vehicle_object the vehicle you want to add the path for
+-- ---@param target_dest SWMatrix the destination for the path
+-- ---@param translate_forward_distance number? the increment of the distance, used to slowly try moving the vehicle's matrix forwards, if its at a tile's boundery, and its unable to move, used by the function itself, leave undefined.
+-- function Pathfinding.addPath(vehicle_object, target_dest, translate_forward_distance)
+
+-- 	-- path tags to exclude
+-- 	local exclude = ""
+
+-- 	if g_savedata.info.mods.NSO then
+-- 		exclude = "not_NSO" -- exclude non NSO graph nodes
+-- 	else
+-- 		exclude = "NSO" -- exclude NSO graph nodes
+-- 	end
+
+-- 	if vehicle_object.vehicle_type == VEHICLE.TYPE.TURRET then 
+-- 		AI.setState(vehicle_object, VEHICLE.STATE.STATIONARY)
+-- 		return
+
+-- 	elseif vehicle_object.vehicle_type == VEHICLE.TYPE.BOAT then
+-- 		local dest_x, dest_y, dest_z = matrix.position(target_dest)
+
+-- 		local path_start_pos = nil
+
+-- 		if #vehicle_object.path > 0 then
+-- 			local waypoint_end = vehicle_object.path[#vehicle_object.path]
+-- 			path_start_pos = matrix.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z)
+-- 		else
+-- 			path_start_pos = vehicle_object.transform
+-- 		end
+
+-- 		-- makes sure only small ships can take the tight areas
+		
+-- 		if vehicle_object.size ~= "small" then
+-- 			exclude = exclude..",tight_area"
+-- 		end
+
+-- 		-- calculates route
+-- 		local path_list = server.pathfind(path_start_pos, matrix.translation(target_dest[13], 0, target_dest[15]), "ocean_path", exclude)
+
+-- 		for _, path in pairs(path_list) do
+-- 			if not path.y then
+-- 				path.y = 0
+-- 			end
+-- 			if path.y > 1 then
+-- 				break
+-- 			end 
+-- 			table.insert(vehicle_object.path, { 
+-- 				x = path.x,
+-- 				y = path.y,
+-- 				z = path.z,
+-- 				ui_id = server.getMapID()
+-- 			})
+-- 		end
+-- 	elseif vehicle_object.vehicle_type == VEHICLE.TYPE.LAND then
+-- 		--local dest_x, dest_y, dest_z = m.position(target_dest)
+
+-- 		local path_start_pos = nil
+
+-- 		if #vehicle_object.path > 0 then
+-- 			local waypoint_end = vehicle_object.path[#vehicle_object.path]
+
+-- 			if translate_forward_distance then
+-- 				local second_last_path_pos
+-- 				if #vehicle_object.path < 2 then
+-- 					second_last_path_pos = vehicle_object.transform
+-- 				else
+-- 					local second_last_path = vehicle_object.path[#vehicle_object.path - 1]
+-- 					second_last_path_pos = matrix.translation(second_last_path.x, second_last_path.y, second_last_path.z)
+-- 				end
+
+-- 				local yaw, _ = math.angleToFace(second_last_path_pos[13], waypoint_end.x, second_last_path_pos[15], waypoint_end.z)
+
+-- 				path_start_pos = matrix.translation(waypoint_end.x + translate_forward_distance * math.sin(yaw), waypoint_end.y, waypoint_end.z + translate_forward_distance * math.cos(yaw))
+			
+-- 				--[[server.addMapLine(-1, vehicle_object.ui_id, m.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z), path_start_pos, 1, 255, 255, 255, 255)
+			
+-- 				d.print("path_start_pos (existing paths)", false, 0)
+-- 				d.print(path_start_pos)]]
+-- 			else
+-- 				path_start_pos = matrix.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z)
+-- 			end
+-- 		else
+-- 			path_start_pos = vehicle_object.transform
+
+-- 			if translate_forward_distance then
+-- 				path_start_pos = matrix.multiply(vehicle_object.transform, matrix.translation(0, 0, translate_forward_distance))
+-- 				--[[server.addMapLine(-1, vehicle_object.ui_id, vehicle_object.transform, path_start_pos, 1, 150, 150, 150, 255)
+-- 				d.print("path_start_pos (no existing paths)", false, 0)
+-- 				d.print(path_start_pos)]]
+-- 			else
+-- 				path_start_pos = vehicle_object.transform
+-- 			end
+-- 		end
+
+-- 		start_x, start_y, start_z = m.position(vehicle_object.transform)
+
+-- 		local exclude_offroad = false
+
+-- 		local squad_index, squad = Squad.getSquad(vehicle_object.id)
+-- 		if squad.command == SQUAD.COMMAND.CARGO then
+-- 			for c_vehicle_id, c_vehicle_object in pairs(squad.vehicles) do
+-- 				if g_savedata.cargo_vehicles[c_vehicle_id] then
+-- 					exclude_offroad = not g_savedata.cargo_vehicles[c_vehicle_id].route_data.can_offroad
+-- 					break
+-- 				end
+-- 			end
+-- 		end
+
+-- 		if not vehicle_object.can_offroad or exclude_offroad then
+-- 			exclude = exclude..",offroad"
+-- 		end
+
+-- 		local vehicle_list_id = sm.getVehicleListID(vehicle_object.name)
+-- 		local y_modifier = g_savedata.vehicle_list[vehicle_list_id].vehicle.transform[14]
+
+-- 		local dest_at_vehicle_y = matrix.translation(target_dest[13], vehicle_object.transform[14], target_dest[15])
+
+-- 		local path_list = server.pathfind(path_start_pos, dest_at_vehicle_y, "land_path", exclude)
+-- 		for path_index, path in pairs(path_list) do
+
+-- 			local path_matrix = matrix.translation(path.x, path.y, path.z)
+
+-- 			local distance = matrix.distance(vehicle_object.transform, path_matrix)
+
+-- 			if path_index ~= 1 or #path_list == 1 or matrix.distance(vehicle_object.transform, dest_at_vehicle_y) > matrix.distance(dest_at_vehicle_y, path_matrix) and distance >= 7 then
+				
+-- 				if not path.y then
+-- 					--d.print("not path.y\npath.x: "..tostring(path.x).."\npath.y: "..tostring(path.y).."\npath.z: "..tostring(path.z), true, 1)
+-- 					break
+-- 				end
+
+-- 				table.insert(vehicle_object.path, { 
+-- 					x =  path.x, 
+-- 					y = (path.y + y_modifier), 
+-- 					z = path.z, 
+-- 					ui_id = server.getMapID() 
+-- 				})
+-- 			end
+-- 		end
+
+-- 		if #vehicle_object.path > 1 then
+-- 			-- remove paths which are a waste (eg, makes the vehicle needlessly go backwards when it could just go to the next waypoint)
+-- 			local next_path_matrix = matrix.translation(vehicle_object.path[2].x, vehicle_object.path[2].y, vehicle_object.path[2].z)
+-- 			if matrix.xzDistance(vehicle_object.transform, next_path_matrix) < matrix.xzDistance(matrix.translation(vehicle_object.path[1].x, vehicle_object.path[1].y, vehicle_object.path[1].z), next_path_matrix) then
+-- 				p.nextPath(vehicle_object)
+-- 			end
+-- 		end
+
+-- 		--[[
+-- 			checks if the vehicle is basically stuck, and if its at a tile border, if it is, 
+-- 			try moving matrix forwards slightly, and keep trying till we've got a path, 
+-- 			or until we reach a set max distance, to avoid infinite recursion.
+-- 		]]
+
+-- 		local max_attempt_distance = 30
+-- 		local max_attempt_increment = 5
+
+-- 		translate_forward_distance = translate_forward_distance or 0
+
+-- 		if translate_forward_distance < max_attempt_distance then
+-- 			local last_path = vehicle_object.path[#vehicle_object.path]
+
+-- 			-- if theres no last path, just set it as the vehicle's positon.
+-- 			if not last_path then
+-- 				last_path = {
+-- 					x = vehicle_object.transform[13],
+-- 					z = vehicle_object.transform[15]
+-- 				}
+-- 			end
+
+-- 			-- checks if we're within the max_attempt_distance of any tile border
+-- 			local tile_x_border_distance = math.abs((last_path.x-250)%1000-250)
+-- 			local tile_z_border_distance = math.abs((last_path.z-250)%1000-250)
+
+-- 			if tile_x_border_distance <= max_attempt_distance or tile_z_border_distance <= max_attempt_distance then
+-- 				-- increments the translate_forward_distance
+-- 				translate_forward_distance = translate_forward_distance + max_attempt_increment
+
+-- 				d.print(("(Pathfinding.addPath) moving the pathfinding start pos forwards by %sm"):format(translate_forward_distance), true, 0)
+
+-- 				Pathfinding.addPath(vehicle_object, target_dest, translate_forward_distance)
+-- 			end
+-- 		else
+-- 			d.print(("(Pathfinding.addPath) despite moving the pathfinding start pos forward by %sm, pathfinding still failed for vehicle with id %s, aborting to avoid infinite recursion"):format(translate_forward_distance, vehicle_object.id), true, 0)
+-- 		end
+-- 	else
+-- 		table.insert(vehicle_object.path, { 
+-- 			x = target_dest[13], 
+-- 			y = target_dest[14], 
+-- 			z = target_dest[15], 
+-- 			ui_id = server.getMapID() 
+-- 		})
+-- 	end
+-- 	vehicle_object.path[0] = {
+-- 		x = vehicle_object.transform[13],
+-- 		y = vehicle_object.transform[14],
+-- 		z = vehicle_object.transform[15],
+-- 		ui_id = server.getMapID()
+-- 	}
+
+-- 	AI.setState(vehicle_object, VEHICLE.STATE.PATHING)
+-- end
+
+-- Credit to woe
+function Pathfinding.updatePathfinding()
+	local old_pathfind = server.pathfind --temporarily remember what the old function did
+	local old_pathfindOcean = server.pathfindOcean
+	function server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --permanantly do this new function using the old name.
+		local path = old_pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --do the normal old function
+		--d.print("(updatePathfinding) getting path y", true, 0)
+		return Pathfinding.getPathY(path) --add y to all of the paths.
+	end
+	function server.pathfindOcean(matrix_start, matrix_end)
+		local path = old_pathfindOcean(matrix_start, matrix_end)
+		return Pathfinding.getPathY(path)
+	end
+end
+
+local path_res = "%0.1f"
+
+-- Credit to woe
+function Pathfinding.getPathY(path)
+	if not g_savedata.graph_nodes.init then --if it has never built the node's table
+		Pathfinding.createPathY() --build the table this one time
+		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
+	end
+	for each in pairs(path) do
+		if g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)] and g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)][(path_res):format(path[each].z)] then --if y exists
+			path[each].y = g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)][(path_res):format(path[each].z)].y --add it to the table that already contains x and z
+			--d.print("path["..each.."].y: "..tostring(path[each].y), true, 0)
+		end
+	end
+	return path --return the path with the added, or not, y values.
+end
+
+-- Credit to woe
+function Pathfinding.createPathY() --this looks through all env mods to see if there is a "zone" then makes a table of y values based on x and z as keys.
+
+	local isGraphNode = function(tag)
+		if tag == "land_path" or tag == "ocean_path" then
+			return tag
+		end
+		return false
+	end
+
+	-- indexed by name, this is so we dont have to constantly call server.getTileTransform for the same tiles. 
+	local tile_locations = {}
+
+	local start_time = server.getTimeMillisec()
+	d.print("Creating Path Y...", true, 0)
+	local total_paths = 0
+	local empty_matrix = matrix.translation(0, 0, 0)
+	for addon_index = 0, server.getAddonCount() - 1 do
+		local ADDON_DATA = server.getAddonData(addon_index)
+		if ADDON_DATA.location_count and ADDON_DATA.location_count > 0 then
+			for location_index = 0, ADDON_DATA.location_count - 1 do
+				local LOCATION_DATA = server.getLocationData(addon_index, location_index)
+				if LOCATION_DATA.env_mod and LOCATION_DATA.component_count > 0 then
+					for component_index = 0, LOCATION_DATA.component_count - 1 do
+						local COMPONENT_DATA = server.getLocationComponentData(
+							addon_index, location_index, component_index
+						)
+						if COMPONENT_DATA.type == "zone" then
+							local graph_node = isGraphNode(COMPONENT_DATA.tags[1])
+							if graph_node then
+
+								local transform_matrix = tile_locations[LOCATION_DATA.tile]
+								if not transform_matrix then
+									tile_locations[LOCATION_DATA.tile] = server.getTileTransform(
+										empty_matrix,
+										LOCATION_DATA.tile,
+										100000
+									)
+
+									transform_matrix = tile_locations[LOCATION_DATA.tile]
+								end
+
+								if transform_matrix then
+									local real_transform = matrix.multiplyXZ(COMPONENT_DATA.transform, transform_matrix)
+									local x = (path_res):format(real_transform[13])
+									local last_tag = COMPONENT_DATA.tags[#COMPONENT_DATA.tags]
+									g_savedata.graph_nodes.nodes[x] = g_savedata.graph_nodes.nodes[x] or {}
+									g_savedata.graph_nodes.nodes[x][(path_res):format(real_transform[15])] = { 
+										y = real_transform[14],
+										type = graph_node,
+										NSO = last_tag == "NSO" and 1 or last_tag == "not_NSO" and 2 or 0
+									}
+									total_paths = total_paths + 1
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	d.print("Got Y level of all paths\nNumber of nodes: "..total_paths.."\nTime taken: "..(millisecondsSince(start_time)/1000).."s", true, 0)
+end
+
+-- function Pathfinding.resetPath(vehicle_object)
+-- 	for _, v in pairs(vehicle_object.path) do
+-- 		server.removeMapID(-1, v.ui_id)
+-- 	end
+
+-- 	vehicle_object.path = {}
+-- end
+
+-- -- makes the vehicle go to its next path
+-- ---@param vehicle_object vehicle_object the vehicle object which is going to its next path
+-- ---@return number|nil more_paths the number of paths left, nil if error
+-- ---@return boolean is_success if it successfully went to the next path
+-- function Pathfinding.nextPath(vehicle_object)
+
+-- 	--? makes sure vehicle_object is not nil
+-- 	if not vehicle_object then
+-- 		d.print("(Vehicle.nextPath) vehicle_object is nil!", true, 1)
+-- 		return nil, false
+-- 	end
+
+-- 	--? makes sure the vehicle_object has paths
+-- 	if not vehicle_object.path then
+-- 		d.print("(Vehicle.nextPath) vehicle_object.path is nil! vehicle_id: "..tostring(vehicle_object.id), true, 1)
+-- 		return nil, false
+-- 	end
+
+-- 	if vehicle_object.path[1] then
+-- 		if vehicle_object.path[0] then
+-- 			server.removeMapID(-1, vehicle_object.path[0].ui_id)
+-- 		end
+-- 		vehicle_object.path[0] = {
+-- 			x = vehicle_object.path[1].x,
+-- 			y = vehicle_object.path[1].y,
+-- 			z = vehicle_object.path[1].z,
+-- 			ui_id = vehicle_object.path[1].ui_id
+-- 		}
+-- 		table.remove(vehicle_object.path, 1)
+-- 	end
+
+-- 	return #vehicle_object.path, true
+-- end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Handles the creation of routes by interfacing with pathfinding.lua.
+
+	Stores routes by a hash, in order to avoid recalculating the same route over and over again, when we could just pull the ones we've already calculated.
+]]
+
+-- library name
+Routing = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias StoredPathID integer the id of a stored path
+
+---@class Route
+---@field stored_path_id StoredPathID the id of the stored path
+---@field route_type string the type of route
+---@field path_index integer the index that the vehicle is at on the path
+---@field start_matrix SWMatrix the start of the route
+---@field end_matrix SWMatrix the end of the route
+
+---@alias PathHash string the hash of a path, format is: start x + | + start y + | + start z + | + end x + | + end y + | + end z + | + route type
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The distance the node must be to the tile border to be checked for if it failed merging.
+FAILED_NODE_TILE_BORDER_DISTANCE = 4
+
+-- The distance the node must be to another node for it to be considered merged
+NODE_MERGE_DISTANCE = 10 -- Thanks antie
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.routing = {
+	---@type table<StoredPathID, Path>
+	stored_paths = {}, -- A table of stored paths, used for getting a path from an id, to avoid needing to store the same path multiple times, and to avoid needing to re-calculating them for the same start/end positions.
+
+	---@type StoredPathID
+	next_path_id = 1, -- The next path id to use
+
+	---@type table<PathHash, StoredPathID>
+	path_hashes = {}, -- A table of path hashes to stored path ids, used for checking if a path has already been stored
+
+	---@type SWUI_ID
+	failed_node_merge_ui_id = nil -- The ui id of the failed node merge ui
+}
+
+--- The stored defined operations, for operating vehicles of that class.
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for getting a path hash
+---@param start_matrix SWMatrix the start of the route
+---@param end_matrix SWMatrix the end of the route
+---@param route_type string the type of route
+---@return PathHash hash the hash of the route
+function Routing.getPathHash(start_matrix, end_matrix, route_type)
+	-- create the hash
+	local hash = ("%0.1f|%0.1f|%0.1f|%0.1f|%0.1f|%0.1f|%s"):format(
+		start_matrix[13],
+		start_matrix[14],
+		start_matrix[15],
+		end_matrix[13],
+		end_matrix[14],
+		end_matrix[15],
+		route_type
+	)
+
+	-- return the hash
+	return hash
+end
+
+--- Function for storing a path
+---@param path Path the path to store
+---@param path_hash PathHash the hash of the path
+---@return integer path_id path id of the stored path, if path has already been stored, returns it's id.
+function Routing.storePath(path, path_hash)
+	-- Check if the path has already been stored
+	if g_savedata.routing.path_hashes[path_hash] then
+		-- return existing id
+		return g_savedata.routing.path_hashes[path_hash]
+	end
+
+	-- store the path
+	g_savedata.routing.stored_paths[g_savedata.routing.next_path_id] = path
+
+	-- store the path hash
+	g_savedata.routing.path_hashes[path_hash] = g_savedata.routing.next_path_id
+
+	-- increment the next path id
+	g_savedata.routing.next_path_id = g_savedata.routing.next_path_id + 1
+
+	return g_savedata.routing.next_path_id - 1
+end
+
+--- Function for resetting all stored paths
+function Routing.resetStoredPaths()
+	-- reset the stored paths
+	g_savedata.routing.stored_paths = {}
+
+	-- reset the path hashes
+	g_savedata.routing.path_hashes = {}
+end
+
+--- Function for getting a path from the id
+---@param path_id StoredPathID the id of the path to get
+---@return Path? path the path, nil if no path.
+function Routing.getPathFromID(path_id)
+	-- return the path
+	return g_savedata.routing.stored_paths[path_id]
+end
+
+--- Function for getting a path id from the hash
+---@param path_hash PathHash the hash of the path to get
+---@return StoredPathID? path_id the id of the path, nil if no path.
+function Routing.getPathIDFromHash(path_hash)
+	-- return the path id
+	return g_savedata.routing.path_hashes[path_hash]
+end
+
+--- Function for getting a path from the hash
+---@param path_hash PathHash the hash of the path to get
+---@return Path? path the path, nil if no path.
+function Routing.getPathFromHash(path_hash)
+	-- get the path id
+	local path_id = Routing.getPathIDFromHash(path_hash)
+
+	-- if the path id is nil
+	if not path_id then
+		-- return nil, as there is no path
+		return nil
+	end
+
+	-- return the path
+	return g_savedata.routing.stored_paths[path_id]
+end
+
+--[[
+
+
+	Definitions
+
+
+]]
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	LIBRARY DESCRIPTION
+]]
+
+-- library name
+LandRoute = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.routing.land = {
+	debug_routes = {}
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for creating a land route
+---@param start_matrix SWMatrix the start of the route
+---@param end_matrix SWMatrix the end of the route
+---@return Route
+function LandRoute.new(start_matrix, end_matrix)
+
+	--[[
+		Try getting the path from the stored paths
+
+		First, grab the hash of the path, and then check if it's stored, if not, then create it
+		but if it's created, then we can use that instead.
+	]]
+
+	-- Grab the hash
+	local hash = Routing.getPathHash(start_matrix, end_matrix, "land")
+
+	-- Check if the path is stored
+	local path_id = Routing.getPathIDFromHash(hash)
+
+	-- If the path is not stored.
+	if not path_id then
+		-- Create the path
+		path = Pathfinding.getLandPath(start_matrix, end_matrix)
+
+		-- Store the path
+		path_id = Routing.storePath(path, hash)
+	end
+
+	-- Create the route
+	---@type Route
+	local route = {
+		stored_path_id = path_id,
+		route_type = "land",
+		path_index = 1,
+		start_matrix = start_matrix,
+		end_matrix = end_matrix,
+	}
+
+	return route
+end
+
+-- Define a command to test out getting a land path
+Command.registerCommand(
+	"test_land_path",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		--- Have the player's position be the start pos, and then have them specify x, y, z for destination
+		local start_matrix = server.getPlayerPos(peer_id)
+
+		-- Get the destination
+		local destination = Vector3.new(
+			tonumber(arg[1]) or 0,
+			tonumber(arg[2]) or 0,
+			tonumber(arg[3]) or 0
+		)
+
+		-- Create the end matrix
+		local end_matrix = matrix.identity()
+
+		-- Set the end matrix position
+		end_matrix[13] = destination.x
+		end_matrix[14] = destination.y
+		end_matrix[15] = destination.z
+
+		-- Create the route
+		local route = LandRoute.new(start_matrix, end_matrix)
+
+		-- Store the route
+		table.insert(g_savedata.routing.land.debug_routes, route)
+
+		-- Get the path from the route
+		local path = Routing.getPathFromID(route.stored_path_id)
+
+		if not path then
+			return
+		end
+
+		-- Display the path on the map.
+		for path_index = 1, #path do
+			local path_node = path[path_index]
+
+			-- Display the path node
+			Map.addMapCircle(
+				-1,
+				path_node.ui_id,
+				matrix.translation(path_node.x, path_node.y, path_node.z),
+				5,
+				1,
+				0,
+				255,
+				25,
+				255,
+				16
+			)
+
+			-- if the path_index is greater than 1, then display the line between the two nodes
+			if path_index > 1 then
+				local previous_path_node = path[path_index - 1]
+
+				-- Display the line
+				server.addMapLine(
+					-1,
+					path_node.ui_id,
+					matrix.translation(previous_path_node.x, previous_path_node.y, previous_path_node.z),
+					matrix.translation(path_node.x, path_node.y, path_node.z),
+					1,
+					0,
+					255,
+					25,
+					255
+				)
+			end
+		end
+	end,
+	"admin",
+	"",
+	"",
+	{""}
+)
+
+-- Define a command to remove all drawn debug land nodes, and clear them from the table.
+Command.registerCommand(
+	"clear_land_path_debug",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- Remove all the map circles
+		for _, route in pairs(g_savedata.routing.land.debug_routes) do
+			local path = Routing.getPathFromID(route.stored_path_id)
+
+			if not path then
+				return
+			end
+
+			-- Display the path on the map.
+			for path_index = 1, #path do
+				local path_node = path[path_index]
+
+				-- Display the path node
+				server.removeMapID(-1, path_node.ui_id)
+			end
+		end
+
+		-- Clear the table
+		g_savedata.routing.land.debug_routes = {}
+	end,
+	"admin",
+	"",
+	"",
+	{""}
+)
+
+
+
+--[[
+
+	Commands
+
+]]
+
+--- Command for showing all graph nodes that possibly failed merging, resulting in the path not crossing the tile border properly.
+-- Define a command to test out getting a land path
+Command.registerCommand(
+	"show_failed_merge_nodes",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+
+		-- Make sure the ui_id for the failed node merge ui is set
+		g_savedata.routing.failed_node_merge_ui_id = g_savedata.routing.failed_node_merge_ui_id or server.getMapID()
+
+		-- Remove all of the previous drawn circles
+		server.removeMapID(-1, g_savedata.routing.failed_node_merge_ui_id)
+
+		---@class NodeToMergeCheckData
+		---@field node_data NodeData the node data
+		---@field position Vector3 the position of the node
+
+		-- Define a list of graph nodes that are within the distance to the tile border
+		---@type table<integer, NodeToMergeCheckData>
+		local nodes_to_check = {}
+
+		-- Iterate through every single graph node
+		for x, x_table in pairs(g_savedata.graph_nodes.nodes) do
+			
+			-- Iterate through all of the nodes on this x axis
+			for z, node_data in pairs(x_table) do
+
+				-- Get the node's position as a vector2
+				local node_position_vec2 = Vector2.new(
+					tonumber(x) --[[@as number]],
+					tonumber(z) --[[@as number]]
+				)
+
+				-- Get the closest tile border distance for this node
+				local closest_tile_border_distance = Pathfinding.distanceToClosestTileBorder(node_position_vec2)
+
+				-- Check if the node is within the distance to the tile border
+				if closest_tile_border_distance <= FAILED_NODE_TILE_BORDER_DISTANCE then
+					-- Add the node to the list of nodes to check
+					table.insert(nodes_to_check, {
+						node_data = node_data,
+						position = Vector3.new(
+							node_position_vec2.x,
+							node_data.y,
+							node_position_vec2.y
+						)
+					})
+				end
+			end
+		end
+
+		-- Define a list of nodes that failed merging
+		---@type table<integer, NodeToMergeCheckData>
+		local failed_merge_nodes = {}
+
+		-- Iterate through all of the nodes to check
+		for node_index = 1, #nodes_to_check do
+			-- Get the node to check
+			local node_to_check = nodes_to_check[node_index]
+
+			-- If this node has any nodes within it's merge distance
+			local has_nodes_within_merge_distance = false
+
+			-- Iterate through all of the nodes to check against
+			for node_to_check_against_index = 1, #nodes_to_check do
+				-- Get the node to check against
+				local node_to_check_against = nodes_to_check[node_to_check_against_index]
+
+				-- Skip if the nodes are the same
+				if node_index == node_to_check_against_index then
+					goto continue
+				end
+
+				-- Skip if the nodes are not within the merge distance
+				if Vector3.euclideanDistance(node_to_check.position, node_to_check_against.position) > NODE_MERGE_DISTANCE then
+					goto continue
+				end
+
+				-- Skip if this node is on the same tile
+				if server.getTile(Vector3.toMatrix(node_to_check.position)).name == server.getTile(Vector3.toMatrix(node_to_check_against.position)).name then
+					goto continue
+				end
+
+				-- Set that this node has nodes within it's merge distance
+				has_nodes_within_merge_distance = true
+
+				-- Break
+				break
+
+				---@diagnostic disable-next-line: code-after-break
+				::continue::
+			end
+
+			-- If this node has no nodes within it's merge distance
+			if not has_nodes_within_merge_distance then
+				-- Add it to the list of failed merge nodes
+				table.insert(failed_merge_nodes, node_to_check)
+			end
+		end
+
+		-- Iterate through all of the failed merge nodes, and draw them.
+		for node_index = 1, #failed_merge_nodes do
+			-- Get the node
+			local node = failed_merge_nodes[node_index]
+
+			-- Draw the node
+			Map.addMapCircle(peer_id, g_savedata.routing.failed_node_merge_ui_id, Vector3.toMatrix(node.position), 10, 1, 255, 0, 0, 255, 15)
+		end
+
+		d.print(("Drew %d nodes that possibly failed to merge."):format(#failed_merge_nodes), true, 0, peer_id)
+	end,
+	"admin",
+	"Shows all graph nodes that possibly failed merging, resulting in the path not crossing the tile border properly.",
+	"Shows all graph nodes that possible failed merging.",
+	{""}
+)
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Used to create a prefab of a vehicle, which stores the info to spawn the vehicle
+
+	Also, can be used to find a vehicle you'd like to spawn, specifying filters such as wanting to be red, be land vehicle, and be a sedan, etc.
+]]
+
+-- library name
+VehiclePrefab = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class VehiclePrefab
+---@field name string The name of the vehicle prefab, as set in the component's name field.
+---@field tags Tags The tags of the vehicle prefab, as set in the component's tags field.
+---@field spawning_data SpawningData the spawning data used to spawn the vehicle prefab.
+---@field mass number The mass of the vehicle prefab, gotten via spawning the vehicle and getting the mass of the vehicle.
+---@field voxels number The voxels of the vehicle prefab, gotten via spawning the vehicle and getting the voxels of the vehicle.
+---@field available boolean Whether or not the vehicle prefab is available, if false, that means that this component likely no longer exists.
+---@field setup boolean If the prefab has been properly setup, as in, with the mass and voxels set. This is never naturally reset.
+
+---@class PrefabToInitialise
+---@field name string the name of the vehicle prefab
+
+---@class PrefabInitialising
+---@field name string the name of the vehicle prefab
+---@field group_id integer the group_id of the spawning group
+---@field awaiting_vehicles table<integer, integer> a list of the vehicle ids that are awaiting to be spawned for initialisation.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The maximum number of groups that can be spawned at once to be initialised.
+PREFAB_INITIALISER_MAX_GROUPS = 7
+
+-- The height relative to the player at which the vehicles are spawned at.
+PREFAB_INITIALISER_RELATIVE_SPAWN_HEIGHT = -1000
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.vehicle_prefab = {
+	---@type table<string, VehiclePrefab> indexed by the name of the vehicle (component name), and stores the prefabs.
+	prefabs = {},
+
+	---@type table<integer, PrefabInitialising> indexed by the group_id, and stores the prefabs that are being initialised, stored in g_savedata in case of a script reload.
+	initialising_prefabs = {}
+}
+
+--- Stores the prefabs that are to be initialised.
+---@type table<integer, PrefabToInitialise>
+prefabs_to_initialise = {}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+
+	Callbacks
+
+]]
+
+--- Function for generating a list of prefabs, should be called in setupMain().
+function VehiclePrefab.generatePrefabs()
+
+	-- Despawn prefabs that were being initialised, as they may no longer exist.
+	for group_id, prefab_initialising in pairs(g_savedata.vehicle_prefab.initialising_prefabs) do
+		-- Despawn the group
+		server.despawnVehicleGroup(group_id, true)
+
+		-- Set the prefab's mass and voxels back to 0
+		g_savedata.vehicle_prefab.prefabs[prefab_initialising.name].mass = 0
+		g_savedata.vehicle_prefab.prefabs[prefab_initialising.name].voxels = 0
+	end
+
+	-- Clear the list of initialising prefabs
+	---@type table<integer, PrefabInitialising>
+	g_savedata.vehicle_prefab.initialising_prefabs = {}
+
+	d.print(("(VehiclePrefab.generatePrefabs) Setting existing prefabs to unavailable."), true, 0)
+
+	-- Go through all existing prefabs, and set their "available" to false, to mark that they may not exist anymore.
+	for prefab_index = 1, #g_savedata.vehicle_prefab.prefabs do
+		-- Get the prefab
+		local prefab = g_savedata.vehicle_prefab.prefabs[prefab_index]
+
+		-- Set it to unavailable
+		prefab.available = false
+	end
+
+	--- Function for preparing a vehicle prefab and storing it.
+	---@param addon_index integer the index of the addon the component is from.
+	---@param location_index integer the index of the location the component is from.
+	---@param component_index integer the index of the component the vehicle prefab is from.
+	---@param location_data SWLocationData the data of the location.
+	---@param component_data SWAddonComponentData the data of the component.
+	local function prepareAndStorePrefab(addon_index, location_index, component_index, location_data, component_data)
+
+		d.print(("(VehiclePrefab.generatePrefabs) Setting up prefab %s"):format(component_data.display_name), true, 0)
+		
+		--[[
+			Get the spawning data
+		]]
+
+		-- First, create the spawning filter
+		local spawning_filter = ComponentSpawner.createFilter()
+
+		-- Set the env mod handling to that it cannot be an env mod
+		spawning_filter:setEnvModHandling(COMPONENT_FILTER_ENV_MOD_HANDLING.NOT_ALLOWED)
+
+		-- Set the spawning filter's location name to the location name of the component
+		spawning_filter:addLocationName(location_data.name, false)
+
+		-- Set the spawning filter's tags to be all of the tags of this component
+		for tag_index = 1, #component_data.tags do
+			-- Get the tag
+			local tag = component_data.tags[tag_index]
+
+			-- Add the tag to the spawning filter
+			spawning_filter:addTag(tag, false)
+		end
+
+		-- Get the spawning data
+		local spawning_data = spawning_filter:getSpawningData(SPAWNING_DATA_FALLBACK.FIRST)
+
+		-- Set the prefab data.
+		---@type VehiclePrefab
+		local prefab_data = {
+			name = component_data.display_name,
+			tags = component_data.tags,
+			spawning_data = spawning_data,
+			mass = 0,
+			voxels = 0,
+			available = true,
+			setup = false
+		}
+
+		-- Check if this prefab already exists
+		if g_savedata.vehicle_prefab.prefabs[prefab_data.name] then
+			-- Get it's existing data
+			local existing_prefab = g_savedata.vehicle_prefab.prefabs[prefab_data.name]
+
+			-- If it's setup
+			if existing_prefab.setup then
+
+				d.print(("(VehiclePrefab.generatePrefabs) Found existing voxel and mass data for prefab %s"):format(component_data.display_name), true, 0)
+
+				-- Then set the new prefab's setup as true
+				prefab_data.setup = true
+
+				-- And set the new prefab's mass and voxels to the existing prefab's mass and voxels
+				prefab_data.mass = existing_prefab.mass
+				prefab_data.voxels = existing_prefab.voxels
+			end
+		end
+
+		-- If this prefab is not setup
+		if not prefab_data.setup then
+			-- Put it into the list of prefabs to initialise
+			table.insert(prefabs_to_initialise,
+				{
+					name = prefab_data.name
+				}
+			)
+
+			d.print(("(VehiclePrefab.generatePrefabs) Added prefab %s to list of prefabs to initialise."):format(component_data.display_name), true, 0)
+		end
+
+		-- Save the prefab.
+		g_savedata.vehicle_prefab.prefabs[prefab_data.name] = prefab_data
+	end
+
+	--[[
+		Go through all components, and check if they're a drivable vehicle (for IMAI), 
+		and if so, add them to the list of prefabs.
+	]]
+
+	d.print(("(VehiclePrefab.generatePrefabs) Finding and storing prefabs."), true, 0)
+
+	-- The number of prefabs found
+	local found_prefabs = 0
+
+	-- Get the number of addons
+	local addon_count = server.getAddonCount()
+
+	-- Iterate through all addons.
+	for addon_index = 0, addon_count - 1 do
+
+		-- Get the addon's data.
+		local addon_data = server.getAddonData(addon_index)
+
+		-- Iterate through all locations in the addon.
+		for location_index = 0, addon_data.location_count - 1 do
+
+			-- Get the location's data.
+			local location_data = server.getLocationData(addon_index, location_index)
+
+			-- Skip if this location is an env mod, as we only want mission locations
+			if location_data.env_mod then
+				goto continue_location
+			end
+
+			-- Iterate through all components in the location.
+			for component_index = 0, location_data.component_count - 1 do
+
+				-- Get the component
+				local component_data = server.getLocationComponentData(addon_index, location_index, component_index)
+
+				-- If the component's tags does not contain "imai", skip it
+				if not Tags.has(component_data.tags, "imai") then
+					goto continue_component
+				end
+
+				-- If the component's tags does not contain "vehicle", skip it
+				if not Tags.has(component_data.tags, "vehicle") then
+					goto continue_component
+				end
+
+				-- If the component's tags does not contain "drivable", skip it	
+				--if not Tags.hasTag(component_data.tags, "drivable") then
+				--	goto continue_component
+				--end
+
+				-- Prepare and store the prefab
+				prepareAndStorePrefab(addon_index, location_index, component_index, location_data, component_data)
+
+				-- Increment the number of prefabs
+				found_prefabs = found_prefabs + 1
+
+				::continue_component::
+			end
+
+			::continue_location::
+		end
+	end
+
+	d.print(("(VehiclePrefab.generatePrefabs) Completed setting up prefabs, found %d prefabs."):format(found_prefabs), true, 0)
+end
+
+--- Function for handling the initialisation of prefabs, should be called in onTick()
+---@param game_ticks integer the number of ticks since the last onTick call.
+function VehiclePrefab.onTick(game_ticks)
+
+	-- If there are no prefabs to initialise, return
+	if #prefabs_to_initialise == 0 then
+		--d.print("(VehiclePrefab.onTick) No prefabs to initialise.", true, 0)
+		return
+	end
+
+	--[[
+		Get the player we should spawn the prefabs relative to
+	]]
+
+	local players = server.getPlayers()
+
+	-- Check if there are any players
+	if #players == 0 then
+		-- if not, return.
+		return
+	end
+
+	-- Get the first player in the list, and use them.
+	local peer_id = players[1].id
+
+	-- Get their position
+	local player_position, is_success = server.getPlayerPos(peer_id)
+
+	-- If that failed, iterate through all players to try to find one that works.
+	if not is_success then
+		for player_index = 2, #players do
+			-- Get the player
+			local player = players[player_index]
+
+			-- Get their position
+			player_position, is_success = server.getPlayerPos(player.id)
+
+			-- If that succeeded, break
+			if is_success then
+				break
+			end
+		end
+	end
+
+	-- if even the loop failed, return.
+	if not is_success then
+		--d.print(("(VehiclePrefab.onTick) Failed to get a player's position to spawn prefabs relative to."), true, 1)
+		return
+	end
+
+	-- Set the spawning position
+	local spawning_position = player_position
+
+	-- Set the spawning position's y to the relative spawn height
+	spawning_position[14] = spawning_position[14] + PREFAB_INITIALISER_RELATIVE_SPAWN_HEIGHT
+
+	-- iterate through all of the prefabs to initialise, and spawn them, until we hit the limit, start from the top, as we will be removing them as we go.
+	for prefab_index = #prefabs_to_initialise, 1, -1 do
+		-- If we've hit the limit, break
+		if #g_savedata.vehicle_prefab.initialising_prefabs >= PREFAB_INITIALISER_MAX_GROUPS then
+			break
+		end
+
+		--[[
+			Otherwise, spawn it, and add this prefab to the list of initialising prefabs
+		]]
+
+		-- Get this prefab's data
+		local prefab_to_initialise = prefabs_to_initialise[prefab_index]
+
+		-- Get the prefab data
+		local prefab_data = g_savedata.vehicle_prefab.prefabs[prefab_to_initialise.name]
+
+		-- Print that we're initialising this prefab
+		d.print(("(VehiclePrefab.onTick) Initialising Prefab %s"):format(prefab_data.name), true, 0)
+
+		-- Spawn the prefab
+		local component_data, component_is_success = ComponentSpawner.spawn(prefab_data.spawning_data, spawning_position)
+
+		-- Print where it was spawned
+		--d.print(("(VehiclePrefab.onTick) Spawned prefab %s at\nx: %0.1f\ny: %0.1f\nz:%0.1f"):format(prefab_data.name, spawning_position[13], spawning_position[14], spawning_position[15]), true, 0)
+
+		-- Skip if that failed
+		if not component_is_success then
+			d.print(("(VehiclePrefab.onTick) Failed to spawn prefab %s, skipping."):format(prefab_data.name), true, 1)
+
+			goto continue_prefab
+		end
+
+		--[[
+			Get the vehicles in this group, 
+			not handling the case where it fails cause well... we would've already spawned it, 
+				so just skipping would mean we would just leave it there anyways.
+				And if we did skip it, then it wouldn't be removed from the list, resulting it to be spawned again next tick.
+				So it's better to have one glitched vehicle rather than infinite glitched vehicles.
+		]]
+		local vehicle_ids, _ = server.getVehicleGroup(component_data.group_id)
+
+		-- Add this prefab to the list of initialising prefabs
+		g_savedata.vehicle_prefab.initialising_prefabs[component_data.group_id] = {
+			name = prefab_data.name,
+			group_id = component_data.group_id,
+			awaiting_vehicles = vehicle_ids
+		}
+
+		-- Set all of the vehicle_ids to be invulnerable.
+		for vehicle_index = 1, #vehicle_ids do
+			-- Get the vehicle_id
+			local vehicle_id = vehicle_ids[vehicle_index]
+
+			-- Set the vehicle to be invulnerable
+			server.setVehicleInvulnerable(vehicle_id, true)
+		end
+
+		-- Remove self from the list of prefabs to initialise
+		table.remove(prefabs_to_initialise, prefab_index)
+
+		::continue_prefab::
+	end
+end
+
+--- Function called whenever a vehicle loads, used for initialising prefabs, automatically bound.
+---@param vehicle_id integer the vehicle_id of the vehicle that loaded.
+function VehiclePrefab.onVehicleLoad(vehicle_id)
+	-- If there are no initialising prefabs, return
+	if table.length(g_savedata.vehicle_prefab.initialising_prefabs) == 0 then
+		-- Print that there are no initialising prefabs
+		--d.print("(VehiclePrefab.onVehicleLoad) No initialising prefabs.", true, 0)
+		return
+	end
+
+	-- Get the vehicle's data
+	local vehicle_data = server.getVehicleData(vehicle_id)
+
+	-- If this group_id does not exist in the list of initialising prefabs, return
+	if not g_savedata.vehicle_prefab.initialising_prefabs[vehicle_data.group_id] then
+		-- Print that this group_id does not exist in the list of initialising prefabs
+		--d.print(("(VehiclePrefab.onVehicleLoad) Group %d does not exist in the list of initialising prefabs."):format(vehicle_data.group_id), true, 0)
+		return
+	end
+
+	-- Otherwise, get the component data of this vehicle
+	local component_data, _ = server.getVehicleComponents(vehicle_id)
+
+	-- Get the name of the component
+	local component_name = g_savedata.vehicle_prefab.initialising_prefabs[vehicle_data.group_id].name
+
+	-- Increment the prefab data's mass and voxels with the data
+	g_savedata.vehicle_prefab.prefabs[component_name].mass = g_savedata.vehicle_prefab.prefabs[component_name].mass + component_data.mass
+	g_savedata.vehicle_prefab.prefabs[component_name].voxels = g_savedata.vehicle_prefab.prefabs[component_name].voxels + component_data.voxels
+
+	-- Despawn this vehicle
+	server.despawnVehicle(vehicle_id, true)
+
+	-- Remove this vehicle_id from the list of awaiting vehicles
+	for vehicle_index = 1, #g_savedata.vehicle_prefab.initialising_prefabs[vehicle_data.group_id].awaiting_vehicles do
+		-- Get the vehicle_id
+		local awaiting_vehicle_id = g_savedata.vehicle_prefab.initialising_prefabs[vehicle_data.group_id].awaiting_vehicles[vehicle_index]
+
+		-- If this is the vehicle_id we are looking for
+		if awaiting_vehicle_id == vehicle_id then
+			-- Remove it from the list
+			table.remove(g_savedata.vehicle_prefab.initialising_prefabs[vehicle_data.group_id].awaiting_vehicles, vehicle_index)
+
+			-- Break
+			break
+		end
+	end
+
+	-- If this was the last vehicle to load, then we can set the prefab as setup.
+	if #g_savedata.vehicle_prefab.initialising_prefabs[vehicle_data.group_id].awaiting_vehicles == 0 then
+		-- Set the prefab as setup
+		g_savedata.vehicle_prefab.prefabs[component_name].setup = true
+
+		-- Despawn the group (just in case)
+		server.despawnVehicleGroup(vehicle_data.group_id, true)
+
+		-- Remove this group from the list of initialising prefabs
+		g_savedata.vehicle_prefab.initialising_prefabs[vehicle_data.group_id] = nil
+
+		d.print(("(VehiclePrefab.onVehicleLoad) Fully initialised prefab %s"):format(component_name), true, 0)
+	-- Otherwise, just print that part of it was setup.
+	else
+		-- Print that part of the prefab has been initialised
+		d.print(("(VehiclePrefab.onVehicleLoad) Initialised part of prefab %s"):format(component_name), true, 0)
+	end
+end
+
+-- Bind the callback to onVehicleLoad, with a low priority.
+Binder.bind.onVehicleLoad(VehiclePrefab.onVehicleLoad, 0)
+
+--[[
+
+	Commands
+
+]]
+
+--- Command to reset the "setup" state of the prefabs, for debugging purposes.
+Command.registerCommand(
+	"reset_prefab_setup_states",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- Iterate through all prefabs
+		for prefab_name, prefab in pairs(g_savedata.vehicle_prefab.prefabs) do
+			-- Reset setup
+			prefab.setup = false
+
+			-- Reset mass to 0
+			prefab.mass = 0
+
+			-- Reset voxels to 0
+			prefab.voxels = 0
+
+			-- Print that this prefab was reset
+			d.print(("(VehiclePrefab.reset_prefab_setup_states) Reset prefab %s's setup state."):format(prefab_name), true, 0, peer_id)
+		end
+
+		-- Print that all of them were reset
+		d.print("(VehiclePrefab.reset_prefab_setup_states) Reset all prefab setup states.", true, 0, peer_id)
+	end,
+	"admin",
+	"Resets the setup state of all prefabs, for debugging purposes.",
+	"Resets the setup state of all prefabs.",
+	{""}
+)
 -- This library is for controlling or getting things about the AI.
 
 -- required libraries
@@ -11527,481 +13670,7 @@ function Map.addMapCircle(peer_id, ui_id, center_matrix, radius, width, r, g, b,
 		s.addMapLine(peer_id, ui_id, start_matrix, end_matrix, width, r, g, b, a)
 	end
 end
- -- functions for drawing on the map -- custom math functions -- custom matrix functions
---[[
-
-
-	Library Setup
-
-
-]]
-
-
--- required libraries
--- This library is for controlling or getting things about the Enemy AI.
-
--- required libraries
-
--- library name
-AI = {}
-
---- @param vehicle_object vehicle_object the vehicle you want to set the state of
---- @param state string the state you want to set the vehicle to
---- @return boolean success if the state was set
-function AI.setState(vehicle_object, state)
-	if vehicle_object then
-		if state ~= vehicle_object.state.s then
-			if state == VEHICLE.STATE.HOLDING then
-				vehicle_object.holding_target = vehicle_object.transform
-			end
-			vehicle_object.state.s = state
-		end
-	else
-		d.print("(AI.setState) vehicle_object is nil!", true, 1)
-	end
-	return false
-end
-
---# made for use with toggles in buttons (only use for toggle inputs to seats)
----@param vehicle_id integer the vehicle's id that has the seat you want to set
----@param seat_name string the name of the seat you want to set
----@param axis_ws number w/s axis
----@param axis_ad number a/d axis
----@param axis_ud number up down axis
----@param axis_lr number left right axis
----@param ... boolean buttons (1-7) (7 is trigger)
----@return boolean set_seat if the seat was set
-function AI.setSeat(vehicle_id, seat_name, axis_ws, axis_ad, axis_ud, axis_lr, ...)
-	
-	if not vehicle_id then
-		d.print("(AI.setSeat) vehicle_id is nil!", true, 1)
-		return false
-	end
-
-	if not seat_name then
-		d.print("(AI.setSeat) seat_name is nil!", true, 1)
-		return false
-	end
-
-	local button = table.pack(...)
-
-	-- sets any nil values to 0 or false
-	axis_ws = axis_ws or 0
-	axis_ad = axis_ad or 0
-	axis_ud = axis_ud or 0
-	axis_lr = axis_lr or 0
-
-	for i = 1, 7 do
-		button[i] = button[i] or false
-	end
-
-	g_savedata.seat_states = g_savedata.seat_states or {}
-
-
-	if not g_savedata.seat_states[vehicle_id] or not g_savedata.seat_states[vehicle_id][seat_name] then
-
-		g_savedata.seat_states[vehicle_id] = g_savedata.seat_states[vehicle_id] or {}
-		g_savedata.seat_states[vehicle_id][seat_name] = {}
-
-		for i = 1, 7 do
-			g_savedata.seat_states[vehicle_id][seat_name][i] = false
-		end
-	end
-
-	for i = 1, 7 do
-		if button[i] ~= g_savedata.seat_states[vehicle_id][seat_name][i] then
-			g_savedata.seat_states[vehicle_id][seat_name][i] = button[i]
-			button[i] = true
-		else
-			button[i] = false
-		end
-	end
-
-	s.setVehicleSeat(vehicle_id, seat_name, axis_ws, axis_ad, axis_ud, axis_lr, button[1], button[2], button[3], button[4], button[5], button[6], button[7])
-	return true
-end
-
-
---require("libraries.icm.spawnModifiers")
-
--- library name
-Pathfinding = {}
-
--- shortened library name
-p = Pathfinding
-
---[[
-
-
-	Variables
-   
-
-]]
-
-s = s or server
-
---[[
-
-
-	Classes
-
-
-]]
-
----@class ICMPathfindPoint
----@field x number the x coordinate of the graph node
----@field y number the y coordinate of the graph node
----@field z number the z coordinate of the graph node
-
---[[
-
-
-	Functions         
-
-
-]]
-
-function Pathfinding.resetPath(vehicle_object)
-	for _, v in pairs(vehicle_object.path) do
-		server.removeMapID(-1, v.ui_id)
-	end
-
-	vehicle_object.path = {}
-end
-
--- makes the vehicle go to its next path
----@param vehicle_object vehicle_object the vehicle object which is going to its next path
----@return number|nil more_paths the number of paths left, nil if error
----@return boolean is_success if it successfully went to the next path
-function Pathfinding.nextPath(vehicle_object)
-
-	--? makes sure vehicle_object is not nil
-	if not vehicle_object then
-		d.print("(Vehicle.nextPath) vehicle_object is nil!", true, 1)
-		return nil, false
-	end
-
-	--? makes sure the vehicle_object has paths
-	if not vehicle_object.path then
-		d.print("(Vehicle.nextPath) vehicle_object.path is nil! vehicle_id: "..tostring(vehicle_object.id), true, 1)
-		return nil, false
-	end
-
-	if vehicle_object.path[1] then
-		if vehicle_object.path[0] then
-			server.removeMapID(-1, vehicle_object.path[0].ui_id)
-		end
-		vehicle_object.path[0] = {
-			x = vehicle_object.path[1].x,
-			y = vehicle_object.path[1].y,
-			z = vehicle_object.path[1].z,
-			ui_id = vehicle_object.path[1].ui_id
-		}
-		table.remove(vehicle_object.path, 1)
-	end
-
-	return #vehicle_object.path, true
-end
-
----@param vehicle_object vehicle_object the vehicle you want to add the path for
----@param target_dest SWMatrix the destination for the path
----@param translate_forward_distance number? the increment of the distance, used to slowly try moving the vehicle's matrix forwards, if its at a tile's boundery, and its unable to move, used by the function itself, leave undefined.
-function Pathfinding.addPath(vehicle_object, target_dest, translate_forward_distance)
-
-	-- path tags to exclude
-	local exclude = ""
-
-	if g_savedata.info.mods.NSO then
-		exclude = "not_NSO" -- exclude non NSO graph nodes
-	else
-		exclude = "NSO" -- exclude NSO graph nodes
-	end
-
-	if vehicle_object.vehicle_type == VEHICLE.TYPE.TURRET then 
-		AI.setState(vehicle_object, VEHICLE.STATE.STATIONARY)
-		return
-
-	elseif vehicle_object.vehicle_type == VEHICLE.TYPE.BOAT then
-		local dest_x, dest_y, dest_z = matrix.position(target_dest)
-
-		local path_start_pos = nil
-
-		if #vehicle_object.path > 0 then
-			local waypoint_end = vehicle_object.path[#vehicle_object.path]
-			path_start_pos = matrix.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z)
-		else
-			path_start_pos = vehicle_object.transform
-		end
-
-		-- makes sure only small ships can take the tight areas
-		
-		if vehicle_object.size ~= "small" then
-			exclude = exclude..",tight_area"
-		end
-
-		-- calculates route
-		local path_list = server.pathfind(path_start_pos, matrix.translation(target_dest[13], 0, target_dest[15]), "ocean_path", exclude)
-
-		for _, path in pairs(path_list) do
-			if not path.y then
-				path.y = 0
-			end
-			if path.y > 1 then
-				break
-			end 
-			table.insert(vehicle_object.path, { 
-				x = path.x,
-				y = path.y,
-				z = path.z,
-				ui_id = server.getMapID() 
-			})
-		end
-	elseif vehicle_object.vehicle_type == VEHICLE.TYPE.LAND then
-		--local dest_x, dest_y, dest_z = m.position(target_dest)
-
-		local path_start_pos = nil
-
-		if #vehicle_object.path > 0 then
-			local waypoint_end = vehicle_object.path[#vehicle_object.path]
-
-			if translate_forward_distance then
-				local second_last_path_pos
-				if #vehicle_object.path < 2 then
-					second_last_path_pos = vehicle_object.transform
-				else
-					local second_last_path = vehicle_object.path[#vehicle_object.path - 1]
-					second_last_path_pos = matrix.translation(second_last_path.x, second_last_path.y, second_last_path.z)
-				end
-
-				local yaw, _ = math.angleToFace(second_last_path_pos[13], waypoint_end.x, second_last_path_pos[15], waypoint_end.z)
-
-				path_start_pos = matrix.translation(waypoint_end.x + translate_forward_distance * math.sin(yaw), waypoint_end.y, waypoint_end.z + translate_forward_distance * math.cos(yaw))
-			
-				--[[server.addMapLine(-1, vehicle_object.ui_id, m.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z), path_start_pos, 1, 255, 255, 255, 255)
-			
-				d.print("path_start_pos (existing paths)", false, 0)
-				d.print(path_start_pos)]]
-			else
-				path_start_pos = matrix.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z)
-			end
-		else
-			path_start_pos = vehicle_object.transform
-
-			if translate_forward_distance then
-				path_start_pos = matrix.multiply(vehicle_object.transform, matrix.translation(0, 0, translate_forward_distance))
-				--[[server.addMapLine(-1, vehicle_object.ui_id, vehicle_object.transform, path_start_pos, 1, 150, 150, 150, 255)
-				d.print("path_start_pos (no existing paths)", false, 0)
-				d.print(path_start_pos)]]
-			else
-				path_start_pos = vehicle_object.transform
-			end
-		end
-
-		start_x, start_y, start_z = m.position(vehicle_object.transform)
-
-		local exclude_offroad = false
-
-		local squad_index, squad = Squad.getSquad(vehicle_object.id)
-		if squad.command == SQUAD.COMMAND.CARGO then
-			for c_vehicle_id, c_vehicle_object in pairs(squad.vehicles) do
-				if g_savedata.cargo_vehicles[c_vehicle_id] then
-					exclude_offroad = not g_savedata.cargo_vehicles[c_vehicle_id].route_data.can_offroad
-					break
-				end
-			end
-		end
-
-		if not vehicle_object.can_offroad or exclude_offroad then
-			exclude = exclude..",offroad"
-		end
-
-		local vehicle_list_id = sm.getVehicleListID(vehicle_object.name)
-		local y_modifier = g_savedata.vehicle_list[vehicle_list_id].vehicle.transform[14]
-
-		local dest_at_vehicle_y = matrix.translation(target_dest[13], vehicle_object.transform[14], target_dest[15])
-
-		local path_list = server.pathfind(path_start_pos, dest_at_vehicle_y, "land_path", exclude)
-		for path_index, path in pairs(path_list) do
-
-			local path_matrix = matrix.translation(path.x, path.y, path.z)
-
-			local distance = matrix.distance(vehicle_object.transform, path_matrix)
-
-			if path_index ~= 1 or #path_list == 1 or matrix.distance(vehicle_object.transform, dest_at_vehicle_y) > matrix.distance(dest_at_vehicle_y, path_matrix) and distance >= 7 then
-				
-				if not path.y then
-					--d.print("not path.y\npath.x: "..tostring(path.x).."\npath.y: "..tostring(path.y).."\npath.z: "..tostring(path.z), true, 1)
-					break
-				end
-
-				table.insert(vehicle_object.path, { 
-					x =  path.x, 
-					y = (path.y + y_modifier), 
-					z = path.z, 
-					ui_id = server.getMapID() 
-				})
-			end
-		end
-
-		if #vehicle_object.path > 1 then
-			-- remove paths which are a waste (eg, makes the vehicle needlessly go backwards when it could just go to the next waypoint)
-			local next_path_matrix = matrix.translation(vehicle_object.path[2].x, vehicle_object.path[2].y, vehicle_object.path[2].z)
-			if matrix.xzDistance(vehicle_object.transform, next_path_matrix) < matrix.xzDistance(matrix.translation(vehicle_object.path[1].x, vehicle_object.path[1].y, vehicle_object.path[1].z), next_path_matrix) then
-				p.nextPath(vehicle_object)
-			end
-		end
-
-		--[[
-			checks if the vehicle is basically stuck, and if its at a tile border, if it is, 
-			try moving matrix forwards slightly, and keep trying till we've got a path, 
-			or until we reach a set max distance, to avoid infinite recursion.
-		]]
-
-		local max_attempt_distance = 30
-		local max_attempt_increment = 5
-
-		translate_forward_distance = translate_forward_distance or 0
-
-		if translate_forward_distance < max_attempt_distance then
-			local last_path = vehicle_object.path[#vehicle_object.path]
-
-			-- if theres no last path, just set it as the vehicle's positon.
-			if not last_path then
-				last_path = {
-					x = vehicle_object.transform[13],
-					z = vehicle_object.transform[15]
-				}
-			end
-
-			-- checks if we're within the max_attempt_distance of any tile border
-			local tile_x_border_distance = math.abs((last_path.x-250)%1000-250)
-			local tile_z_border_distance = math.abs((last_path.z-250)%1000-250)
-
-			if tile_x_border_distance <= max_attempt_distance or tile_z_border_distance <= max_attempt_distance then
-				-- increments the translate_forward_distance
-				translate_forward_distance = translate_forward_distance + max_attempt_increment
-
-				d.print(("(Pathfinding.addPath) moving the pathfinding start pos forwards by %sm"):format(translate_forward_distance), true, 0)
-
-				Pathfinding.addPath(vehicle_object, target_dest, translate_forward_distance)
-			end
-		else
-			d.print(("(Pathfinding.addPath) despite moving the pathfinding start pos forward by %sm, pathfinding still failed for vehicle with id %s, aborting to avoid infinite recursion"):format(translate_forward_distance, vehicle_object.id), true, 0)
-		end
-	else
-		table.insert(vehicle_object.path, { 
-			x = target_dest[13], 
-			y = target_dest[14], 
-			z = target_dest[15], 
-			ui_id = s.getMapID() 
-		})
-	end
-	vehicle_object.path[0] = {
-		x = vehicle_object.transform[13],
-		y = vehicle_object.transform[14],
-		z = vehicle_object.transform[15],
-		ui_id = s.getMapID()
-	}
-
-	AI.setState(vehicle_object, VEHICLE.STATE.PATHING)
-end
-
--- Credit to woe
-function Pathfinding.updatePathfinding()
-	local old_pathfind = server.pathfind --temporarily remember what the old function did
-	local old_pathfindOcean = server.pathfindOcean
-	function server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --permanantly do this new function using the old name.
-		local path = old_pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --do the normal old function
-		--d.print("(updatePathfinding) getting path y", true, 0)
-		return p.getPathY(path) --add y to all of the paths.
-	end
-	function server.pathfindOcean(matrix_start, matrix_end)
-		local path = old_pathfindOcean(matrix_start, matrix_end)
-		return p.getPathY(path)
-	end
-end
-
-local path_res = "%0.1f"
-
--- Credit to woe
-function Pathfinding.getPathY(path)
-	if not g_savedata.graph_nodes.init then --if it has never built the node's table
-		p.createPathY() --build the table this one time
-		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
-	end
-	for each in pairs(path) do
-		if g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)] and g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)][(path_res):format(path[each].z)] then --if y exists
-			path[each].y = g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)][(path_res):format(path[each].z)].y --add it to the table that already contains x and z
-			--d.print("path["..each.."].y: "..tostring(path[each].y), true, 0)
-		end
-	end
-	return path --return the path with the added, or not, y values.
-end
-
--- Credit to woe
-function Pathfinding.createPathY() --this looks through all env mods to see if there is a "zone" then makes a table of y values based on x and z as keys.
-
-	local isGraphNode = function(tag)
-		if tag == "land_path" or tag == "ocean_path" then
-			return tag
-		end
-		return false
-	end
-
-	-- indexed by name, this is so we dont have to constantly call server.getTileTransform for the same tiles. 
-	local tile_locations = {}
-
-	local start_time = s.getTimeMillisec()
-	d.print("Creating Path Y...", true, 0)
-	local total_paths = 0
-	local empty_matrix = matrix.translation(0, 0, 0)
-	for addon_index = 0, s.getAddonCount() - 1 do
-		local ADDON_DATA = s.getAddonData(addon_index)
-		if ADDON_DATA.location_count and ADDON_DATA.location_count > 0 then
-			for location_index = 0, ADDON_DATA.location_count - 1 do
-				local LOCATION_DATA = s.getLocationData(addon_index, location_index)
-				if LOCATION_DATA.env_mod and LOCATION_DATA.component_count > 0 then
-					for component_index = 0, LOCATION_DATA.component_count - 1 do
-						local COMPONENT_DATA = s.getLocationComponentData(
-							addon_index, location_index, component_index
-						)
-						if COMPONENT_DATA.type == "zone" then
-							local graph_node = isGraphNode(COMPONENT_DATA.tags[1])
-							if graph_node then
-
-								local transform_matrix = tile_locations[LOCATION_DATA.tile]
-								if not transform_matrix then
-									tile_locations[LOCATION_DATA.tile] = s.getTileTransform(
-										empty_matrix,
-										LOCATION_DATA.tile,
-										100000
-									)
-
-									transform_matrix = tile_locations[LOCATION_DATA.tile]
-								end
-
-								if transform_matrix then
-									local real_transform = matrix.multiplyXZ(COMPONENT_DATA.transform, transform_matrix)
-									local x = (path_res):format(real_transform[13])
-									local last_tag = COMPONENT_DATA.tags[#COMPONENT_DATA.tags]
-									g_savedata.graph_nodes.nodes[x] = g_savedata.graph_nodes.nodes[x] or {}
-									g_savedata.graph_nodes.nodes[x][(path_res):format(real_transform[15])] = { 
-										y = real_transform[14],
-										type = graph_node,
-										NSO = last_tag == "NSO" and 1 or last_tag == "not_NSO" and 2 or 0
-									}
-									total_paths = total_paths + 1
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-	d.print("Got Y level of all paths\nNumber of nodes: "..total_paths.."\nTime taken: "..(millisecondsSince(start_time)/1000).."s", true, 0)
-end
- -- functions for pathfinding -- functions relating to Players -- functions for script/world setup.
+ -- functions for drawing on the map -- custom math functions -- custom matrix functions -- functions for pathfinding -- functions relating to Players -- functions for script/world setup.
 -- required libraries
 
 -- library name
@@ -12100,12 +13769,13 @@ function Ticks.millisecondsSince(start_ms)
 end
  -- functions related to ticks and time
 -- required libraries
+--[[require("libraries.addon.script.debugging")
 
 -- library name
-Vehicle = {}
+OLD_Vehicle = {}
 
 -- shortened library name
-v = Vehicle
+OLD_v = OLD_Vehicle
 
 ---@param vehicle_object vehicle_object the vehicle you want to get the speed of
 ---@param ignore_terrain_type boolean if false or nil, it will include the terrain type in speed, otherwise it will return the offroad speed (only applicable to land vehicles)
@@ -12114,7 +13784,7 @@ v = Vehicle
 ---@param aggressiveness_override string \"normal" to override the speed as always normal, "aggressive" to override the speed as always aggressive (only applicable to land vehicles)
 ---@return number speed the speed of the vehicle, 0 if not found
 ---@return boolean got_speed if the speed was found
-function Vehicle.getSpeed(vehicle_object, ignore_terrain_type, ignore_aggressiveness, terrain_type_override, aggressiveness_override, ignore_convoy_modifier)
+function OLD_Vehicle.getSpeed(vehicle_object, ignore_terrain_type, ignore_aggressiveness, terrain_type_override, aggressiveness_override, ignore_convoy_modifier)
 	if not vehicle_object then
 		d.print("(Vehicle.getSpeed) vehicle_object is nil!", true, 1)
 		return 0, false
@@ -12149,7 +13819,7 @@ function Vehicle.getSpeed(vehicle_object, ignore_terrain_type, ignore_aggressive
 
 		if vehicle_object.vehicle_type == VEHICLE.TYPE.LAND then
 			-- land vehicle
-			local terrain_type = v.getTerrainType(vehicle_object.transform)
+			local terrain_type = OLD_v.getTerrainType(vehicle_object.transform)
 			local aggressive = agressiveness_override or not ignore_aggressiveness and vehicle_object.is_aggressive or false
 			if aggressive then
 				speed = speed * VEHICLE.SPEED.MULTIPLIERS.LAND.AGGRESSIVE
@@ -12167,7 +13837,7 @@ end
 ---@param transform SWMatrix the transform of where you want to check
 ---@return string terrain_type the terrain type the transform is on
 ---@return boolean found_terrain_type if the terrain type was found
-function Vehicle.getTerrainType(transform)
+function OLD_Vehicle.getTerrainType(transform)
 	local found_terrain_type = false
 	local terrain_type = "offroad"
 	
@@ -12188,7 +13858,7 @@ end
 ---@param vehicle_id integer the id of the vehicle
 ---@return prefab prefab the prefab of the vehicle if it was created
 ---@return boolean was_created if the prefab was created
-function Vehicle.createPrefab(vehicle_id)
+function OLD_Vehicle.createPrefab(vehicle_id)
 	if not vehicle_id then
 		d.print("(Vehicle.createPrefab) vehicle_id is nil!", true, 1)
 		return nil, false
@@ -12212,7 +13882,7 @@ function Vehicle.createPrefab(vehicle_id)
 	local prefab = {
 		voxels = vehicle_data.voxels,
 		mass = vehicle_data.mass,
-		powertrain_types = v.getPowertrainTypes(vehicle_object),
+		powertrain_types = OLD_v.getPowertrainTypes(vehicle_object),
 		role = vehicle_object.role,
 		vehicle_type = vehicle_object.vehicle_type,
 		strategy = vehicle_object.strategy,
@@ -12227,7 +13897,7 @@ end
 ---@param vehicle_name string the name of the vehicle
 ---@return prefab prefab the prefab data of the vehicle
 ---@return got_prefab boolean if the prefab data was found
-function Vehicle.getPrefab(vehicle_name)
+function OLD_Vehicle.getPrefab(vehicle_name)
 	if not vehicle_name then
 		d.print("(Vehicle.getPrefab) vehicle_name is nil!", true, 1)
 		return nil, false
@@ -12245,7 +13915,7 @@ end
 ---@param vehicle_object vehicle_object the vehicle_object of the vehicle you want to get the powertrain type of
 ---@return powertrain_types powertrain_types the powertrain type(s) of the vehicle
 ---@return boolean got_powertrain_type if the powertrain type was found
-function Vehicle.getPowertrainTypes(vehicle_object)
+function OLD_Vehicle.getPowertrainTypes(vehicle_object)
 
 	if not vehicle_object then
 		d.print("(Vehicle.getPowertrainType) vehicle_object is nil!", true, 1)
@@ -12297,7 +13967,7 @@ end
 ---@param purchase_type integer 0 for dont buy, 1 for free (cost will be 0 no matter what), 2 for free but it has lower stats, 3 for spend as much as you can but the less spent will result in lower stats. 
 ---@return boolean spawned_vehicle if the vehicle successfully spawned or not
 ---@return vehicle_object vehicle_object the vehicle's data if the the vehicle successfully spawned, otherwise its returns the error code
-function Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type)
+function OLD_Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type)
 	local plane_count = 0
 	local heli_count = 0
 	local army_count = 0
@@ -12430,7 +14100,7 @@ function Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_is
 			if not target then
 				sm.train(PUNISH, attack, 5) -- we can no longer spawn attack vehicles
 				sm.train(PUNISH, attack, 5)
-				v.spawn(nil, nil, nil, nil, purchase_type)
+				OLD_v.spawn(nil, nil, nil, nil, purchase_type)
 				return false, "no islands to attack! cancelling spawning of attack vehicle"
 			end
 			for island_index, island in pairs(g_savedata.islands) do
@@ -12625,7 +14295,7 @@ function Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_is
 
 	d.print("(Vehicle.spawn) calculating cost of vehicle... (purchase type: "..tostring(purchase_type)..")", true, 0)
 	-- check if we can afford the vehicle
-	local cost, cost_existed, was_purchased, stats_multiplier = v.purchaseVehicle(string.removePrefix(selected_prefab.location.data.name), island.name, purchase_type, true)
+	local cost, cost_existed, was_purchased, stats_multiplier = OLD_v.purchaseVehicle(string.removePrefix(selected_prefab.location.data.name), island.name, purchase_type, true)
 
 	d.print("(Vehicle.spawn) cost: "..tostring(cost).." Purchase Type: "..purchase_type, true, 0)
 
@@ -12764,14 +14434,14 @@ function Vehicle.spawn(requested_prefab, vehicle_type, force_spawn, specified_is
 			setSquadCommand(squad, SQUAD.COMMAND.CARGO)
 		end
 
-		local prefab, got_prefab = v.getPrefab(selected_prefab.location.data.name)
+		local prefab, got_prefab = OLD_v.getPrefab(selected_prefab.location.data.name)
 
 		if not got_prefab then
-			v.createPrefab(spawned_objects.spawned_vehicle.id)
+			OLD_v.createPrefab(spawned_objects.spawned_vehicle.id)
 		end
 
 		if cost_existed then
-			local cost, cost_existed, was_purchased = v.purchaseVehicle(string.removePrefix(selected_prefab.location.data.name), (g_savedata.islands[selected_spawn].name or g_savedata.ai_base_island.name), purchase_type)
+			local cost, cost_existed, was_purchased = OLD_v.purchaseVehicle(string.removePrefix(selected_prefab.location.data.name), (g_savedata.islands[selected_spawn].name or g_savedata.ai_base_island.name), purchase_type)
 			if not was_purchased then
 				vehicle_data.costs.buy_on_load = true
 			end
@@ -12791,12 +14461,12 @@ end
 ---@param retry_count integer how many times to retry spawning the vehicle if it fails
 ---@return boolean spawned_vehicle if the vehicle successfully spawned or not
 ---@return vehicle_data[] vehicle_data the vehicle's data if the the vehicle successfully spawned, otherwise its nil
-function Vehicle.spawnRetry(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type, retry_count)
+function OLD_Vehicle.spawnRetry(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type, retry_count)
 	local spawned = nil
 	local vehicle_data = nil
 	d.print("(Vehicle.spawnRetry) attempting to spawn vehicle...", true, 0)
 	for i = 1, retry_count do
-		spawned, vehicle_data = v.spawn(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type)
+		spawned, vehicle_data = OLD_v.spawn(requested_prefab, vehicle_type, force_spawn, specified_island, purchase_type)
 		if spawned then
 			return spawned, vehicle_data
 		else
@@ -12810,7 +14480,7 @@ end
 ---@param vehicle_id integer the id of the vehicle which to teleport
 ---@param transform SWMatrix where to teleport the vehicle and characters to
 ---@return boolean is_success if it successfully teleported all of the vehicles and characters
-function Vehicle.teleport(vehicle_id, transform)
+function OLD_Vehicle.teleport(vehicle_id, transform)
 
 	-- make sure vehicle_id is not nil
 	if not vehicle_id then
@@ -12846,7 +14516,7 @@ function Vehicle.teleport(vehicle_id, transform)
 	end
 
 	return none_failed
-end
+end]]
  -- functions related to vehicles, and parsing data on them
 
 function onCreate(is_world_create)
@@ -12878,7 +14548,7 @@ function onCreate(is_world_create)
 		end
 	end
 
-	p.updatePathfinding()
+	Pathfinding.updatePathfinding()
 
 	if is_world_create then
 		d.print("setting up world...", true, 0)
@@ -12898,7 +14568,27 @@ function onCreate(is_world_create)
 
 	d.print("Loaded Script: "..s.getAddonData((s.getAddonIndex())).name..", Version: "..ADDON_VERSION, true, 0, -1)
 
+	ac.executeOnReply( -- setup world after 1 tick, to prevent issues with the addon indexes getting mixed up
+		SHORT_ADDON_NAME, -- addon we're expecting the reply from
+		"onCreate()", -- the message content
+		0, -- the port to recieve this from
+		function()
+			setupMain(is_world_create)
+		end, -- function to execute when we get the reply
+		1, -- how many times this can be triggered
+		20 -- how many seconds to wait till we expire it
+	)
+
+	ac.sendCommunication("onCreate()", 0)
+
 	d.print(("World setup complete! took: %.3fs"):format(Ticks.millisecondsSince(world_setup_time)/1000), true, 0, -1)
+end
+
+--- Called 1 tick after the world has been created, to prevent issues with the addon indexes getting mixed up
+---@param is_world_create boolean if the world is being created
+function setupMain(is_world_create)
+	-- Setup the prefabs
+	VehiclePrefab.generatePrefabs()
 end
 
 function onPlayerJoin(steam_id, name, peer_id, is_admin, is_auth)
@@ -12910,6 +14600,8 @@ function onTick(game_ticks)
 	g_savedata.tick_counter = g_savedata.tick_counter + 1
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
+
+	VehiclePrefab.onTick(game_ticks)
 
 	Effects.onTick(game_ticks)
 
