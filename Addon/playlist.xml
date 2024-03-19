@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <playlist folder_path="data/missions/Improved_Missions_and_AI" file_store="4" name="Improved Missions and AI (0.0.1.dev)">
-	<locations location_id_counter="204" component_id_counter="4351">
+	<locations location_id_counter="205" component_id_counter="4352">
 		<locations>
 			<l id="1" tile="data/tiles/island_15.xml" name="CREATIVE BASE" is_env_mod="true" env_mod_spawn_num="1">
 				<components>
@@ -36250,13 +36250,26 @@
 			</l>
 			<l id="204" name="Test Car" env_mod_spawn_num="1">
 				<components>
-					<c component_type="3" id="4351" name="imai,vehicle,drivable,medium=land" display_name="Test Land Vehicle" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_name="data/missions_working/vehicle_4351.xml" vehicle_file_store="4">
+					<c component_type="3" id="4351" name="imai,vehicle,drivable,medium=land,max_speed=112" display_name="Test Land Vehicle" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_name="data/missions_working/vehicle_4351.xml" vehicle_file_store="4">
 						<spawn_transform 30="0.03195" 31="1.523923" 32="0.044411"/>
 						<spawn_bounds>
 							<min x="-1.375" y="-1.375" z="-4.125"/>
 							<max x="1.375" y="1.875" z="1.125"/>
 						</spawn_bounds>
 						<spawn_local_offset y="-0.25" z="1.5"/>
+						<graph_links/>
+					</c>
+				</components>
+			</l>
+			<l id="205" name="Test Ship" env_mod_spawn_num="1">
+				<components>
+					<c component_type="3" id="4352" name="imai,vehicle,drivable,medium=sea,max_speed=20" display_name="Test Sea Vehicle" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_name="data/missions_working/vehicle_4352.xml" vehicle_file_store="4">
+						<spawn_transform 30="-1.080591" 31="11.251874" 32="-1.080589"/>
+						<spawn_bounds>
+							<min x="-4.125" y="-7.875" z="-26.625"/>
+							<max x="4.125" y="10.625" z="28.125"/>
+						</spawn_bounds>
+						<spawn_local_offset y="-1.375" z="-0.75"/>
 						<graph_links/>
 					</c>
 				</components>

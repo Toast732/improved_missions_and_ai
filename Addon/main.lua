@@ -26,7 +26,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.16)"
+ADDON_VERSION = "(0.0.1.17)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -168,13 +168,13 @@ g_savedata = {
 			needs_setup_on_reload = true
 		},
 		traceback = {
-			enabled = false,
-			default = false,
+			enabled = true,
+			default = true,
 			needs_setup_on_reload = true,
-			stack = {},
-			stack_size = 0,
-			funct_names = {},
-			funct_count = 0
+			stack = {}, -- the stack of function calls.
+			stack_size = 0, -- the size of the stack, used so we don't actually have to remove things from the stack to save on performance.
+			funct_names = {}, -- the names of the functions in the stack, so we can use numberical ids in the stack instead for performance and memory usage.
+			funct_count = 0 -- the total number of functions, used to optimise the setup phase for tracebacks.
 		}
 	},
 	graph_nodes = {
@@ -187,42 +187,7 @@ g_savedata = {
 }
 
 -- libraries
-
-require("libraries.addon.utils.objects.object")
-
-require("libraries.addon.commands.command.command") -- command handler, used to register commands.
-
-require("libraries.imai.effects.effects")
-
-require("libraries.imai.ai.citizens.citizens")
-
-require("libraries.imai.missions.missions")
-
-require("animations.animations")
-
-require("missions.includedMissions")
-
-require("libraries.imai.vehicles.routing.routing")
-
-require("libraries.imai.vehicles.vehiclePrefab")
-
-require("libraries.ai") -- functions relating to their AI
-require("libraries.cache") -- functions relating to the cache
-require("libraries.compatibility") -- functions used for making the mod backwards compatible
-require("libraries.addon.script.debugging") -- functions for debugging
-require("libraries.map") -- functions for drawing on the map
-require("libraries.utils.math") -- custom math functions
-require("libraries.addon.script.matrix") -- custom matrix functions
-require("libraries.pathing.pathfinding") -- functions for pathfinding
-require("libraries.addon.script.players") -- functions relating to Players
-require("libraries.setup") -- functions for script/world setup.
-require("libraries.spawningUtils") -- functions used by the spawn vehicle function
-require("libraries.utils.string") -- custom string functions
-require("libraries.utils.tables") -- custom table functions
-require("libraries.addon.components.tags") -- functions related to getting tags from components inside of mission and environment locations
-require("libraries.ticks") -- functions related to ticks and time
-require("libraries.vehicle") -- functions related to vehicles, and parsing data on them
-require("libraries.addon.script.addonCommunication")
+require("requiredFiles")
 
 function onCreate(is_world_create)
 
@@ -285,28 +250,88 @@ function onCreate(is_world_create)
 	)
 
 	ac.sendCommunication("onCreate()", 0)
-
-	d.print(("World setup complete! took: %.3fs"):format(Ticks.millisecondsSince(world_setup_time)/1000), true, 0, -1)
 end
 
 --- Called 1 tick after the world has been created, to prevent issues with the addon indexes getting mixed up
 ---@param is_world_create boolean if the world is being created
 function setupMain(is_world_create)
+
+	-- start the timer for when the world has started to be setup
+	local world_setup_time = server.getTimeMillisec()
+
 	-- Setup the prefabs
 	VehiclePrefab.generatePrefabs()
+
+	g_savedata.info.setup = true
+
+	for debug_type, debug_setting in pairs(g_savedata.debug) do
+		if (debug_setting.needs_setup_on_reload and debug_setting.enabled) or (is_world_create and debug_setting.default) then
+			local debug_id = d.debugIDFromType(debug_type)
+
+			if debug_setting.needs_setup_on_reload then
+				d.handleDebug(debug_type, true, 0)
+			end
+
+			d.setDebug(debug_id, -1, true)
+
+		end
+	end
+
+	
+	d.print(("%s setup complete! took: %.3f%s"):format(SHORT_ADDON_NAME, millisecondsSince(world_setup_time)/1000, "s"), true, 0)
+
+	-- this one will reset every reload/load of the world, this ensures that tracebacks wont be enabled before setupMain is finished.
+	addon_setup = true
 end
 
 function onPlayerJoin(steam_id, name, peer_id, is_admin, is_auth)
-	Players.onJoin(tostring(steam_id), peer_id)
+	if not g_savedata.info.setup then
+		d.print("Setting up IMAI for the first time, this may take a few seconds.", false, 0, peer_id)
+	end
+
+	eq.queue(
+		function()
+			return is_dlc_weapons and addon_setup
+		end,
+		function(self)
+
+			local peer_id = self:getVar("peer_id")
+			local steam_id = self:getVar("steam_id")
+
+			Players.onJoin(steam_id, peer_id)
+
+			local player = Players.dataBySID(steam_id)
+
+			if player then
+				for debug_type, debug_data in pairs(g_savedata.debug) do
+					if debug_data.auto_enable then
+						d.setDebug(d.debugIDFromType(debug_type), peer_id, true)
+					end
+				end
+			end
+		end,
+		{
+			peer_id = peer_id,
+			steam_id = tostring(steam_id)
+		},
+		1,
+		-1
+	)
 end
 
 function onTick(game_ticks)
+
+	if g_savedata.debug.traceback.enabled then
+		ac.sendCommunication("DEBUG.TRACEBACK.ERROR_CHECKER", 0)
+	end
 
 	g_savedata.tick_counter = g_savedata.tick_counter + 1
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
 
 	VehiclePrefab.onTick(game_ticks)
+
+	VehicleSpeedTracker.onTick(game_ticks)
 
 	Effects.onTick(game_ticks)
 
@@ -315,6 +340,8 @@ function onTick(game_ticks)
 	Missions.onTick(game_ticks)
 
 	Animator.onTick(game_ticks)
+
+	DrivableVehicle.onTick(game_ticks)
 end
 
 --------------------------------------------------------------------------------

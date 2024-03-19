@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.16)"
+ADDON_VERSION = "(0.0.1.17)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -186,13 +186,13 @@ g_savedata = {
 			needs_setup_on_reload = true
 		},
 		traceback = {
-			enabled = false,
-			default = false,
+			enabled = true,
+			default = true,
 			needs_setup_on_reload = true,
-			stack = {},
-			stack_size = 0,
-			funct_names = {},
-			funct_count = 0
+			stack = {}, -- the stack of function calls.
+			stack_size = 0, -- the size of the stack, used so we don't actually have to remove things from the stack to save on performance.
+			funct_names = {}, -- the names of the functions in the stack, so we can use numberical ids in the stack instead for performance and memory usage.
+			funct_count = 0 -- the total number of functions, used to optimise the setup phase for tracebacks.
 		}
 	},
 	graph_nodes = {
@@ -205,6 +205,17 @@ g_savedata = {
 }
 
 -- libraries
+--[[ 
+	Just stores the files that main.lua requires, used to clean up main.lua
+]]
+
+--[[
+
+
+	Required Files
+
+
+]]
 --[[
 	
 Copyright 2024 Liam Matthews
@@ -266,7 +277,7 @@ function Object.addObject(object_id)
 
 	-- the object doesn't actually exist
 	if not object_data then
-		d.print(("252: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
+		d.print(("263: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
 		return false
 	end
 
@@ -906,7 +917,7 @@ end
 
 ---@alias defaultCommandPermissions "none"|"auth"|"admin"|"script"|"auth_script"|"admin_script"
 
----@class command
+---@class Command
 ---@field name string the name of the command
 ---@field function_to_execute function the function to execute when the command is called, given params are: full_message, peer_id, arg
 ---@field required_permission defaultCommandPermissions|string the permission this command requires
@@ -921,7 +932,7 @@ end
 local registered_commands = {}
 ]]
 
----@type table<prefix, table<commandName, command>>
+---@type table<prefix, table<commandName, Command>>
 commands = {}
 
 -- where all of the registered permissions are stored.
@@ -979,6 +990,25 @@ function onCustomCommand(full_message, peer_id, is_admin, is_auth, prefix, comma
 
 	-- call the command
 	command_data.function_to_execute(full_message, peer_id, table.pack(...))
+
+	return true
+end
+
+---@param prefix prefix? the string of the prefix to use, eg: "ICM" if left nil, uses SHORT_ADDON_NAME instead.
+---@return string formatted_prefix the prefix, but formatted properly.
+function Command.formatPrefix(prefix)
+	prefix = prefix or SHORT_ADDON_NAME
+
+	-- Make the prefix lowercase.
+	prefix = prefix:lower()
+
+	-- Add the question mark to the start of the prefix if wasn't already added.
+	if prefix:sub(1, 1) ~= "?" then
+		prefix = "?"..prefix
+	end
+
+	-- return the formatted prefix
+	return prefix
 end
 
 ---# Registers a command
@@ -988,16 +1018,11 @@ end
 ---@param description string the description of the command
 ---@param short_description string the shortened description of the command
 ---@param examples table<integer, string> examples of using the command, prefix and the command will be added to the strings automatically.
----@param prefix prefix? the prefix for the command, leave blank to use the addon's short name as the prefix.
-function Command.registerCommand(name, function_to_execute, required_permission, description, short_description, examples, prefix)
+---@param unformatted_prefix prefix? the prefix for the command, leave blank to use the addon's short name as the prefix.
+function Command.registerCommand(name, function_to_execute, required_permission, description, short_description, examples, unformatted_prefix)
 	
-	-- default the prefix to the short addon's name, if the prefix is not specified.
-	prefix = prefix or SHORT_ADDON_NAME:lower()
-
-	-- add the question mark to the start of the prefix if wasn't already added.
-	if prefix:sub(1, 1) ~= "?" then
-		prefix = "?"..prefix
-	end
+	-- Format the prefix.
+	local prefix = Command.formatPrefix(unformatted_prefix)
 
 	-- make the name friendly
 	name = name:friendly() --[[@as string]]
@@ -1008,7 +1033,7 @@ function Command.registerCommand(name, function_to_execute, required_permission,
 		return
 	end
 	
-	---@type command
+	---@type Command
 	local command_data = {
 		name = name,
 		function_to_execute = function_to_execute,
@@ -1054,12 +1079,12 @@ end
 
 --[[
 
-	scripts to be put after this one
+	Scripts to be put after this one
 
 ]]
 
 --[[
-	definitions
+	Definitions
 ]]
 --[[
 	
@@ -1208,7 +1233,48 @@ limitations under the License.
 
 --[[
 
-	Registers the default commands.
+	Containts the includes for the default command modules.
+
+]]
+
+-- Adds the generic commands, eg: "info"
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[
+
+	Registers the default generic commands.
 
 ]]
 
@@ -1227,9 +1293,67 @@ Command.registerCommand(
 	{""}
 )
 
- -- command handler, used to register commands.
---[[
+-- Help command
+Command.registerCommand(
+	"help",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- Get the command that the user wants help for
+		local comand_name = arg[1]
 
+		-- Define the help reply message
+		local help_reply_message = ""
+
+		---@param command Command the command to add to the help menu
+		---@param detailed boolean whether or not if the help should be detailed for this command
+		---@return string command_help_string the help message for this command
+		local function getCommandHelp(command, detailed)
+			-- Create the string, starting off with the command's name.
+			local command_help_string = command.name
+
+			-- If the help shouldn't be detailed.
+			if not detailed then
+				-- Add the short description to the string on the same line.
+				command_help_string = ("%s - %s"):format(command_help_string, command.short_description)
+			-- If the help should be detailed.
+			else
+				-- Add the full description to the string on the next line.
+				command_help_string = ("%s\nDesc: %s"):format(command_help_string, command.description)
+			end
+
+			return command_help_string
+		end
+
+		-- If the user didn't specify a command, then print all of the commands
+		if not comand_name then
+			-- Go through all of the prefixes
+			for prefix, commands in pairs(commands) do
+				-- Go through all of the commands
+				for command_name, command in pairs(commands) do
+					-- Get it's help message, and add it to the list
+					help_reply_message = ("%s\n%s"):format(help_reply_message, getCommandHelp(command, false))
+				end
+			end
+		end
+
+		-- Print the help message
+		d.print(help_reply_message, false, 0, peer_id)
+	end,
+	"none",
+	"Prints some info about the addon, such as it's version",
+	"Prints some general addon info.",
+	{
+		"",
+		"info"
+	}
+)
+
+
+-- Adds the variable interaction commands, eg: "print_variable", "set_variable"
+--[[
+	
 Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -1246,6 +1370,8 @@ limitations under the License.
 
 ]]
 
+-- Library Version 0.0.1
+
 --[[
 
 
@@ -1254,8 +1380,7 @@ limitations under the License.
 
 ]]
 
-Effects = {}
-
+-- required libraries
 -- required libraries
 -- required libraries
 --[[
@@ -1320,7 +1445,7 @@ function AddonCommunication.executeOnReply(short_addon_name, message, port, exec
 
 	local expiry = -1
 	if timeout ~= -1 then
-		expiry = s.getTimeMillisec() + timeout*60
+		expiry = server.getTimeMillisec() + timeout*60
 	end
 
 	table.insert(replies_awaiting, {
@@ -1336,7 +1461,7 @@ end
 function AddonCommunication.tick()
 	for reply_index, reply in ipairs(replies_awaiting) do
 		-- check if this reply has expired
-		if reply.expiry ~= -1 and s.getTimeMillisec() > reply.expiry then
+		if reply.expiry ~= -1 and server.getTimeMillisec() > reply.expiry then
 			-- it has expired
 			d.print(("A function awaiting a reply of %s from %s has expired."):format(reply.message, reply.short_addon_name), true, 0)
 			table.remove(replies_awaiting, reply_index)
@@ -1356,7 +1481,7 @@ function AddonCommunication.sendCommunication(message, port)
 	local prepared_message = ("%s:%s"):format(SHORT_ADDON_NAME, message)
 
 	-- send the message
-	s.httpGet(port, prepared_message)
+	server.httpGet(port, prepared_message)
 end
 
 function httpReply(port, message)
@@ -1641,6 +1766,21 @@ function math.quadraticBezier(last, new, p1, progress)
 	return inverse_progress_squared * last + 2 * inverse_progress * progress * p1 + progress_squared * new
 end
 
+--- Function for rounding a number.
+---@param x number the number to round.
+---@param decimal_places number|nil the number of decimal places to round to.
+---@return number rounded_x the rounded number.
+function math.round(x, decimal_places)
+	-- Default the number of decimal places to 0 if unspecified.
+	decimal_places = decimal_places or 0
+
+	-- Multiply the number by 10^places, this gives us the number to multiply and divide by to preserve the desired number of decimal places.
+	local decimal_multplier = 10^decimal_places
+
+	-- Round with the number of places.
+	return math.floor(x * decimal_multplier + 0.5) / decimal_multplier
+end
+
 
 ---@param matrix1 SWMatrix the first matrix
 ---@param matrix2 SWMatrix the second matrix
@@ -1745,6 +1885,7 @@ local addon_contributors = {
 		debug = { -- the debug to automatically enable for them
 			0, -- chat debug
 			3, -- map debug
+			8 -- traceback debug
 		}
 	},
 	["76561198443297702"] = {
@@ -2167,322 +2308,489 @@ function Map.addMapCircle(peer_id, ui_id, center_matrix, radius, width, r, g, b,
 		last_angle = new_angle
 	end
 end
--- required libraries
-
---# check for if none of the inputted variables are nil
----@param print_error boolean if you want it to print an error if any are nil (if true, the second argument must be a name for debugging puposes)
----@param ... any variables to check
----@return boolean none_are_nil returns true of none of the variables are nil or false
-function table.noneNil(print_error,...)
-	local _ = table.pack(...)
-	local none_nil = true
-	for variable_index, variable in pairs(_) do
-		if print_error and variable ~= _[1] or not print_error then
-			if not none_nil then
-				none_nil = false
-				if print_error then
-					d.print("(table.noneNil) a variable was nil! index: "..variable_index.." | from: ".._[1], true, 1)
-				end
-			end
-		end
-	end
-	return none_nil
-end
-
---# returns the number of elements in the table
----@param t table table to get the size of
----@return number count the size of the table
-function table.length(t)
-	if not t or type(t) ~= "table" then
-		return 0 -- invalid input
-	end
-
-	local count = 0
-
-	for _ in pairs(t) do -- goes through each element in the table
-		count = count + 1 -- adds 1 to the count
-	end
-
-	return count -- returns number of elements
-end
-
--- credit: woe | for this function
-function table.tabulate(t,...)
-	local _ = table.pack(...)
-	t[_[1]] = t[_[1]] or {}
-	if _.n>1 then
-		table.tabulate(t[_[1]], table.unpack(_, 2))
-	end
-end
-
---# function that turns strings into a table (Warning: very picky)
---- @param S string a table in string form
---- @return table T the string turned into a.table
-function table.fromString(S)
-	local function stringToTable(string_as_table, start_index)
-		local T = {}
-
-		local variable = nil
-		local str = ""
-
-		local char_offset = 0
-
-		start_index = start_index or 1
-
-		for char_index = start_index, string_as_table:len() do
-			char_index = char_index + char_offset
-
-			-- if weve gone through the entire string, accounting for the offset
-			if char_index > string_as_table:len() then
-				return T, char_index - start_index
-			end
-
-			-- the current character to read
-			local char = string_as_table:sub(char_index, char_index)
-
-			-- if this is the opening of a table
-			if char == "{" then
-				local returned_table, chars_checked = stringToTable(string_as_table, char_index + 1)
-
-				if not variable then
-					table.insert(T, returned_table)
-				else
-					T[variable] = returned_table
-				end
-
-				char_offset = char_offset + (chars_checked or 0)
-
-				variable = nil
-
-			-- if this is the closing of a table, and a start of another
-			elseif string_as_table:sub(char_index, char_index + 2) == "},{" then
-				if variable then
-					T[variable] = str
-				end
-
-				return T, char_index - start_index + 1
-
-			-- if this is a closing of a table.
-			elseif char == "}" then
-				if variable then
-					T[variable] = str
-				elseif str ~= "" then
-					table.insert(T, str)
-				end
-
-				return T, char_index - start_index
-
-			-- if we're recording the value to set the variable to
-			elseif char == "=" then
-				variable = str
-				str = ""
-
-			-- save the value of the variable
-			elseif char == "," then
-				if variable then
-					T[variable] = str
-				elseif str ~= "" then
-					table.insert(T, str)
-				end
-
-				str = ""
-				variable = ""
-
-			-- write this character if its not a quote
-			elseif char ~= "\"" then
-				str = str..char
-			end
-		end
-	end
-
-	return table.pack(stringToTable(S, 1))[1]
-end
-
---- Returns the value at the path in _ENV
----@param path string the path we want to get the value at
----@return any value the value at the path, if it reached a nil value in the given path, it will return the value up to that point, and is_success will be false.
----@return boolean is_success if it successfully got the value at the path
-function table.getValueAtPath(path)
-	if type(path) ~= "string" then
-		d.print(("path must be a string! given path: %s type: %s"):format(path, type(path)), true, 1)
-		return nil, false
-	end
-
-	local cur_path
-	-- if our environment is modified, we will have to make a deep copy under the non-modified environment.
-	if _ENV_NORMAL then
-		cur_path = _ENV_NORMAL.table.copy.deep(_ENV, _ENV_NORMAL)
-	else
-		cur_path = table.copy.deep(_ENV)
-	end
-
-	local cur_path_string = "_ENV"
-
-	for index in string.gmatch(path, "([^%.]+)") do
-		if not cur_path[index] then
-			d.print(("%s does not contain a value indexed by %s, given path: %s"):format(cur_path_string, index, path), false, 1)
-			return cur_path, false
-		end
-
-		cur_path = cur_path[index]
-	end
-
-	return cur_path, true
-end
-
---- Sets the value at the path in _ENV
----@param path string the path we want to set the value at
----@param set_value any the value we want to set the value of what the path is
----@return boolean is_success if it successfully got the value at the path
-function table.setValueAtPath(path, set_value)
-	if type(path) ~= "string" then
-		d.print(("(table.setValueAtPath) path must be a string! given path: %s type: %s"):format(path, type(path)), true, 1)
-		return false
-	end
-
-	local cur_path = _ENV
-	-- if our environment is modified, we will have to make a deep copy under the non-modified environment.
-	--[[if _ENV_NORMAL then
-		cur_path = _ENV_NORMAL.table.copy.deep(_ENV, _ENV_NORMAL)
-	else
-		cur_path = table.copy.deep(_ENV)
-	end]]
-
-	local cur_path_string = "_ENV"
-
-	local index_count = 0
-
-	local last_index, got_count = string.countCharInstances(path, "%.")
-
-	last_index = last_index + 1
-
-	if not got_count then
-		d.print(("(table.setValueAtPath) failed to get count! path: %s"):format(path))
-		return false
-	end
-
-	for index in string.gmatch(path, "([^%.]+)") do
-		index_count = index_count + 1
-
-		if not cur_path[index] then
-			d.print(("(table.setValueAtPath) %s does not contain a value indexed by %s, given path: %s"):format(cur_path_string, index, path), false, 1)
-			return false
-		end
-
-		if index_count == last_index then
-			cur_path[index] = set_value
-
-			return true
-		end
-
-		cur_path = cur_path[index]
-	end
-
-	d.print("(table.setValueAtPath) never reached end of path?", true, 1)
-	return false
-end
-
--- a table containing a bunch of functions for making a copy of tables, to best fit each scenario performance wise.
-table.copy = {
-	iShallow = function(t, __ENV)
-		__ENV = __ENV or _ENV
-		return {__ENV.table.unpack(t)}
-	end,
-	shallow = function(t, __ENV)
-		__ENV = __ENV or _ENV
-
-		local t_type = __ENV.type(t)
-
-		local t_shallow
-
-		if t_type == "table" then
-			for key, value in __ENV.next, t, nil do
-				t_shallow[key] = value
-			end
-		end
-
-		return t_shallow or t
-	end,
-	deep = function(t, __ENV)
-
-		__ENV = __ENV or _ENV
-
-		local function deepCopy(T)
-			local copy = {}
-			if __ENV.type(T) == "table" then
-				for key, value in __ENV.next, T, nil do
-					copy[deepCopy(key)] = deepCopy(value)
-				end
-			else
-				copy = T
-			end
-			return copy
-		end
+--[[
 	
-		return deepCopy(t)
-	end
-}
+Copyright 2024 Liam Matthews
 
----# Returns whether or not two tables are equal. <br>
---- Variation of https://stackoverflow.com/a/32660766
----@param t1 any
----@param t2 any
----@return boolean equal
-function table.equals(t1, t2)
-	-- if the two variables are just directly equal.
-	if t1 == t2 then
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+--[[ 
+	Flag command, used to manage more advanced settings.
+	Compliments the settings command, setting command is made to handle less
+	complex commands, and ones that should be set on the world's creation.
+	While flags are ones that may be set for compatiblity reasons, such as if
+	it adding currency rewards is incompatible with another addon on a server,
+	the economy module could be disabled via a flag.
+]]
+
+-- required libraries -- required to print messages -- required to get data on players -- required for some of its helpful string functions -- required for some of its helpful table functions
+
+g_savedata.flags = {}
+
+-- where all of the registered flags are stored, their current values get stored in g_savedata.flags instead, though.
+---@type table<string, BooleanFlag | IntegerFlag | NumberFlag | StringFlag | AnyFlag>
+local registered_flags = {}
+
+
+-- where all of the registered permissions are stored.
+local registered_permissions = {}
+
+-- stores the functions for flags
+Flag = {}
+
+---@param name string the name of this permission
+---@param has_permission function the function to execute, to check if the player has permission (arg1 is peer_id)
+function Flag.registerPermission(name, has_permission)
+
+	-- if the permission already exists
+	if registered_permissions[name] then
+
+		--[[
+			this can be quite a bad error, so it bypasses debug being disabled.
+
+			for example, library A adds a permission called "mod", for mod authors
+			and then after, library B adds a permission called "mod", for moderators of the server
+			
+			when this fails, any commands library B will now just require the requirements for mod authors
+			now you've got issues of mod authors being able to access moderator commands
+
+			so having this always alert is to try to make this issue obvious. as if it was just silent in
+			the background, suddenly you've got privilage elevation.
+		]]
+		d.print(("(Flag.registerPermission) Permission level %s is already registered!"):format(name), false, 1)
+		return
+	end
+
+	registered_permissions[name] = has_permission
+end
+
+--# Register a boolean flag, can only be true or false.
+---@param name string the name of the flag
+---@param default_value boolean the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+function Flag.registerBooleanFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description)
+	local function_name = "Flag.registerBooleanFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class BooleanFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "boolean"
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+--# Register an integer flag, can only be an integer.
+---@param name string the name of the flag
+---@param default_value integer the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+---@param min integer|nil the minimum value for the flag (nil for none)
+---@param max integer|nil the maximum value for the flag (nil for none)
+function Flag.registerIntegerFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description, min, max)
+	local function_name = "Flag.registerIntegerFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class IntegerFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "integer",
+		limit = {
+			min = min,
+			max = max
+		}
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+--# Register an number flag, can only be an number.
+---@param name string the name of the flag
+---@param default_value number the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+---@param min integer|nil the minimum value for the flag (nil for none)
+---@param max integer|nil the maximum value for the flag (nil for none)
+function Flag.registerNumberFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description, min, max)
+	local function_name = "Flag.registerNumberFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class NumberFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "number",
+		limit = {
+			min = min,
+			max = max
+		}
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+--# Register a string flag, can only be an string.
+---@param name string the name of the flag
+---@param default_value string the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+function Flag.registerStringFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, description, function_to_execute)
+	local function_name = "Flag.registerStringFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class StringFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "string",
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+--# Register an any flag, can be any value.
+---@param name string the name of the flag
+---@param default_value any the default_value for this flag
+---@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
+---@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
+---@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
+---@param description string the description of the flag
+function Flag.registerAnyFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description)
+	local function_name = "Flag.registerAnyFlag"
+
+	-- if this flag has already been registered
+	if registered_flags[name] then
+		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
+		return
+	end
+
+	---@class AnyFlag
+	local flag = {
+		name = name,
+		default_value = default_value,
+		tags = tags,
+		read_permission_requirement = read_permission_requirement,
+		write_permission_requirement = write_permission_requirement,
+		function_to_execute = function_to_execute,
+		flag_type = "any",
+		description = description
+	}
+
+	registered_flags[name] = flag
+
+	if g_savedata.flags[name] == nil then
+		g_savedata.flags[name] = default_value
+	end
+end
+
+--[[
+
+	Register Default Permissions
+
+]]
+
+-- None Permission
+Flag.registerPermission(
+	"none",
+	function()
 		return true
 	end
+)
 
-	-- get the types of the tables
-	local t1_type = type(t1)
-	local t2_type = type(t2)
+-- Auth Permission
+Flag.registerPermission(
+	"auth",
+	function(peer_id)
+		local players = server.getPlayers()
 
-	-- if the types are not the same, then they cannot be the same.
-	if t1_type ~= t2_type then
+		for peer_index = 1, #players do
+			local player = players[peer_index]
+
+			if player.id == peer_id then
+				return player.auth
+			end
+		end
+
 		return false
 	end
+)
 
-	--[[
-		if they're not tables, then we can skip checking them, as we cannot iterate through non tables.
-		we only need to check one as they have to be the same variable type due to the previous check.
-	]]
-	if t1_type ~= "table" then
+-- Admin Permission
+Flag.registerPermission(
+	"admin",
+	function(peer_id)
+		local players = server.getPlayers()
+
+		for peer_index = 1, #players do
+			local player = players[peer_index]
+
+			if player.id == peer_id then
+				return player.admin
+			end
+		end
+
 		return false
 	end
+)
 
-	-- store the keys that exist in t1
-	local t1_keys = {}
+Command.registerCommand(
+	"flag",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		local flag_name = arg[1]
 
-	-- iterate through t1
-	for tk1, tv1 in pairs(t1) do
-		-- get the value in t2 with the index of this variable in t1
-		local tv2 = t2[tk1]
-
-		-- if the index in t1 does not exist in t2, then the tables are not the same.
-		if tv2 == nil then
-			return false
+		if not flag_name then
+			d.print("You must specify a flag's name! get a list of flags via ?icm flags", false, 1, peer_id)
+			return
 		end
 
-		-- check if the two values are the same, if the normal == returns false, then do a check via table.equals, as {} ~= {}.
-		if tv1 ~= tv2 and table.equals(tv1, tv2) then
-			return false
-		end
-		-- say that this key exists in tv1
-		t1_keys[tk1] = true
-	end
+		local flag = registered_flags[flag_name]
 
-	-- iterate through t2
-	for tk2, _ in pairs(t2) do
-		-- if this key does not exist in t1, then the tables are not the same.
-		if not t1_keys[tk2] then
-			return false
+		if not flag then
+			d.print(("The flag \"%s\" does not exist! Get a list of flags via ?icm flags"):format(flag_name), false, 1, peer_id)
+			return
 		end
-	end
 
-	-- if we got to this point, that means that these two tables are the same.
-	return true
-end
+		-- the player is trying to read the flag
+		if not arg[2] then
+			-- check if the player has the permission to read the flag
+			
+			-- if the required read permission does not exist, default it to admin.
+
+			local read_permission = registered_permissions[flag.read_permission_requirement] or registered_permissions["admin"]
+
+			if not read_permission(peer_id) then
+				d.print(("You do not have permission to read this flag! You require the permission %s, contact a server admin/owner if you belive this is in mistake."):format(registered_permissions[flag.read_permission_requirement] and flag.read_permission_requirement or "admin"), false, 1, peer_id)
+				return
+			end
+
+			local flag_value = g_savedata.flags[flag_name]
+
+			if flag.flag_type ~= "string" and flag_value == "nil" then
+				flag_value = nil
+			end
+
+			-- if the flag's value is a string, format it as a string for display.
+			if type(flag_value) == "string" then
+				flag_value = ("\"%s\""):format(flag_value)
+			end
+
+			d.print(("%s's current value is: %s"):format(flag.name, flag_value), false, 0, peer_id)
+		else
+			-- the player is trying to set the flag
+
+			local write_permission = registered_permissions[flag.write_permission_requirement] or registered_permissions["admin"]
+
+			if not write_permission(peer_id) then
+				d.print(("You do not have permission to write this flag! You require the permission %s, contact a server admin/owner if you belive this is in mistake."):format(registered_permissions[flag.write_permission_requirement] and flag.write_permission_requirement or "admin"), false, 1, peer_id)
+				return
+			end
+
+			local set_value = table.concat(arg, " ", 2, #arg)
+			local original_set_value = set_value
+
+			if flag.flag_type ~= "string" then
+				if set_value == "nil" then
+					set_value = nil ---@cast +nil
+				end
+
+				-- number and integer flags
+				if flag.flag_type == "number" or flag.flag_type == "integer" then
+					-- convert to number if number, integer if integer
+					set_value = flag.flag_type == "number" and tonumber(set_value) or math.tointeger(set_value)
+
+					-- cannot be converted to number if number, or integer if integer.
+					if not set_value then
+						d.print(("%s is not a %s! The flag %s requires %s inputs only!"):format(original_set_value, flag.flag_type, flag.name, flag.flag_type), false, 1, peer_id)
+						return
+					end
+
+					-- check if outside of minimum
+					if flag.limit.min and set_value < flag.limit.min then
+						d.print(("The flag \"%s\" has a minimum value of %s, your input of %s is too low!"):format(flag.name, flag.limit.min, set_value), false, 1, peer_id)
+						return
+					end
+
+					-- check if outside of maximum
+					if flag.limit.max and set_value > flag.limit.max then
+						d.print(("The flag \"%s\" has a maximum value of %s, your input of %s is too high!"):format(flag.name, flag.limit.max, set_value), false, 1, peer_id)
+						return
+					end
+				end
+
+				-- boolean flags
+				if flag.flag_type == "boolean" then
+					set_value = string.toboolean(set_value)
+
+					if set_value == nil then
+						d.print(("The flag \"%s\" requires the input to be a boolean, %s is not a boolean!"):format(flag.name, original_set_value))
+					end
+				end
+
+				-- any flags
+				if flag.flag_type == "any" then
+
+					-- parse the value (turn it into the expected type)
+					set_value = string.parseValue(set_value)
+				end
+			end
+
+			local old_flag_value = g_savedata.flags[flag_name]
+
+			-- set the flag
+			g_savedata.flags[flag_name] = set_value
+
+			-- call the function for when the flag is written, if one is specified
+			if flag.function_to_execute ~= nil then
+				flag.function_to_execute(set_value, old_flag_value, peer_id)
+			end
+
+			d.print(("Successfully set the value for the flag \"%s\" to %s"):format(flag.name, set_value), false, 0, peer_id)
+		end
+	end,
+	"none",
+	"Used to manage more advanced settings, such as disabling modules.",
+	"Used to manage more advanced settings.",
+	{"flag <flag_name> [value]"}
+)
+
+Command.registerCommand(
+	"flags",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		if arg[1] then
+			d.print("Does not yet support the ability to search for flags, only able to give a full list for now, sorry!", false, 0, peer_id)
+			return
+		end
+
+		d.print("\n-- Flags --", false, 0, peer_id)
+
+		--TODO: make it sort by tags and filter by tags.
+
+		local flag_list = {}
+
+		-- clones, as we will be modifying them and sorting them for display purposes, and we don't want to modify the actual flags.
+		local cloned_registered_flags = table.copy.deep(registered_flags)
+		for _, flag in pairs(cloned_registered_flags) do
+			table.insert(flag_list, flag)
+		end
+
+		-- sort the list for display purposes
+		table.sort(flag_list, function(a, b)
+			-- if the types are the same, then sort alphabetically by name
+			if a.flag_type == b.flag_type then
+				return a.name < b.name
+			end
+		
+			-- the types are different, sort alphabetically by type.
+			return a.flag_type < b.flag_type
+		end)
+
+		local last_type = "none"
+
+		for flag_index = 1, #flag_list do
+			local flag = flag_list[flag_index]
+
+			-- print the following flag category, if this is now printing a new category of flags
+			if last_type ~= flag.flag_type then
+				d.print(("\n--- %s Flags ---"):format(flag.flag_type:upperFirst()), false, 0, peer_id)
+				last_type = flag.flag_type
+			end
+
+			-- print the flag data
+			d.print(("-----\nName: %s\nValue: %s\nTags: %s"):format(flag.name, g_savedata.flags[flag.name], table.concat(flag.tags, ", ")), false, 0, peer_id)
+		end
+	end,
+	"none",
+	"Used to list all of the flags which you have permission to read, flags are used for more advanced settings.",
+	"Used to list the flags.",
+	{"flags"}
+)
 
 
 -- library name
@@ -2526,7 +2834,7 @@ function Debugging.print(message, requires_debug, debug_type, peer_id) -- "glori
 
 		if type(message) ~= "table" and IS_DEVELOPMENT_VERSION then
 			if message then
-				debug.log(string.format("SW %s %s | %s", SHORT_ADDON_NAME, suffix, string.gsub(message, "\n", " \\n ")))
+				debug.log(string.format("SW %s %s | %s", SHORT_ADDON_NAME, suffix, --[[string.gsub(]]message--[[, "\n", " \\n ")]]))
 			else
 				debug.log(string.format("SW %s %s | (d.print) message is nil!", SHORT_ADDON_NAME, suffix))
 			end
@@ -2554,7 +2862,19 @@ function Debugging.print(message, requires_debug, debug_type, peer_id) -- "glori
 
 	-- print a traceback if this is a debug error message, and if tracebacks are enabled
 	if debug_type == 1 and d.getDebug(8) then
-		d.trace.print(_ENV, requires_debug, peer_id)
+		-- switch our env to the non modified environment, to avoid us calling ourselves over and over.
+		__ENV = _ENV_NORMAL
+		__ENV._ENV_MODIFIED = _ENV
+		_ENV = __ENV
+
+		d.trace.print(_ENV_MODIFIED, requires_debug, peer_id)
+
+		-- swap back to modified environment
+		_ENV = _ENV_MODIFIED
+		-- Remove _ENV_MODIFIED from env, as it will contain itself over and over, without this, trying to disable tracebacks after, will result in a stack overflow.
+		_ENV_MODIFIED = nil
+		-- Also remove __ENV, for the same reason as above.
+		__ENV = nil
 	end
 end
 
@@ -2625,6 +2945,10 @@ function Debugging.getDebug(debug_id, peer_id)
 	return false
 end
 
+--- Used to enable/disable debug for a specific player. Does the actual code for this process, such as how tracebacks injects into the functions.
+---@param debug_type string the type of debug you want to enable/disable
+---@param enabled boolean if you want to enable or disable the debug
+---@param peer_id integer the peer_id of the player you want to enable/disable the debug for
 function Debugging.handleDebug(debug_type, enabled, peer_id)
 	if debug_type == "chat" then
 		return (enabled and "Enabled" or "Disabled").." Chat Debug"
@@ -2785,6 +3109,7 @@ function Debugging.handleDebug(debug_type, enabled, peer_id)
 
 					-- switch our env to the non modified environment, to avoid us calling ourselves over and over.
 					__ENV =  _ENV_NORMAL
+					---@diagnostic disable-next-line: inject-field
 					__ENV._ENV_MODIFIED = _ENV
 					_ENV = __ENV
 
@@ -2815,6 +3140,10 @@ function Debugging.handleDebug(debug_type, enabled, peer_id)
 
 					-- switch back to modified environment
 					_ENV = _ENV_MODIFIED
+
+					-- remove __ENV and _ENV_NORMAL._ENV_MODIFIED as it could cause infinite recursion issues down the line.
+					__ENV = nil
+					_ENV_NORMAL._ENV_MODIFIED = nil
 
 					-- return the value to the function which called it.
 					return _ENV_NORMAL.table.unpack(returned)
@@ -2926,7 +3255,7 @@ function Debugging.handleDebug(debug_type, enabled, peer_id)
 					return removeAndReturn(funct(...))
 				end)
 			end
-		
+
 			local function setupTraceback(t, n)
 
 				-- if this table is empty, return nil.
@@ -2976,12 +3305,12 @@ function Debugging.handleDebug(debug_type, enabled, peer_id)
 			-- modify all functions in _ENV to have the debug "injected"
 			_ENV = setupTraceback(table.copy.deep(_ENV))
 
-			d.print(("Completed setting up tracebacks! took %ss"):format((s.getTimeMillisec() - start_traceback_setup_time)*0.001), true, 8)
+			Debugging.print(("Completed setting up tracebacks! took %ss"):format((s.getTimeMillisec() - start_traceback_setup_time)*0.001), true, 8)
 
 			--onTick = setupTraceback(onTick, "onTick")
 
 			-- add the error checker
-			ac.executeOnReply(
+			AddonCommunication.executeOnReply(
 				SHORT_ADDON_NAME,
 				"DEBUG.TRACEBACK.ERROR_CHECKER",
 				0,
@@ -2990,16 +3319,27 @@ function Debugging.handleDebug(debug_type, enabled, peer_id)
 					if not g_savedata.debug.traceback.enabled then
 						self.count = 0
 
+					-- Otherwise, tracebacks are enabled, and the stack is not empty, that means that an error occured, so print the stack.
 					elseif g_savedata.debug.traceback.stack_size > 0 then
 						-- switch our env to the non modified environment, to avoid us calling ourselves over and over.
-						__ENV =  _ENV_NORMAL
+						__ENV = _ENV_NORMAL
 						__ENV._ENV_MODIFIED = _ENV
 						_ENV = __ENV
 
+						-- Print the stack.
 						d.trace.print(_ENV_MODIFIED)
 
+						-- swap back to modified environment
 						_ENV = _ENV_MODIFIED
+						-- Remove _ENV_MODIFIED from env, as it will contain itself over and over, without this, trying to disable tracebacks after, will result in a stack overflow.
+						_ENV_MODIFIED = nil
+						-- Also remove __ENV, for the same reason as above.
+						__ENV = nil
 
+						-- Remove _ENV_MODIFIED from _ENV_NORMAL, as that could cause infinite recursion issues down the line.
+						_ENV_NORMAL._ENV_MODIFIED = nil
+
+						-- Set stack size to 0.
 						g_savedata.debug.traceback.stack_size = 0
 					end
 				end,
@@ -3008,6 +3348,8 @@ function Debugging.handleDebug(debug_type, enabled, peer_id)
 			)
 
 			ac.sendCommunication("DEBUG.TRACEBACK.ERROR_CHECKER", 0)
+
+			return "Enabled Tracebacks"
 		elseif not enabled and _ENV_NORMAL then
 			-- revert modified _ENV functions to be the non modified _ENV
 			--- @param t table the environment thats not been modified, will take all of the functions from this table and put it into the current _ENV
@@ -3029,13 +3371,31 @@ function Debugging.handleDebug(debug_type, enabled, peer_id)
 
 			_ENV = removeTraceback(_ENV_NORMAL, _ENV)]]
 
-			__ENV = _ENV_NORMAL.table.copy.deep(_ENV_NORMAL, _ENV_NORMAL)
+			--[[d.print("Loading _ENV_NORMAL into _ENV...", true, 0)
+
+			-- Remove _ENV_MODIFIED from _ENV_NORMAL, to prevent potential infinite recursion when creating a deep copy.
+			_ENV_NORMAL._ENV_MODIFIED = nil
+
+			__ENV = _ENV_NORMAL.table.copy.deep(_ENV_NORMAL, _ENV_NORMAL, true)
 			__ENV.g_savedata = g_savedata
 			_ENV = __ENV
 
-			_ENV_NORMAL = nil
+			_ENV_NORMAL = nil]]
+
+			--[[
+				It seems that i'd have to figure out a system to only rollback functions, but keep variables.
+					however, some functions may not exist until after tracebacks are setup, which while would mean that
+					they wouldn't have tracebacks injected, would also mean we'd have to figure out if they already exist,
+					that way we can carry them over.
+
+				But instead, of making a super complex system, we could just disable tracebacks, and then just get the player to
+					reload scripts, which would be much simpler and less prone to bugs.
+
+				So thats the route I took.
+			]]
+
+			return "Tracebacks are set to be disabled, You must run \"?reload_scripts\" to finish disabling tracebacks."
 		end
-		return (enabled and "Enabled" or "Disabled").." Tracebacks"
 	end
 end
 
@@ -3117,9 +3477,24 @@ function Debugging.setDebug(debug_id, peer_id, override_state)
 			end
 			return (none_true and "Enabled" or "Disabled").." All Debug"
 		else
-			player_data.debug[debug_types[debug_id]] = override_state == nil and not player_data.debug[debug_types[debug_id]] or override_state
+			--[[
+				Set the player's debug state.
+			]]
 
+			-- Get the debug's name from it's id
+			local debug_name = debug_types[debug_id]
+
+			-- If the override state is unspecified, invert the player's current debug option.
+			if override_state == nil then
+				player_data.debug[debug_name] = not player_data.debug[debug_name]
+			-- Otherwise, set the player's debug option to the override_state.
+			else
+				player_data.debug[debug_name] = override_state
+			end
+			
+			-- if it's enabled for this player
 			if player_data.debug[debug_types[debug_id]] then
+				-- enable it globally
 				g_savedata.debug[debug_types[debug_id]].enabled = true
 			else
 				d.checkDebug()
@@ -3217,7 +3592,18 @@ end
 
 function Debugging.getProfilerData(debug_message)
 	for debug_name, debug_data in pairs(g_savedata.profiler.display.average) do
+
+		-- get the current ms for this profiler instance
+		current_ms = g_savedata.profiler.display.current[debug_name]
+
+		-- if current is nil, then don't display.
+		if not current_ms then
+			goto next_profiler_instance
+		end
+
 		debug_message = ("%s\n--\n%s: %.2f|%.2f|%.2f"):format(debug_message, debug_name, debug_data, g_savedata.profiler.display.max[debug_name], g_savedata.profiler.display.current[debug_name])
+	
+		::next_profiler_instance::
 	end
 	return debug_message
 end
@@ -3287,14 +3673,18 @@ function Debugging.buildArgs(args)
 		local arg_len = table.length(args)
 		for i = 1, arg_len do
 			local arg = args[i]
-			-- tempoarily disabled due to how long it makes the outputs.
-			--[[if type(arg) == "table" then
-				arg = string.gsub(string.fromTable(arg), "\n", " ")
-			end]]
 
 			-- wrap in "" if arg is a string
 			if type(arg) == "string" then
 				arg = ("\"%s\""):format(arg)
+			end
+
+			-- only show tables if the traceback_print_tables flag is enabled
+			if g_savedata.flags.traceback_print_tables then
+				if type(arg) == "table" then
+					--d.print("debugging.lua random ass debug: "..tostring(arg), false, 0)
+					arg = --[[string.gsub(]]string.fromTable(arg)--, "\n", " ")
+				end
 			end
 
 			s = ("%s%s%s"):format(s, arg, i ~= arg_len and ", " or "")
@@ -3326,6 +3716,501 @@ Debugging.trace = {
 	end
 }
 
+--[[
+Boolean Flags
+]]
+
+-- traceback_print_tables, if enabled the tracebacks will print the tables, default disabled as some tables will break the messages and make them massive.
+Flag.registerBooleanFlag(
+	"traceback_print_tables",
+	true,
+	{
+		"debug",
+		"tracebacks"
+	},
+	"admin",
+	"admin",
+	nil,
+	"if enabled the tracebacks will print the tables, default disabled as some tables will break the messages and make them massive."
+)
+
+
+--# check for if none of the inputted variables are nil
+---@param print_error boolean if you want it to print an error if any are nil (if true, the second argument must be a name for debugging puposes)
+---@param ... any variables to check
+---@return boolean none_are_nil returns true of none of the variables are nil or false
+function table.noneNil(print_error,...)
+	local _ = table.pack(...)
+	local none_nil = true
+	for variable_index, variable in pairs(_) do
+		if print_error and variable ~= _[1] or not print_error then
+			if not none_nil then
+				none_nil = false
+				if print_error then
+					d.print("(table.noneNil) a variable was nil! index: "..variable_index.." | from: ".._[1], true, 1)
+				end
+			end
+		end
+	end
+	return none_nil
+end
+
+--# returns the number of elements in the table
+---@param t table table to get the size of
+---@return number count the size of the table
+function table.length(t)
+	if not t or type(t) ~= "table" then
+		return 0 -- invalid input
+	end
+
+	local count = 0
+
+	for _ in pairs(t) do -- goes through each element in the table
+		count = count + 1 -- adds 1 to the count
+	end
+
+	return count -- returns number of elements
+end
+
+-- credit: woe | for this function
+function table.tabulate(t,...)
+	local _ = table.pack(...)
+	t[_[1]] = t[_[1]] or {}
+	if _.n>1 then
+		table.tabulate(t[_[1]], table.unpack(_, 2))
+	end
+end
+
+--# function that turns strings into a table (Warning: very picky)
+--- @param S string a table in string form
+--- @return table T the string turned into a.table
+function table.fromString(S)
+	local function stringToTable(string_as_table, start_index)
+		local T = {}
+
+		local variable = nil
+		local str = ""
+
+		local char_offset = 0
+
+		start_index = start_index or 1
+
+		for char_index = start_index, string_as_table:len() do
+			char_index = char_index + char_offset
+
+			-- if weve gone through the entire string, accounting for the offset
+			if char_index > string_as_table:len() then
+				return T, char_index - start_index
+			end
+
+			-- the current character to read
+			local char = string_as_table:sub(char_index, char_index)
+
+			-- if this is the opening of a table
+			if char == "{" then
+				local returned_table, chars_checked = stringToTable(string_as_table, char_index + 1)
+
+				if not variable then
+					table.insert(T, returned_table)
+				else
+					T[variable] = returned_table
+				end
+
+				char_offset = char_offset + (chars_checked or 0)
+
+				variable = nil
+
+			-- if this is the closing of a table, and a start of another
+			elseif string_as_table:sub(char_index, char_index + 2) == "},{" then
+				if variable then
+					T[variable] = str
+				end
+
+				return T, char_index - start_index + 1
+
+			-- if this is a closing of a table.
+			elseif char == "}" then
+				if variable then
+					T[variable] = str
+				elseif str ~= "" then
+					table.insert(T, str)
+				end
+
+				return T, char_index - start_index
+
+			-- if we're recording the value to set the variable to
+			elseif char == "=" then
+				variable = str
+				str = ""
+
+			-- save the value of the variable
+			elseif char == "," then
+				if variable then
+					T[variable] = str
+				elseif str ~= "" then
+					table.insert(T, str)
+				end
+
+				str = ""
+				variable = ""
+
+			-- write this character if its not a quote
+			elseif char ~= "\"" then
+				str = str..char
+			end
+		end
+	end
+
+	return table.pack(stringToTable(S, 1))[1]
+end
+
+--- Returns the value at the path in _ENV
+---@param path string the path we want to get the value at
+---@return any value the value at the path, if it reached a nil value in the given path, it will return the value up to that point, and is_success will be false.
+---@return boolean is_success if it successfully got the value at the path
+function table.getValueAtPath(path)
+	if type(path) ~= "string" then
+		d.print(("path must be a string! given path: %s type: %s"):format(path, type(path)), true, 1)
+		return nil, false
+	end
+
+	-- If path is _ENV, then set it to an empty string.
+	if path == "_ENV" then
+		path = ""
+	end
+
+	local cur_path
+	-- if our environment is modified, we will have to make a deep copy under the non-modified environment.
+	if _ENV_NORMAL then
+		-- make sure _ENV_MODIFIED is removed from _ENV_NORMAL to prevent infinite recursion
+		_ENV_NORMAL._ENV_MODIFIED = nil
+		cur_path = _ENV_NORMAL.table.copy.deep(_ENV, _ENV_NORMAL)
+	else
+		cur_path = table.copy.deep(_ENV)
+	end
+	
+	--cur_path = safe_copy_deep(_ENV)
+
+	local cur_path_string = "_ENV"
+
+	for index in string.gmatch(path, "([^%.]+)") do
+		if not cur_path[index] then
+			d.print(("%s does not contain a value indexed by %s, given path: %s"):format(cur_path_string, index, path), false, 1)
+			return cur_path, false
+		end
+
+		cur_path = cur_path[index]
+	end
+
+	return cur_path, true
+end
+
+
+--- Sets the value at the path in _ENV
+---@param path string the path we want to set the value at
+---@param set_value any the value we want to set the value of what the path is
+---@return boolean is_success if it successfully got the value at the path
+function table.setValueAtPath(path, set_value)
+	
+	if type(path) ~= "string" then
+		d.print(("(table.setValueAtPath) path must be a string! given path: %s type: %s"):format(path, type(path)), true, 1)
+		return false
+	end
+
+	-- If path is _ENV, then set it to an empty string.
+	if path == "_ENV" then
+		path = ""
+	end
+
+	local cur_path = _ENV
+	-- if our environment is modified, we will have to make a deep copy under the non-modified environment.
+	--[[if _ENV_NORMAL then
+		cur_path = _ENV_NORMAL.table.copy.deep(_ENV, _ENV_NORMAL)
+	else
+		cur_path = table.copy.deep(_ENV)
+	end]]
+
+	local cur_path_string = "_ENV"
+
+	local index_count = 0
+
+	local last_index, got_count = string.countCharInstances(path, "%.")
+
+	last_index = last_index + 1
+
+	if not got_count then
+		d.print(("(table.setValueAtPath) failed to get count! path: %s"):format(path))
+		return false
+	end
+
+	for index in string.gmatch(path, "([^%.]+)") do
+		index_count = index_count + 1
+
+		if not cur_path[index] then
+			d.print(("(table.setValueAtPath) %s does not contain a value indexed by %s, given path: %s"):format(cur_path_string, index, path), false, 1)
+			return false
+		end
+
+		if index_count == last_index then
+			cur_path[index] = set_value
+
+			return true
+		end
+
+		cur_path = cur_path[index]
+	end
+
+	d.print("(table.setValueAtPath) never reached end of path?", true, 1)
+	return false
+end
+
+-- a table containing a bunch of functions for making a copy of tables, to best fit each scenario performance wise.
+table.copy = {
+
+	iShallow = function(t, __ENV)
+		__ENV = __ENV or _ENV
+		return {__ENV.table.unpack(t)}
+	end,
+	shallow = function(t, __ENV)
+		__ENV = __ENV or _ENV
+
+		local t_type = __ENV.type(t)
+
+		local t_shallow
+
+		if t_type == "table" then
+			for key, value in __ENV.next, t, nil do
+				t_shallow[key] = value
+			end
+		end
+
+		return t_shallow or t
+	end,
+	deep = function(t, __ENV)
+
+		__ENV = __ENV or _ENV
+
+		-- Normal Version
+
+		local function deepCopy(T)
+			local copy = {}
+			if __ENV.type(T) == "table" then
+				for key, value in __ENV.next, T, nil do
+					copy[deepCopy(key)] = deepCopy(value)
+				end
+			else
+				copy = T
+			end
+			return copy
+		end
+
+		-- Debug Version (For fixing stack overflows)
+		local function deepCopyDebug(T, p_key)
+			local copy = {}
+			debug.log("SW IMAI  Debug: | "..p_key)
+			if __ENV.type(T) == "table" then
+				for key, value in __ENV.next, T, nil do
+					copy[deepCopyDebug(key, p_key.."."..tostring(key))] = deepCopyDebug(value, p_key.."."..tostring(key))
+				end
+			else
+				copy = T
+			end
+			return copy
+		end
+
+		--return deepCopy(t)
+	
+		return deepCopy(t ,"")
+		
+	end
+}
+
+---# Returns whether or not two tables are equal. <br>
+--- Variation of https://stackoverflow.com/a/32660766
+---@param t1 any
+---@param t2 any
+---@return boolean equal
+function table.equals(t1, t2)
+	-- if the two variables are just directly equal.
+	if t1 == t2 then
+		return true
+	end
+
+	-- get the types of the tables
+	local t1_type = type(t1)
+	local t2_type = type(t2)
+
+	-- if the types are not the same, then they cannot be the same.
+	if t1_type ~= t2_type then
+		return false
+	end
+
+	--[[
+		if they're not tables, then we can skip checking them, as we cannot iterate through non tables.
+		we only need to check one as they have to be the same variable type due to the previous check.
+	]]
+	if t1_type ~= "table" then
+		return false
+	end
+
+	-- store the keys that exist in t1
+	local t1_keys = {}
+
+	-- iterate through t1
+	for tk1, tv1 in pairs(t1) do
+		-- get the value in t2 with the index of this variable in t1
+		local tv2 = t2[tk1]
+
+		-- if the index in t1 does not exist in t2, then the tables are not the same.
+		if tv2 == nil then
+			return false
+		end
+
+		-- check if the two values are the same, if the normal == returns false, then do a check via table.equals, as {} ~= {}.
+		if tv1 ~= tv2 and table.equals(tv1, tv2) then
+			return false
+		end
+		-- say that this key exists in tv1
+		t1_keys[tk1] = true
+	end
+
+	-- iterate through t2
+	for tk2, _ in pairs(t2) do
+		-- if this key does not exist in t1, then the tables are not the same.
+		if not t1_keys[tk2] then
+			return false
+		end
+	end
+
+	-- if we got to this point, that means that these two tables are the same.
+	return true
+end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[
+
+	Registers the default variable interaction commands.
+
+]]
+
+-- Get Variable command
+Command.registerCommand(
+	"print_variable",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		local location_string = arg[1]
+
+		local value_at_path, is_success = table.getValueAtPath(location_string)
+
+		if not is_success then
+			d.print(("failed to get value at path %s"):format(location_string), false, 1, peer_id)
+			return
+		end
+
+		d.print(("value of %s: %s"):format(location_string, string.fromTable(value_at_path)), false, 0, peer_id)
+	end,
+	"admin",
+	"Gets the value of a variable. Automatically converts tables to strings.",
+	"Gets the value of a variable.",
+	{"g_savedata", "Command", "g_savedata.tick_counter"}
+)
+
+-- Set Variable command
+Command.registerCommand(
+	"set_variable",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		local location_string = arg[1]
+		local value_to_set_to = arg[2]
+		
+		local is_success = table.setValueAtPath(location_string, value_to_set_to)
+
+		if not is_success then
+			d.print(("failed to set the value at path %s to %s"):format(location_string, value_to_set_to), false, 1, peer_id)
+			return
+		end
+
+		d.print(("set %s to %s"):format(location_string, value_to_set_to), false, 0, peer_id)
+	end,
+	"admin",
+	"Sets the value of a variable. Allowing you to set the value of a variable.",
+	"Sets the value of a variable.",
+	{"g_savedata.tick_counter 0", "g_savedata.is_attack false"}
+)
+
+-- Print Entry Count command
+Command.registerCommand(
+	"print_entry_count",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- Get the location string from the user's input.
+		local location_string = arg[1]
+
+		-- Get the value at the path.
+		local value_at_path, is_success = table.getValueAtPath(location_string)
+
+		-- If we failed to get the value at the path, print an error message and return.
+		if not is_success then
+			d.print(("Failed to get value at path %s"):format(location_string), false, 1, peer_id)
+			return
+		end
+
+		-- If the value at the path is not a table, print an error message and return.
+		if type(value_at_path) ~= "table" then
+			d.print(("Value at path %s is not a table"):format(location_string), false, 1, peer_id)
+			return
+		end
+
+		-- Print the element count of the table.
+		d.print(("Entry count of %s: %s"):format(location_string, table.length(value_at_path)), false, 0, peer_id)
+	end,
+	"admin",
+	"Gets the entry count of a table.",
+	"Gets the entry count of a table.",
+	{"g_savedata", "Command", "g_savedata.tick_counter"}
+)
+
+
+ -- command handler, used to register commands.
+--[[
+
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+Effects = {}
+
+-- required libraries
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -3415,19 +4300,19 @@ function Effects.apply(name, object, duration, strength)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("3401: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4286: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3407: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4292: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false
 	end
 
 	-- if the object cannot have this effect applied.
 	if not effect_applicable_objects[name] or not effect_applicable_objects[name][object.object_type] then
-		d.print(("3413: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
+		d.print(("4298: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -3436,7 +4321,7 @@ function Effects.apply(name, object, duration, strength)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3422: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4307: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -3479,7 +4364,7 @@ end
 function Effects.remove(object, name)
 	-- if the object was never given
 	if not object then
-		d.print(("3465: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
+		d.print(("4350: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
 		return false, false
 	end
 
@@ -3488,13 +4373,13 @@ function Effects.remove(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("3474: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4359: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3480: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4365: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -3503,7 +4388,7 @@ function Effects.remove(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3489: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4374: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -3555,13 +4440,13 @@ end
 function Effects.removeAll(object)
 	-- if the object was never given
 	if not object then
-		d.print("3541: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
+		d.print("4426: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
 		return 0, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3547: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("4432: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return 0, false
 	end
 
@@ -3570,7 +4455,7 @@ function Effects.removeAll(object)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3556: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
+		d.print(("4441: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
 		return 0, false
 	end
 
@@ -3598,7 +4483,7 @@ function Effects.removeAll(object)
 		
 		-- if this effect does not exist.
 		if not effect_definition then
-			d.print(("3584: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
+			d.print(("4469: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -3636,13 +4521,13 @@ function Effects.has(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("3622: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4507: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("3628: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4513: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -3651,7 +4536,7 @@ function Effects.has(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("3637: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4522: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -3716,7 +4601,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("3702: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4587: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -3732,7 +4617,7 @@ function Effects.onTick(game_ticks)
 
 		-- if this effect definition does not exist.
 		if not effect_definition then
-			d.print(("3718: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
+			d.print(("4603: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -3743,7 +4628,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("3729: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4614: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -4173,21 +5058,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("4159: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("5044: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("4166: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("5051: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("4173: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("5058: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -4225,14 +5110,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("4211: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("5096: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("4218: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("5103: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -4242,7 +5127,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("4228: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("5113: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -4276,7 +5161,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("4262: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("5147: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -4287,7 +5172,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("4273: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("5158: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -4343,7 +5228,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("4329: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("5214: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -4495,7 +5380,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("4481: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("5366: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -4504,7 +5389,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("4490: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("5375: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -4525,7 +5410,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("4511: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("5396: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -4534,7 +5419,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("4520: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("5405: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -5176,7 +6061,7 @@ function Citizens.onTick(game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("5162: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("6047: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -5494,490 +6379,6 @@ limitations under the License.
 ]]
 
 -- required libraries
---[[
-	
-Copyright 2024 Liam Matthews
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-]]
-
---[[ 
-	Flag command, used to manage more advanced settings.
-	Compliments the settings command, setting command is made to handle less
-	complex commands, and ones that should be set on the world's creation.
-	While flags are ones that may be set for compatiblity reasons, such as if
-	it adding currency rewards is incompatible with another addon on a server,
-	the economy module could be disabled via a flag.
-]]
-
--- required libraries -- required to print messages -- required to get data on players -- required for some of its helpful string functions -- required for some of its helpful table functions
-
-g_savedata.flags = {}
-
--- where all of the registered flags are stored, their current values get stored in g_savedata.flags instead, though.
----@type table<string, BooleanFlag | IntegerFlag | NumberFlag | StringFlag | AnyFlag>
-local registered_flags = {}
-
-
--- where all of the registered permissions are stored.
-local registered_permissions = {}
-
--- stores the functions for flags
-Flag = {}
-
----@param name string the name of this permission
----@param has_permission function the function to execute, to check if the player has permission (arg1 is peer_id)
-function Flag.registerPermission(name, has_permission)
-
-	-- if the permission already exists
-	if registered_permissions[name] then
-
-		--[[
-			this can be quite a bad error, so it bypasses debug being disabled.
-
-			for example, library A adds a permission called "mod", for mod authors
-			and then after, library B adds a permission called "mod", for moderators of the server
-			
-			when this fails, any commands library B will now just require the requirements for mod authors
-			now you've got issues of mod authors being able to access moderator commands
-
-			so having this always alert is to try to make this issue obvious. as if it was just silent in
-			the background, suddenly you've got privilage elevation.
-		]]
-		d.print(("(Flag.registerPermission) Permission level %s is already registered!"):format(name), false, 1)
-		return
-	end
-
-	registered_permissions[name] = has_permission
-end
-
---# Register a boolean flag, can only be true or false.
----@param name string the name of the flag
----@param default_value boolean the default_value for this flag
----@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
----@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
----@param description string the description of the flag
-function Flag.registerBooleanFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description)
-	local function_name = "Flag.registerBooleanFlag"
-
-	-- if this flag has already been registered
-	if registered_flags[name] then
-		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
-		return
-	end
-
-	---@class BooleanFlag
-	local flag = {
-		name = name,
-		default_value = default_value,
-		tags = tags,
-		read_permission_requirement = read_permission_requirement,
-		write_permission_requirement = write_permission_requirement,
-		function_to_execute = function_to_execute,
-		flag_type = "boolean"
-	}
-
-	registered_flags[name] = flag
-
-	if g_savedata.flags[name] == nil then
-		g_savedata.flags[name] = default_value
-	end
-end
-
---# Register an integer flag, can only be an integer.
----@param name string the name of the flag
----@param default_value integer the default_value for this flag
----@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
----@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
----@param description string the description of the flag
----@param min integer|nil the minimum value for the flag (nil for none)
----@param max integer|nil the maximum value for the flag (nil for none)
-function Flag.registerIntegerFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description, min, max)
-	local function_name = "Flag.registerIntegerFlag"
-
-	-- if this flag has already been registered
-	if registered_flags[name] then
-		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
-		return
-	end
-
-	---@class IntegerFlag
-	local flag = {
-		name = name,
-		default_value = default_value,
-		tags = tags,
-		read_permission_requirement = read_permission_requirement,
-		write_permission_requirement = write_permission_requirement,
-		function_to_execute = function_to_execute,
-		flag_type = "integer",
-		limit = {
-			min = min,
-			max = max
-		}
-	}
-
-	registered_flags[name] = flag
-
-	if g_savedata.flags[name] == nil then
-		g_savedata.flags[name] = default_value
-	end
-end
-
---# Register an number flag, can only be an number.
----@param name string the name of the flag
----@param default_value number the default_value for this flag
----@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
----@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
----@param description string the description of the flag
----@param min integer|nil the minimum value for the flag (nil for none)
----@param max integer|nil the maximum value for the flag (nil for none)
-function Flag.registerNumberFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description, min, max)
-	local function_name = "Flag.registerNumberFlag"
-
-	-- if this flag has already been registered
-	if registered_flags[name] then
-		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
-		return
-	end
-
-	---@class NumberFlag
-	local flag = {
-		name = name,
-		default_value = default_value,
-		tags = tags,
-		read_permission_requirement = read_permission_requirement,
-		write_permission_requirement = write_permission_requirement,
-		function_to_execute = function_to_execute,
-		flag_type = "number",
-		limit = {
-			min = min,
-			max = max
-		}
-	}
-
-	registered_flags[name] = flag
-
-	if g_savedata.flags[name] == nil then
-		g_savedata.flags[name] = default_value
-	end
-end
-
---# Register a string flag, can only be an string.
----@param name string the name of the flag
----@param default_value string the default_value for this flag
----@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
----@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
----@param description string the description of the flag
-function Flag.registerStringFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, description, function_to_execute)
-	local function_name = "Flag.registerStringFlag"
-
-	-- if this flag has already been registered
-	if registered_flags[name] then
-		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
-		return
-	end
-
-	---@class StringFlag
-	local flag = {
-		name = name,
-		default_value = default_value,
-		tags = tags,
-		read_permission_requirement = read_permission_requirement,
-		write_permission_requirement = write_permission_requirement,
-		function_to_execute = function_to_execute,
-		flag_type = "string",
-	}
-
-	registered_flags[name] = flag
-
-	if g_savedata.flags[name] == nil then
-		g_savedata.flags[name] = default_value
-	end
-end
-
---# Register an any flag, can be any value.
----@param name string the name of the flag
----@param default_value any the default_value for this flag
----@param tags table<integer, string> a table of tags for this flag, can be used to filter tags for displaying to the user.
----@param read_permission_requirement string the permission required to read this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param write_permission_requirement string the permission required to write to this flag. Create custom permissions via flag.registerPermission(), defaults are "none", "auth" and "admin"
----@param function_to_execute function|nil the function to execute when this value is set. params are (in order): "value, old_value, peer_id", if you do not need to specify a function, just provide nil to avoid extra performance cost of calling an empty function.
----@param description string the description of the flag
-function Flag.registerAnyFlag(name, default_value, tags, read_permission_requirement, write_permission_requirement, function_to_execute, description)
-	local function_name = "Flag.registerAnyFlag"
-
-	-- if this flag has already been registered
-	if registered_flags[name] then
-		d.print(("(%s) Flag %s already exists!"):format(function_name, name), true, 1)
-		return
-	end
-
-	---@class AnyFlag
-	local flag = {
-		name = name,
-		default_value = default_value,
-		tags = tags,
-		read_permission_requirement = read_permission_requirement,
-		write_permission_requirement = write_permission_requirement,
-		function_to_execute = function_to_execute,
-		flag_type = "any",
-		description = description
-	}
-
-	registered_flags[name] = flag
-
-	if g_savedata.flags[name] == nil then
-		g_savedata.flags[name] = default_value
-	end
-end
-
---[[
-
-	Register Default Permissions
-
-]]
-
--- None Permission
-Flag.registerPermission(
-	"none",
-	function()
-		return true
-	end
-)
-
--- Auth Permission
-Flag.registerPermission(
-	"auth",
-	function(peer_id)
-		local players = server.getPlayers()
-
-		for peer_index = 1, #players do
-			local player = players[peer_index]
-
-			if player.id == peer_id then
-				return player.auth
-			end
-		end
-
-		return false
-	end
-)
-
--- Admin Permission
-Flag.registerPermission(
-	"admin",
-	function(peer_id)
-		local players = server.getPlayers()
-
-		for peer_index = 1, #players do
-			local player = players[peer_index]
-
-			if player.id == peer_id then
-				return player.admin
-			end
-		end
-
-		return false
-	end
-)
-
-Command.registerCommand(
-	"flag",
-	---@param full_message string the full message
-	---@param peer_id integer the peer_id of the sender
-	---@param arg table the arguments of the command.
-	function(full_message, peer_id, arg)
-		local flag_name = arg[1]
-
-		if not flag_name then
-			d.print("You must specify a flag's name! get a list of flags via ?icm flags", false, 1, peer_id)
-			return
-		end
-
-		local flag = registered_flags[flag_name]
-
-		if not flag then
-			d.print(("The flag \"%s\" does not exist! Get a list of flags via ?icm flags"):format(flag_name), false, 1, peer_id)
-			return
-		end
-
-		-- the player is trying to read the flag
-		if not arg[2] then
-			-- check if the player has the permission to read the flag
-			
-			-- if the required read permission does not exist, default it to admin.
-
-			local read_permission = registered_permissions[flag.read_permission_requirement] or registered_permissions["admin"]
-
-			if not read_permission(peer_id) then
-				d.print(("You do not have permission to read this flag! You require the permission %s, contact a server admin/owner if you belive this is in mistake."):format(registered_permissions[flag.read_permission_requirement] and flag.read_permission_requirement or "admin"), false, 1, peer_id)
-				return
-			end
-
-			local flag_value = g_savedata.flags[flag_name]
-
-			if flag.flag_type ~= "string" and flag_value == "nil" then
-				flag_value = nil
-			end
-
-			-- if the flag's value is a string, format it as a string for display.
-			if type(flag_value) == "string" then
-				flag_value = ("\"%s\""):format(flag_value)
-			end
-
-			d.print(("%s's current value is: %s"):format(flag.name, flag_value), false, 0, peer_id)
-		else
-			-- the player is trying to set the flag
-
-			local write_permission = registered_permissions[flag.write_permission_requirement] or registered_permissions["admin"]
-
-			if not write_permission(peer_id) then
-				d.print(("You do not have permission to write this flag! You require the permission %s, contact a server admin/owner if you belive this is in mistake."):format(registered_permissions[flag.write_permission_requirement] and flag.write_permission_requirement or "admin"), false, 1, peer_id)
-				return
-			end
-
-			local set_value = table.concat(arg, " ", 2, #arg)
-			local original_set_value = set_value
-
-			if flag.flag_type ~= "string" then
-				if set_value == "nil" then
-					set_value = nil ---@cast +nil
-				end
-
-				-- number and integer flags
-				if flag.flag_type == "number" or flag.flag_type == "integer" then
-					-- convert to number if number, integer if integer
-					set_value = flag.flag_type == "number" and tonumber(set_value) or math.tointeger(set_value)
-
-					-- cannot be converted to number if number, or integer if integer.
-					if not set_value then
-						d.print(("%s is not a %s! The flag %s requires %s inputs only!"):format(original_set_value, flag.flag_type, flag.name, flag.flag_type), false, 1, peer_id)
-						return
-					end
-
-					-- check if outside of minimum
-					if flag.limit.min and set_value < flag.limit.min then
-						d.print(("The flag \"%s\" has a minimum value of %s, your input of %s is too low!"):format(flag.name, flag.limit.min, set_value), false, 1, peer_id)
-						return
-					end
-
-					-- check if outside of maximum
-					if flag.limit.max and set_value > flag.limit.max then
-						d.print(("The flag \"%s\" has a maximum value of %s, your input of %s is too high!"):format(flag.name, flag.limit.max, set_value), false, 1, peer_id)
-						return
-					end
-				end
-
-				-- boolean flags
-				if flag.flag_type == "boolean" then
-					set_value = string.toboolean(set_value)
-
-					if set_value == nil then
-						d.print(("The flag \"%s\" requires the input to be a boolean, %s is not a boolean!"):format(flag.name, original_set_value))
-					end
-				end
-
-				-- any flags
-				if flag.flag_type == "any" then
-
-					-- parse the value (turn it into the expected type)
-					set_value = string.parseValue(set_value)
-				end
-			end
-
-			local old_flag_value = g_savedata.flags[flag_name]
-
-			-- set the flag
-			g_savedata.flags[flag_name] = set_value
-
-			-- call the function for when the flag is written, if one is specified
-			if flag.function_to_execute ~= nil then
-				flag.function_to_execute(set_value, old_flag_value, peer_id)
-			end
-
-			d.print(("Successfully set the value for the flag \"%s\" to %s"):format(flag.name, set_value), false, 0, peer_id)
-		end
-	end,
-	"none",
-	"Used to manage more advanced settings, such as disabling modules.",
-	"Used to manage more advanced settings.",
-	{"flag <flag_name> [value]"}
-)
-
-Command.registerCommand(
-	"flags",
-	---@param full_message string the full message
-	---@param peer_id integer the peer_id of the sender
-	---@param arg table the arguments of the command.
-	function(full_message, peer_id, arg)
-		if arg[1] then
-			d.print("Does not yet support the ability to search for flags, only able to give a full list for now, sorry!", false, 0, peer_id)
-			return
-		end
-
-		d.print("\n-- Flags --", false, 0, peer_id)
-
-		--TODO: make it sort by tags and filter by tags.
-
-		local flag_list = {}
-
-		-- clones, as we will be modifying them and sorting them for display purposes, and we don't want to modify the actual flags.
-		local cloned_registered_flags = table.copy.deep(registered_flags)
-		for _, flag in pairs(cloned_registered_flags) do
-			table.insert(flag_list, flag)
-		end
-
-		-- sort the list for display purposes
-		table.sort(flag_list, function(a, b)
-			-- if the types are the same, then sort alphabetically by name
-			if a.flag_type == b.flag_type then
-				return a.name < b.name
-			end
-		
-			-- the types are different, sort alphabetically by type.
-			return a.flag_type < b.flag_type
-		end)
-
-		local last_type = "none"
-
-		for flag_index = 1, #flag_list do
-			local flag = flag_list[flag_index]
-
-			-- print the following flag category, if this is now printing a new category of flags
-			if last_type ~= flag.flag_type then
-				d.print(("\n--- %s Flags ---"):format(flag.flag_type:upperFirst()), false, 0, peer_id)
-				last_type = flag.flag_type
-			end
-
-			-- print the flag data
-			d.print(("-----\nName: %s\nValue: %s\nTags: %s"):format(flag.name, g_savedata.flags[flag.name], table.concat(flag.tags, ", ")), false, 0, peer_id)
-		end
-	end,
-	"none",
-	"Used to list all of the flags which you have permission to read, flags are used for more advanced settings.",
-	"Used to list the flags.",
-	{"flags"}
-)
-
 
 --[[
 
@@ -6066,7 +6467,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("6052: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("6453: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -6102,7 +6503,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("6088: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("6489: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -6113,7 +6514,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("6099: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("6500: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -6125,7 +6526,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("6111: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("6512: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -6275,7 +6676,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("6261: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("6662: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -6384,7 +6785,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("6370: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("6771: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -7209,7 +7610,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("7195: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("7596: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -7229,7 +7630,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("7215: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("7616: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -7393,13 +7794,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("7379: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7780: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("7385: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7786: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -7420,17 +7821,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("7406: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("7807: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("7411: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7812: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("7416: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("7817: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -7871,7 +8272,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -7940,36 +8341,6 @@ function Vector3.new(x, y, z)
 	return vector
 end
 
---- Function for getting the euclidean distance
----@param a Vector3
----@param b Vector3
----@return number euclidean_distance euclidean distance between the two 3D vectors.
-function Vector3.euclideanDistance(a, b)
-	-- get the relative x position
-	local rx = a.x - b.x
-
-	-- get the relative y position
-	local ry = a.y - b.y
-
-	-- get the relative z position
-	local rz = a.z - b.z
-
-	-- return the distance
-	return math.sqrt(rx*rx+ry*ry+rz*rz)
-end
-
---- Function for getting the manhattan distance
----@param a Vector3
----@param b Vector3
----@return number manhattan_distance manhattan distance between the two 3D vectors.
-function Vector3.manhattanDistance(a, b)
-	-- return the distance
-	return (
-		math.abs(a.x - b.x) + -- get manhattan distance on x axis
-		math.abs(a.y - b.y) + -- get manhattan distance on y axis
-		math.abs(a.z - b.z) -- get manhattan distance on z axis
-	)
-end
 
 --- Function for turning a Matrix into a Vector3
 ---@param target_matrix SWMatrix
@@ -8008,6 +8379,136 @@ function Vector3.toMatrix(target_vector)
 
 	-- return the matrix
 	return matrix
+end
+
+--- Function for getting the euclidean distance
+---@param a Vector3
+---@param b Vector3
+---@return number euclidean_distance euclidean distance between the two 3D vectors.
+function Vector3.euclideanDistance(a, b)
+	-- get the relative x position
+	local rx = a.x - b.x
+
+	-- get the relative y position
+	local ry = a.y - b.y
+
+	-- get the relative z position
+	local rz = a.z - b.z
+
+	-- return the distance
+	return math.sqrt(rx*rx+ry*ry+rz*rz)
+end
+
+--- Function for getting the manhattan distance
+---@param a Vector3
+---@param b Vector3
+---@return number manhattan_distance manhattan distance between the two 3D vectors.
+function Vector3.manhattanDistance(a, b)
+	-- return the distance
+	return (
+		math.abs(a.x - b.x) + -- get manhattan distance on x axis
+		math.abs(a.y - b.y) + -- get manhattan distance on y axis
+		math.abs(a.z - b.z) -- get manhattan distance on z axis
+	)
+end
+
+-- Function for adding two Vector3s.
+---@param a Vector3 the first vector to add.
+---@param b Vector3 the second vector to add.
+---@return Vector3 added_vector the vector created from the addition of the two vectors.
+function Vector3.add(a, b)
+	-- create the vector
+	local added_vector = {
+		x = a.x + b.x,
+		y = a.y + b.y,
+		z = a.z + b.z
+	}
+
+	-- return the vector
+	return added_vector
+end
+
+-- Function for subtracting two Vector3s.
+---@param a Vector3 the vector to subtract from.
+---@param b Vector3 the vector to subtract.
+---@return Vector3 subtracted_vector the vector created from the subtraction of the two vectors.
+function Vector3.subtract(a, b)
+	-- create the vector
+	local subtracted_vector = {
+		x = a.x - b.x,
+		y = a.y - b.y,
+		z = a.z - b.z
+	}
+
+	-- return the vector
+	return subtracted_vector
+end
+
+-- Function for multiplying two Vector3s.
+---@param a Vector3 the first vector to multiply.
+---@param b Vector3 the second vector to multiply.
+---@return Vector3 multiplied_vector the vector created from the multiplication of the two vectors.
+function Vector3.multiply(a, b)
+	-- create the vector
+	local multiplied_vector = {
+		x = a.x * b.x,
+		y = a.y * b.y,
+		z = a.z * b.z
+	}
+
+	-- return the vector
+	return multiplied_vector
+end
+
+-- Function for dividing two Vector3s.
+---@param a Vector3 the vector to divide.
+---@param b Vector3 the vector to divide by.
+---@return Vector3 divided_vector the vector created from the division of the two vectors.
+function Vector3.divide(a, b)
+	-- create the vector
+	local divided_vector = {
+		x = a.x / b.x,
+		y = a.y / b.y,
+		z = a.z / b.z
+	}
+
+	-- return the vector
+	return divided_vector
+end
+
+--- Function for doing a scalar multiplication on a vector.
+---@param vector Vector3 the vector to multiply.
+---@param scalar number the scalar to multiply the vector by.
+---@return Vector3 multiplied_vector the vector created from the multiplication of the vector by the scalar.
+function Vector3.scalarMultiply(vector, scalar)
+	-- create the vector
+	local multiplied_vector = {
+		x = vector.x * scalar,
+		y = vector.y * scalar,
+		z = vector.z * scalar
+	}
+
+	-- return the vector
+	return multiplied_vector
+end
+
+--- Function for linearly interpolating between two Vector3s.
+---@param source Vector3 the position to interpolate from.
+---@param target Vector3 the position to interpolate to.
+---@param alpha number the alpha value to interpolate by. (0 being source, 1 being target, 0.5 being halfway between source and target, though, not limited to 0-1.)
+---@return Vector3 interpolated_vector the vector created from the interpolation of the two vectors.
+function Vector3.lerp(source, target, alpha)
+	-- Get the inverted alpha for multiplying the source.
+	local inverted_alpha = 1 - alpha
+
+	-- Create the vector
+	local interpolated_vector = Vector3.add(
+		Vector3.scalarMultiply(source, inverted_alpha),
+		Vector3.scalarMultiply(target, alpha)
+	)
+
+	-- Return the vector
+	return interpolated_vector
 end
 
 
@@ -8228,7 +8729,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8214: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("8715: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -8241,7 +8742,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8227: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("8728: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -10874,6 +11375,35 @@ limitations under the License.
 
 ]]
 
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
 -- Library Version 0.0.1
 
 --[[
@@ -10884,8 +11414,164 @@ limitations under the License.
 
 ]]
 
-
 -- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Converts between units.
+]]
+
+-- library name
+UnitConversions = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+
+	Speed Conversions
+
+]]
+
+--[[
+	From KM/H
+]]
+
+UnitConversions.kilometresPerHour = {}
+
+--- Converts from kilometres per hour to metres per second
+---@param kmh number the speed in kilometres per hour
+---@return number ms the speed in metres per second
+function UnitConversions.kilometresPerHour.toMetresPerSecond(kmh)
+	return kmh / 3.6
+end
+
+--- Converts from kilometres per hour to miles per hour
+---@param kmh number the speed in kilometres per hour
+---@return number mph the speed in miles per hour
+function UnitConversions.kilometresPerHour.toMilesPerHour(kmh)
+	return kmh / 1.609344
+end
+
+--- Converts from kilometres per hour to knots
+---@param kmh number the speed in kilometres per hour
+---@return number knots the speed in knots
+function UnitConversions.kilometresPerHour.toKnots(kmh)
+	return kmh / 1.852
+end
+
+--[[
+	From M/S
+]]
+
+UnitConversions.metresPerSecond = {}
+
+--- Converts from metres per second to kilometres per hour
+---@param ms number the speed in metres per second
+---@return number kmh the speed in kilometres per hour
+function UnitConversions.metresPerSecond.toKilometresPerHour(ms)
+	return ms * 3.6
+end
+
+--- Converts from metres per second to miles per hour
+---@param ms number the speed in metres per second
+---@return number mph the speed in miles per hour
+function UnitConversions.metresPerSecond.toMilesPerHour(ms)
+	return ms * 2.236936
+end
+
+--- Converts from metres per second to knots
+---@param ms number the speed in metres per second
+---@return number knots the speed in knots
+function UnitConversions.metresPerSecond.toKnots(ms)
+	return ms * 1.943844
+end
+
+--[[
+	From MPH
+]]
+
+UnitConversions.milesPerHour = {}
+
+--- Converts from miles per hour to kilometres per hour
+---@param mph number the speed in miles per hour
+---@return number kmh the speed in kilometres per hour
+function UnitConversions.milesPerHour.toKilometresPerHour(mph)
+	return mph * 1.609344
+end
+
+--- Converts from miles per hour to metres per second
+---@param mph number the speed in miles per hour
+---@return number ms the speed in metres per second
+function UnitConversions.milesPerHour.toMetresPerSecond(mph)
+	return mph / 2.236936
+end
+
+--- Converts from miles per hour to knots
+---@param mph number the speed in miles per hour
+---@return number knots the speed in knots
+function UnitConversions.milesPerHour.toKnots(mph)
+	return mph / 1.150779
+end
+
+--[[
+	From Knots
+]]
+
+UnitConversions.knots = {}
+
+--- Converts from knots to kilometres per hour
+---@param knots number the speed in knots
+---@return number kmh the speed in kilometres per hour
+function UnitConversions.knots.toKilometresPerHour(knots)
+	return knots * 1.852
+end
+
+--- Converts from knots to metres per second
+---@param knots number the speed in knots
+---@return number ms the speed in metres per second
+function UnitConversions.knots.toMetresPerSecond(knots)
+	return knots / 1.943844
+end
+
+--- Converts from knots to miles per hour
+---@param knots number the speed in knots
+---@return number mph the speed in miles per hour
+function UnitConversions.knots.toMilesPerHour(knots)
+	return knots * 1.150779
+end
 --[[
 	
 Copyright 2024 Liam Matthews
@@ -10915,1151 +11601,6 @@ limitations under the License.
 ]]
 
 -- required libraries
-
----@diagnostic disable:duplicate-doc-field
----@diagnostic disable:duplicate-doc-alias
----@diagnostic disable:duplicate-set-field
-
---[[ 
-	Contains some code for math on Vector 2s, as in, a 2D vector.
-]]
-
--- library name
-Vector2 = {}
-
---[[
-
-
-	Classes
-
-
-]]
-
----@class Vector2
----@field x number
----@field y number Usually the z axis in disguise.
-
---[[
-
-
-	Variables
-
-
-]]
-
---[[
-
-
-	Functions
-
-
-]]
-
---- Function for creating a new Vector2
----@param x number
----@param y number
----@return Vector2
-function Vector2.new(x, y)
-	-- create the vector
-	local vector = {
-		x = x,
-		y = y
-	}
-
-	-- return the vector
-	return vector
-end
-
---- Function for creating a Vector2 from polar coordinates
----@param distance number the distance from the origin
----@param angle number the angle from the origin
----@return Vector2
-function Vector2.fromPolar(distance, angle)
-	-- create the vector from the polar coordinates
-	local vector = {
-		x = distance * math.cos(angle),
-		y = distance * math.sin(angle)
-	}
-
-	-- return the vector
-	return vector
-end
-
---- Function for adding two Vector2s
----@param a Vector2
----@param b Vector2
----@return Vector2
-function Vector2.add(a, b)
-	-- create the added vector
-	local vector = {
-		x = a.x + b.x,
-		y = a.y + b.y
-	}
-
-	-- return the vector
-	return vector
-end
-
---- Function for getting the euclidean distance
----@param a Vector2
----@param b Vector2
----@return number euclidean_distance euclidean distance between the two 2D vectors.
-function Vector2.euclideanDistance(a, b)
-	-- get the relative x position
-	local rx = a.x - b.x
-
-	-- get the relative y position
-	local ry = a.y - b.y
-
-	-- return the distance
-	return math.sqrt(rx*rx+ry*ry)
-end
-
---- Function for getting the manhattan distance
----@param a Vector2
----@param b Vector2
----@return number manhattan_distance manhattan distance between the two 2D vectors.
-function Vector2.manhattanDistance(a, b)
-	-- return the distance
-	return (
-		math.abs(a.x - b.x) + -- get manhattan distance on x axis
-		math.abs(a.y - b.y) -- get manhattan distance on y axis
-	)
-end
-
---- Function for getting the angle from vector a to vector b
----@param a Vector2
----@param b Vector2
----@return number angle the angle from vector a to vector b
-function Vector2.angleBetween(a, b)
-	-- get the relative x position
-	local rx = b.x - a.x
-
-	-- get the relative y position
-	local ry = b.y - a.y
-
-	-- return the angle
-	return math.atan(ry, rx)
-end
--- This library is for controlling or getting things about the Enemy AI.
-
--- required libraries
-
--- library name
-AI = {}
-
---- @param vehicle_object vehicle_object the vehicle you want to set the state of
---- @param state string the state you want to set the vehicle to
---- @return boolean success if the state was set
-function AI.setState(vehicle_object, state)
-	if vehicle_object then
-		if state ~= vehicle_object.state.s then
-			if state == VEHICLE.STATE.HOLDING then
-				vehicle_object.holding_target = vehicle_object.transform
-			end
-			vehicle_object.state.s = state
-		end
-	else
-		d.print("(AI.setState) vehicle_object is nil!", true, 1)
-	end
-	return false
-end
-
---# made for use with toggles in buttons (only use for toggle inputs to seats)
----@param vehicle_id integer the vehicle's id that has the seat you want to set
----@param seat_name string the name of the seat you want to set
----@param axis_ws number w/s axis
----@param axis_ad number a/d axis
----@param axis_ud number up down axis
----@param axis_lr number left right axis
----@param ... boolean buttons (1-7) (7 is trigger)
----@return boolean set_seat if the seat was set
-function AI.setSeat(vehicle_id, seat_name, axis_ws, axis_ad, axis_ud, axis_lr, ...)
-	
-	if not vehicle_id then
-		d.print("(AI.setSeat) vehicle_id is nil!", true, 1)
-		return false
-	end
-
-	if not seat_name then
-		d.print("(AI.setSeat) seat_name is nil!", true, 1)
-		return false
-	end
-
-	local button = table.pack(...)
-
-	-- sets any nil values to 0 or false
-	axis_ws = axis_ws or 0
-	axis_ad = axis_ad or 0
-	axis_ud = axis_ud or 0
-	axis_lr = axis_lr or 0
-
-	for i = 1, 7 do
-		button[i] = button[i] or false
-	end
-
-	g_savedata.seat_states = g_savedata.seat_states or {}
-
-
-	if not g_savedata.seat_states[vehicle_id] or not g_savedata.seat_states[vehicle_id][seat_name] then
-
-		g_savedata.seat_states[vehicle_id] = g_savedata.seat_states[vehicle_id] or {}
-		g_savedata.seat_states[vehicle_id][seat_name] = {}
-
-		for i = 1, 7 do
-			g_savedata.seat_states[vehicle_id][seat_name][i] = false
-		end
-	end
-
-	for i = 1, 7 do
-		if button[i] ~= g_savedata.seat_states[vehicle_id][seat_name][i] then
-			g_savedata.seat_states[vehicle_id][seat_name][i] = button[i]
-			button[i] = true
-		else
-			button[i] = false
-		end
-	end
-
-	s.setVehicleSeat(vehicle_id, seat_name, axis_ws, axis_ad, axis_ud, axis_lr, button[1], button[2], button[3], button[4], button[5], button[6], button[7])
-	return true
-end
-
-
---require("libraries.icm.spawnModifiers")
-
----@diagnostic disable:duplicate-doc-field
----@diagnostic disable:duplicate-doc-alias
----@diagnostic disable:duplicate-set-field
-
--- library name
-Pathfinding = {}
-
---[[
-
-
-	Constants
-
-
-]]
-
--- Increment the distance by 5m each time.
-PATHFINDING_NUDGE_DISTANCE_INCREMENT = 5
-
--- The max nudge distance until we increment the angle again.
-PATHFINDING_NUDGE_DISTANCE_MAX = 30
-
--- Increment angle by a quarter pi (45 degrees) each time, when the nudge distance is reached.
-PATHFINDING_NUDGE_ANGLE_INCREMENT = math.pi/4
-
--- Increment the angle until we reach the max angle. (360 degrees)
-PATHFINDING_NUDGE_ANGLE_MAX = math.tau
-
--- The maximum number of nodes in path until it stops trying to add more, to avoid infinite recursion.
-PATHFINDING_MAX_NODES = 700
-
--- The distance the final path has to be to either the x or z tile border in order to try to start nudging.
-PATHFINDING_START_NUDGING_DISTANCE = 30
-
---[[
-
-
-	Variables
-   
-
-]]
-
---[[
-
-
-	Classes
-
-
-]]
-
----@class PathNode
----@field x integer the x coordinate of the path node
----@field y integer the y coordinate of the path node
----@field z integer the z coordinate of the path node
----@field ui_id SWUI_ID the ui id of the path node for debug
-
---- The path to follow, starting from the end and to the beginning,<br>the last node [#path] is always the destination, [1] is the node we're currently going to, and [0] is the previous one.
----@alias Path table<integer, PathNode>
-
----@enum YPathfinderNodeDataNSO
----| '0' # the node is not specific to vanilla or NSO
----| '1' # the node is specific for NSO
----| '2' # the node is specific for vanilla
-
-
----@class YPathfinderNodeData
----@field y number the y coordinate of the node
----@field type "land_path"|"ocean_path"	the type of the node
----@field NSO YPathfinderNodeDataNSO if the node is for NSO or not
-
---[[
-
-
-	Functions
-
-
-]]
-
---[[
-
-	Internal Usage
-
-]]
-
--- Get the distance to the closest tile border
----@param vector Vector2 the vector2 to get the distance to the closest tile border from
----@return number distance the distance to the closest tile border
-function Pathfinding.distanceToClosestTileBorder(vector)
-
-	--* Tiles are 1000m by 1000m, so we can just get the distance to the closest tile border by getting the distance to the closest 500m by 500m border.
-
-	-- Get the x distance
-	local x_distance = math.abs((vector.x-250)%1000-250)
-
-	-- Get the z distance
-	local z_distance = math.abs((vector.y-250)%1000-250)
-
-	return math.min(x_distance, z_distance)
-end
-
--- Get the angle between the two nodes
----@param node1 PathNode the first node
----@param node2 PathNode the second node
----@return number angle the angle between the two nodes
-function angleBetweenNodes(node1, node2)
-	-- Get the vector2 of the first node
-	local node1_vector = Vector2.new(node1.x, node1.z)
-
-	-- Get the vector2 of the second node
-	local node2_vector = Vector2.new(node2.x, node2.z)
-
-	-- Get the angle between the two nodes
-	return Vector2.angleBetween(node1_vector, node2_vector)
-end
-
---- Returns if two pathfind nodes are the same
----@param node1 PathNode the first node
----@param node2 PathNode the second node
----@return boolean is_same if the two nodes are the same
-function isPathNodeEqual(node1, node2)
-	-- if x is different, return false
-	if node1.x ~= node2.x then
-		return false
-	-- if y is different, return false
-	elseif node1.y ~= node2.y then
-		return false
-	-- if z is different, return false
-	elseif node1.z ~= node2.z then
-		return false
-	-- if ui_id is different, return false
-	elseif node1.ui_id ~= node2.ui_id then
-		return false
-	end
-
-	-- otherwise, return true, they are the same
-	return true
-end
-
---- Converts a SW node into a PathNode
----@param sw_node SWPathFindPoint the SW node to turn into a PathNode
----@return PathNode path_node the path node
-function pathNodeFromSWNode(sw_node)
-	return {
-		x = sw_node.x,
-		---@diagnostic disable-next-line: undefined-field
-		y = sw_node.y,
-		z = sw_node.z,
-		ui_id = server.getMapID()
-	}
-end
-
---- Converts a Matrix into a PathNode
----@param matrix_transform SWMatrix the Matrix to turn into a PathNode
----@return PathNode path_node the path node
-function pathNodeFromMatrix(matrix_transform)
-	return {
-		x = matrix_transform[13],
-		y = matrix_transform[14],
-		z = matrix_transform[15],
-		ui_id = server.getMapID()
-	}
-end
-
---- Converts a node list returned by the modified server.pathfind or modified server.pathfindOcean into a Path.
----@param node_list table the node list returned by the modified server.pathfind or modified server.pathfindOcean
----@return Path path the path
-function getPathFromNodeList(node_list)
-	-- Define the path
-	---@type Path
-	local path = {}
-
-	-- Iterate through each node in the node list.
-	for node_index = 1, #node_list do
-		-- Convert it to a PathNode and add it to the path.
-		table.insert(path, pathNodeFromSWNode(node_list[node_index]))
-	end
-
-	-- Return the path
-	return path
-end
-
---- Merges two paths together, putting the second path after the first path.<br><h3>NOTE: This function may also modify the original given path1, but this is not accounted for to save on performance.</h3>
----@param path1 Path the first path (the path to be put first)
----@param path2 Path the second path (the pathto be put after the first path)
----@return Path path the merged path
-function mergePaths(path1, path2)
-
-	-- for each node in path2, add it to the end of path1
-	for node_index = 1, #path2 do
-		table.insert(path1, path2[node_index])
-	end
-
-	-- return the merged path
-	return path1
-end
-
--- Get the pathfinding exclusion tags
----@return string exclude the pathfinding exclusion tags
-function getPathfindingExclusionTags()
-	-- define the exclude variable
-	local exclude = ""
-
-	-- if NSO is enabled, then exclude vanilla only graph nodes.
-	if g_savedata.info.mods.NSO then
-		exclude = "not_NSO"
-	-- otherwise, exclude NSO only graph nodes.
-	else
-		exclude = "NSO"
-	end
-
-	-- return exclusion tags
-	return exclude
-end
-
---- More reliable pathfinding, that will nudge the pathfinding start position incrementing bit by bit in each direction if the end position is near a tile border<br> as sometimes, it will be unable to pass through the tile borders normally.
----@param matrix_start SWMatrix the start position of the path
----@param matrix_end SWMatrix the end position of the path
----@param required_tags string the tags that the path must have
----@param avoided_tags string the tags that the path must not have
----@param previous_path_count integer? the number of nodes in the previous "parent" path, used by the function itself, leave undefined.
----@return Path path the path, trying to avoid being stuck on tile borders.
-function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, previous_path_count)
-
-	-- default previous_path_count to 0
-	previous_path_count = previous_path_count or 0
-
-	-- Define the path
-	---@type Path
-	local path = {
-		pathNodeFromMatrix(matrix_start)
-	}
-
-	--- Function to finalise the path, by adding the matrix_end to the end of the path.
-	---@param path Path the path to finalise
-	---@return Path path the finalised path
-	local function finalisePath(path)
-		-- Add the matrix_end to the end of the path
-		table.insert(path, pathNodeFromMatrix(matrix_end))
-
-		-- Return the finalised path
-		return path
-	end
-	
-	--- Function to check if we should nudge the pathfinding again, this checks if it's possible that we're stuck on the tile border.
-	---@param check_path Path the path to check if we should nudge.
-	---@return boolean should_nudge if we should nudge the pathfinding again.
-	local function shouldNudge(check_path)
-		-- Get the number of nodes
-		local node_count = #check_path
-
-		--- Return false if we're over the 5000 node limit
-		if node_count + previous_path_count >= PATHFINDING_MAX_NODES then
-			return false
-		end
-
-		-- Get the last node.
-		local last_node = check_path[node_count]
-
-		-- Get a vector2 of the last node
-		local last_node_vector = Vector2.new(last_node.x, last_node.z)
-
-		-- Get the distance to the closest tile border
-		local distance_to_closest_tile_border = Pathfinding.distanceToClosestTileBorder(last_node_vector)
-
-		-- If we're within the start nudge distance, then we should nudge.
-		if distance_to_closest_tile_border <= PATHFINDING_START_NUDGING_DISTANCE then
-			return true
-		end
-
-		-- Otherwise, we do not need to nudge.
-		return false
-	end
-
-	-- Get the inital path
-	local initial_path = server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags)
-
-	-- Merge the initial path with the path
-	path = mergePaths(path, getPathFromNodeList(initial_path))
-
-	d.print(("Node Count: %s"):format(#path + previous_path_count), true, 0)
-
-	-- Check if we do not need to nudge, if we don't need to, then just return early.
-	if not shouldNudge(path) then
-		-- finalise the path
-		return finalisePath(path)
-	end
-
-	--- Function to get the path from the nudging operation, as a function, so we can just return to exit the loop completely.
-	---@return Path path the path from the nudging operation
-	local function startNudging()
-		-- Get the number of nodes in the path
-		local node_count = #path
-
-		-- Get the last node
-		local last_node = path[node_count]
-
-		-- Get the angle from the second last node to the last node
-		local starting_angle = angleBetweenNodes(path[node_count-1], last_node)
-
-		-- Get the vector 2 of the last node
-		local last_node_vector = Vector2.new(last_node.x, last_node.z)
-
-		-- Iterate through each angle, starting at the starting_angle from the above calculation, and then until we hit the limit + starting_angle from above, and incrementing by the angle increment.
-		for nudge_angle = starting_angle, PATHFINDING_NUDGE_ANGLE_MAX + starting_angle, PATHFINDING_NUDGE_ANGLE_INCREMENT do
-
-			-- Iterate through each distance, starting at the increment, until we hit the limit, and incrementing by the distance increment.
-			for nudge_distance = PATHFINDING_NUDGE_DISTANCE_INCREMENT, PATHFINDING_NUDGE_DISTANCE_MAX, PATHFINDING_NUDGE_DISTANCE_INCREMENT do
-
-				-- Draw blue triangle at the nudge position
-				Map.addMapCircle(
-					-1,
-					server.getMapID(),
-					matrix.translation(
-						last_node_vector.x + nudge_distance * math.sin(nudge_angle),
-						last_node.y,
-						last_node_vector.y + nudge_distance * math.cos(nudge_angle)
-					),
-					5,
-					1,
-					0,
-					25,
-					255,
-					255,
-					3
-				)
-				
-				-- Get the vector from the polar coordinates using the nudge_distance and nudge_angle
-				local nudge_vector = Vector2.fromPolar(nudge_distance, nudge_angle)
-
-				-- Add the nudge vector to the last node vector
-				local nudged_last_node_vector = Vector2.add(last_node_vector, nudge_vector)
-
-				-- Create the matrix for the nudged last node
-				local nudged_new_start_matrix = matrix.translation(
-					nudged_last_node_vector.x,
-					last_node.y,
-					nudged_last_node_vector.y
-				)
-
-				-- Get the path from the nudged last node
-				local nudged_node_list = server.pathfind(nudged_new_start_matrix, matrix_end, required_tags, avoided_tags)
-
-				-- Convert the node list into a path
-				local nudged_path = getPathFromNodeList(nudged_node_list)
-
-				--[[
-					If the last node of the nudged path is the same as the last node of the current path, 
-					then continue to the next iteration, as we've not moved past the tile border.
-				]]
-				if isPathNodeEqual(nudged_path[#nudged_path], last_node) then
-					goto continue
-				end
-
-				--[[
-					We've found a path with a different last node, so we can merge the paths together, and then return the path, but before we do, 
-					send the path to nudgePathfind again, to check if it's now stuck on a tile border in another area.
-				]]
-
-				-- Merge the paths together
-				path = mergePaths(path, nudged_path)
-
-				--[[
-					return the path after we check it again for nudging
-				]]
-
-				--* "do end" required to avoid it yelling that it expected EOF :)
-				do
-					return mergePaths(
-						path,
-						-- nudge the pathfinding again, and return the result, as we want to make sure we did not get stuck on another tile border.
-						nudgePathfind(
-							matrix.translation( -- Set the start matrix as our last matrix.
-								nudged_path[#nudged_path].x,
-								nudged_path[#nudged_path].y,
-								nudged_path[#nudged_path].z
-							),
-							matrix_end,
-							required_tags,
-							avoided_tags,
-							#path + previous_path_count
-						)
-					)
-				end
-
-				::continue::
-			end
-		end
-
-		-- Just in case if we somehow get here, return an empty table.
-		return {}
-	end
-
-	--[[
-		Otherwise, we need to nudge, so start nudging, and return the result after finalising it.
-	]]
-	return finalisePath(startNudging())
-end
-
---[[
-
-	External Usage
-
-]]
-
---- Gets the path for a land vehicle
----@param origin SWMatrix the origin, start position of the path
----@param destination SWMatrix the destination, end position of the path
-function Pathfinding.getLandPath(origin, destination)
-	-- get the tags to exclude
-	local exclude = getPathfindingExclusionTags()
-
-	-- Set the inclusion tag to "land_path"
-	local include = "land_path"
-
-	-- Get the path
-	local path = nudgePathfind(origin, destination, include, exclude)
-
-	-- Return the path
-	return path
-end
-
--- ---@param vehicle_object vehicle_object the vehicle you want to add the path for
--- ---@param target_dest SWMatrix the destination for the path
--- ---@param translate_forward_distance number? the increment of the distance, used to slowly try moving the vehicle's matrix forwards, if its at a tile's boundery, and its unable to move, used by the function itself, leave undefined.
--- function Pathfinding.addPath(vehicle_object, target_dest, translate_forward_distance)
-
--- 	-- path tags to exclude
--- 	local exclude = ""
-
--- 	if g_savedata.info.mods.NSO then
--- 		exclude = "not_NSO" -- exclude non NSO graph nodes
--- 	else
--- 		exclude = "NSO" -- exclude NSO graph nodes
--- 	end
-
--- 	if vehicle_object.vehicle_type == VEHICLE.TYPE.TURRET then 
--- 		AI.setState(vehicle_object, VEHICLE.STATE.STATIONARY)
--- 		return
-
--- 	elseif vehicle_object.vehicle_type == VEHICLE.TYPE.BOAT then
--- 		local dest_x, dest_y, dest_z = matrix.position(target_dest)
-
--- 		local path_start_pos = nil
-
--- 		if #vehicle_object.path > 0 then
--- 			local waypoint_end = vehicle_object.path[#vehicle_object.path]
--- 			path_start_pos = matrix.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z)
--- 		else
--- 			path_start_pos = vehicle_object.transform
--- 		end
-
--- 		-- makes sure only small ships can take the tight areas
-		
--- 		if vehicle_object.size ~= "small" then
--- 			exclude = exclude..",tight_area"
--- 		end
-
--- 		-- calculates route
--- 		local path_list = server.pathfind(path_start_pos, matrix.translation(target_dest[13], 0, target_dest[15]), "ocean_path", exclude)
-
--- 		for _, path in pairs(path_list) do
--- 			if not path.y then
--- 				path.y = 0
--- 			end
--- 			if path.y > 1 then
--- 				break
--- 			end 
--- 			table.insert(vehicle_object.path, { 
--- 				x = path.x,
--- 				y = path.y,
--- 				z = path.z,
--- 				ui_id = server.getMapID()
--- 			})
--- 		end
--- 	elseif vehicle_object.vehicle_type == VEHICLE.TYPE.LAND then
--- 		--local dest_x, dest_y, dest_z = m.position(target_dest)
-
--- 		local path_start_pos = nil
-
--- 		if #vehicle_object.path > 0 then
--- 			local waypoint_end = vehicle_object.path[#vehicle_object.path]
-
--- 			if translate_forward_distance then
--- 				local second_last_path_pos
--- 				if #vehicle_object.path < 2 then
--- 					second_last_path_pos = vehicle_object.transform
--- 				else
--- 					local second_last_path = vehicle_object.path[#vehicle_object.path - 1]
--- 					second_last_path_pos = matrix.translation(second_last_path.x, second_last_path.y, second_last_path.z)
--- 				end
-
--- 				local yaw, _ = math.angleToFace(second_last_path_pos[13], waypoint_end.x, second_last_path_pos[15], waypoint_end.z)
-
--- 				path_start_pos = matrix.translation(waypoint_end.x + translate_forward_distance * math.sin(yaw), waypoint_end.y, waypoint_end.z + translate_forward_distance * math.cos(yaw))
-			
--- 				--[[server.addMapLine(-1, vehicle_object.ui_id, m.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z), path_start_pos, 1, 255, 255, 255, 255)
-			
--- 				d.print("path_start_pos (existing paths)", false, 0)
--- 				d.print(path_start_pos)]]
--- 			else
--- 				path_start_pos = matrix.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z)
--- 			end
--- 		else
--- 			path_start_pos = vehicle_object.transform
-
--- 			if translate_forward_distance then
--- 				path_start_pos = matrix.multiply(vehicle_object.transform, matrix.translation(0, 0, translate_forward_distance))
--- 				--[[server.addMapLine(-1, vehicle_object.ui_id, vehicle_object.transform, path_start_pos, 1, 150, 150, 150, 255)
--- 				d.print("path_start_pos (no existing paths)", false, 0)
--- 				d.print(path_start_pos)]]
--- 			else
--- 				path_start_pos = vehicle_object.transform
--- 			end
--- 		end
-
--- 		start_x, start_y, start_z = m.position(vehicle_object.transform)
-
--- 		local exclude_offroad = false
-
--- 		local squad_index, squad = Squad.getSquad(vehicle_object.id)
--- 		if squad.command == SQUAD.COMMAND.CARGO then
--- 			for c_vehicle_id, c_vehicle_object in pairs(squad.vehicles) do
--- 				if g_savedata.cargo_vehicles[c_vehicle_id] then
--- 					exclude_offroad = not g_savedata.cargo_vehicles[c_vehicle_id].route_data.can_offroad
--- 					break
--- 				end
--- 			end
--- 		end
-
--- 		if not vehicle_object.can_offroad or exclude_offroad then
--- 			exclude = exclude..",offroad"
--- 		end
-
--- 		local vehicle_list_id = sm.getVehicleListID(vehicle_object.name)
--- 		local y_modifier = g_savedata.vehicle_list[vehicle_list_id].vehicle.transform[14]
-
--- 		local dest_at_vehicle_y = matrix.translation(target_dest[13], vehicle_object.transform[14], target_dest[15])
-
--- 		local path_list = server.pathfind(path_start_pos, dest_at_vehicle_y, "land_path", exclude)
--- 		for path_index, path in pairs(path_list) do
-
--- 			local path_matrix = matrix.translation(path.x, path.y, path.z)
-
--- 			local distance = matrix.distance(vehicle_object.transform, path_matrix)
-
--- 			if path_index ~= 1 or #path_list == 1 or matrix.distance(vehicle_object.transform, dest_at_vehicle_y) > matrix.distance(dest_at_vehicle_y, path_matrix) and distance >= 7 then
-				
--- 				if not path.y then
--- 					--d.print("not path.y\npath.x: "..tostring(path.x).."\npath.y: "..tostring(path.y).."\npath.z: "..tostring(path.z), true, 1)
--- 					break
--- 				end
-
--- 				table.insert(vehicle_object.path, { 
--- 					x =  path.x, 
--- 					y = (path.y + y_modifier), 
--- 					z = path.z, 
--- 					ui_id = server.getMapID() 
--- 				})
--- 			end
--- 		end
-
--- 		if #vehicle_object.path > 1 then
--- 			-- remove paths which are a waste (eg, makes the vehicle needlessly go backwards when it could just go to the next waypoint)
--- 			local next_path_matrix = matrix.translation(vehicle_object.path[2].x, vehicle_object.path[2].y, vehicle_object.path[2].z)
--- 			if matrix.xzDistance(vehicle_object.transform, next_path_matrix) < matrix.xzDistance(matrix.translation(vehicle_object.path[1].x, vehicle_object.path[1].y, vehicle_object.path[1].z), next_path_matrix) then
--- 				p.nextPath(vehicle_object)
--- 			end
--- 		end
-
--- 		--[[
--- 			checks if the vehicle is basically stuck, and if its at a tile border, if it is, 
--- 			try moving matrix forwards slightly, and keep trying till we've got a path, 
--- 			or until we reach a set max distance, to avoid infinite recursion.
--- 		]]
-
--- 		local max_attempt_distance = 30
--- 		local max_attempt_increment = 5
-
--- 		translate_forward_distance = translate_forward_distance or 0
-
--- 		if translate_forward_distance < max_attempt_distance then
--- 			local last_path = vehicle_object.path[#vehicle_object.path]
-
--- 			-- if theres no last path, just set it as the vehicle's positon.
--- 			if not last_path then
--- 				last_path = {
--- 					x = vehicle_object.transform[13],
--- 					z = vehicle_object.transform[15]
--- 				}
--- 			end
-
--- 			-- checks if we're within the max_attempt_distance of any tile border
--- 			local tile_x_border_distance = math.abs((last_path.x-250)%1000-250)
--- 			local tile_z_border_distance = math.abs((last_path.z-250)%1000-250)
-
--- 			if tile_x_border_distance <= max_attempt_distance or tile_z_border_distance <= max_attempt_distance then
--- 				-- increments the translate_forward_distance
--- 				translate_forward_distance = translate_forward_distance + max_attempt_increment
-
--- 				d.print(("(Pathfinding.addPath) moving the pathfinding start pos forwards by %sm"):format(translate_forward_distance), true, 0)
-
--- 				Pathfinding.addPath(vehicle_object, target_dest, translate_forward_distance)
--- 			end
--- 		else
--- 			d.print(("(Pathfinding.addPath) despite moving the pathfinding start pos forward by %sm, pathfinding still failed for vehicle with id %s, aborting to avoid infinite recursion"):format(translate_forward_distance, vehicle_object.id), true, 0)
--- 		end
--- 	else
--- 		table.insert(vehicle_object.path, { 
--- 			x = target_dest[13], 
--- 			y = target_dest[14], 
--- 			z = target_dest[15], 
--- 			ui_id = server.getMapID() 
--- 		})
--- 	end
--- 	vehicle_object.path[0] = {
--- 		x = vehicle_object.transform[13],
--- 		y = vehicle_object.transform[14],
--- 		z = vehicle_object.transform[15],
--- 		ui_id = server.getMapID()
--- 	}
-
--- 	AI.setState(vehicle_object, VEHICLE.STATE.PATHING)
--- end
-
--- Credit to woe
-function Pathfinding.updatePathfinding()
-	local old_pathfind = server.pathfind --temporarily remember what the old function did
-	local old_pathfindOcean = server.pathfindOcean
-	function server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --permanantly do this new function using the old name.
-		local path = old_pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --do the normal old function
-		--d.print("(updatePathfinding) getting path y", true, 0)
-		return Pathfinding.getPathY(path) --add y to all of the paths.
-	end
-	function server.pathfindOcean(matrix_start, matrix_end)
-		local path = old_pathfindOcean(matrix_start, matrix_end)
-		return Pathfinding.getPathY(path)
-	end
-end
-
-local path_res = "%0.1f"
-
--- Credit to woe
-function Pathfinding.getPathY(path)
-	if not g_savedata.graph_nodes.init then --if it has never built the node's table
-		Pathfinding.createPathY() --build the table this one time
-		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
-	end
-	for each in pairs(path) do
-		if g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)] and g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)][(path_res):format(path[each].z)] then --if y exists
-			path[each].y = g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)][(path_res):format(path[each].z)].y --add it to the table that already contains x and z
-			--d.print("path["..each.."].y: "..tostring(path[each].y), true, 0)
-		end
-	end
-	return path --return the path with the added, or not, y values.
-end
-
--- Credit to woe
-function Pathfinding.createPathY() --this looks through all env mods to see if there is a "zone" then makes a table of y values based on x and z as keys.
-
-	local isGraphNode = function(tag)
-		if tag == "land_path" or tag == "ocean_path" then
-			return tag
-		end
-		return false
-	end
-
-	-- indexed by name, this is so we dont have to constantly call server.getTileTransform for the same tiles. 
-	local tile_locations = {}
-
-	local start_time = server.getTimeMillisec()
-	d.print("Creating Path Y...", true, 0)
-	local total_paths = 0
-	local empty_matrix = matrix.translation(0, 0, 0)
-	for addon_index = 0, server.getAddonCount() - 1 do
-		local ADDON_DATA = server.getAddonData(addon_index)
-		if ADDON_DATA.location_count and ADDON_DATA.location_count > 0 then
-			for location_index = 0, ADDON_DATA.location_count - 1 do
-				local LOCATION_DATA = server.getLocationData(addon_index, location_index)
-				if LOCATION_DATA.env_mod and LOCATION_DATA.component_count > 0 then
-					for component_index = 0, LOCATION_DATA.component_count - 1 do
-						local COMPONENT_DATA = server.getLocationComponentData(
-							addon_index, location_index, component_index
-						)
-						if COMPONENT_DATA.type == "zone" then
-							local graph_node = isGraphNode(COMPONENT_DATA.tags[1])
-							if graph_node then
-
-								local transform_matrix = tile_locations[LOCATION_DATA.tile]
-								if not transform_matrix then
-									tile_locations[LOCATION_DATA.tile] = server.getTileTransform(
-										empty_matrix,
-										LOCATION_DATA.tile,
-										100000
-									)
-
-									transform_matrix = tile_locations[LOCATION_DATA.tile]
-								end
-
-								if transform_matrix then
-									local real_transform = matrix.multiplyXZ(COMPONENT_DATA.transform, transform_matrix)
-									local x = (path_res):format(real_transform[13])
-									local last_tag = COMPONENT_DATA.tags[#COMPONENT_DATA.tags]
-									g_savedata.graph_nodes.nodes[x] = g_savedata.graph_nodes.nodes[x] or {}
-									g_savedata.graph_nodes.nodes[x][(path_res):format(real_transform[15])] = { 
-										y = real_transform[14],
-										type = graph_node,
-										NSO = last_tag == "NSO" and 1 or last_tag == "not_NSO" and 2 or 0
-									}
-									total_paths = total_paths + 1
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-	d.print("Got Y level of all paths\nNumber of nodes: "..total_paths.."\nTime taken: "..(millisecondsSince(start_time)/1000).."s", true, 0)
-end
-
--- function Pathfinding.resetPath(vehicle_object)
--- 	for _, v in pairs(vehicle_object.path) do
--- 		server.removeMapID(-1, v.ui_id)
--- 	end
-
--- 	vehicle_object.path = {}
--- end
-
--- -- makes the vehicle go to its next path
--- ---@param vehicle_object vehicle_object the vehicle object which is going to its next path
--- ---@return number|nil more_paths the number of paths left, nil if error
--- ---@return boolean is_success if it successfully went to the next path
--- function Pathfinding.nextPath(vehicle_object)
-
--- 	--? makes sure vehicle_object is not nil
--- 	if not vehicle_object then
--- 		d.print("(Vehicle.nextPath) vehicle_object is nil!", true, 1)
--- 		return nil, false
--- 	end
-
--- 	--? makes sure the vehicle_object has paths
--- 	if not vehicle_object.path then
--- 		d.print("(Vehicle.nextPath) vehicle_object.path is nil! vehicle_id: "..tostring(vehicle_object.id), true, 1)
--- 		return nil, false
--- 	end
-
--- 	if vehicle_object.path[1] then
--- 		if vehicle_object.path[0] then
--- 			server.removeMapID(-1, vehicle_object.path[0].ui_id)
--- 		end
--- 		vehicle_object.path[0] = {
--- 			x = vehicle_object.path[1].x,
--- 			y = vehicle_object.path[1].y,
--- 			z = vehicle_object.path[1].z,
--- 			ui_id = vehicle_object.path[1].ui_id
--- 		}
--- 		table.remove(vehicle_object.path, 1)
--- 	end
-
--- 	return #vehicle_object.path, true
--- end
-
-
----@diagnostic disable:duplicate-doc-field
----@diagnostic disable:duplicate-doc-alias
----@diagnostic disable:duplicate-set-field
-
---[[ 
-	Handles the creation of routes by interfacing with pathfinding.lua.
-
-	Stores routes by a hash, in order to avoid recalculating the same route over and over again, when we could just pull the ones we've already calculated.
-]]
-
--- library name
-Routing = {}
-
---[[
-
-
-	Classes
-
-
-]]
-
----@alias StoredPathID integer the id of a stored path
-
----@class Route
----@field stored_path_id StoredPathID the id of the stored path
----@field route_type string the type of route
----@field path_index integer the index that the vehicle is at on the path
----@field start_matrix SWMatrix the start of the route
----@field end_matrix SWMatrix the end of the route
-
----@alias PathHash string the hash of a path, format is: start x + | + start y + | + start z + | + end x + | + end y + | + end z + | + route type
-
---[[
-
-
-	Constants
-
-
-]]
-
--- The distance the node must be to the tile border to be checked for if it failed merging.
-FAILED_NODE_TILE_BORDER_DISTANCE = 4
-
--- The distance the node must be to another node for it to be considered merged
-NODE_MERGE_DISTANCE = 10 -- Thanks antie
-
---[[
-
-
-	Variables
-
-
-]]
-
-g_savedata.routing = {
-	---@type table<StoredPathID, Path>
-	stored_paths = {}, -- A table of stored paths, used for getting a path from an id, to avoid needing to store the same path multiple times, and to avoid needing to re-calculating them for the same start/end positions.
-
-	---@type StoredPathID
-	next_path_id = 1, -- The next path id to use
-
-	---@type table<PathHash, StoredPathID>
-	path_hashes = {}, -- A table of path hashes to stored path ids, used for checking if a path has already been stored
-
-	---@type SWUI_ID
-	failed_node_merge_ui_id = nil -- The ui id of the failed node merge ui
-}
-
---- The stored defined operations, for operating vehicles of that class.
-
---[[
-
-
-	Functions
-
-
-]]
-
---- Function for getting a path hash
----@param start_matrix SWMatrix the start of the route
----@param end_matrix SWMatrix the end of the route
----@param route_type string the type of route
----@return PathHash hash the hash of the route
-function Routing.getPathHash(start_matrix, end_matrix, route_type)
-	-- create the hash
-	local hash = ("%0.1f|%0.1f|%0.1f|%0.1f|%0.1f|%0.1f|%s"):format(
-		start_matrix[13],
-		start_matrix[14],
-		start_matrix[15],
-		end_matrix[13],
-		end_matrix[14],
-		end_matrix[15],
-		route_type
-	)
-
-	-- return the hash
-	return hash
-end
-
---- Function for storing a path
----@param path Path the path to store
----@param path_hash PathHash the hash of the path
----@return integer path_id path id of the stored path, if path has already been stored, returns it's id.
-function Routing.storePath(path, path_hash)
-	-- Check if the path has already been stored
-	if g_savedata.routing.path_hashes[path_hash] then
-		-- return existing id
-		return g_savedata.routing.path_hashes[path_hash]
-	end
-
-	-- store the path
-	g_savedata.routing.stored_paths[g_savedata.routing.next_path_id] = path
-
-	-- store the path hash
-	g_savedata.routing.path_hashes[path_hash] = g_savedata.routing.next_path_id
-
-	-- increment the next path id
-	g_savedata.routing.next_path_id = g_savedata.routing.next_path_id + 1
-
-	return g_savedata.routing.next_path_id - 1
-end
-
---- Function for resetting all stored paths
-function Routing.resetStoredPaths()
-	-- reset the stored paths
-	g_savedata.routing.stored_paths = {}
-
-	-- reset the path hashes
-	g_savedata.routing.path_hashes = {}
-end
-
---- Function for getting a path from the id
----@param path_id StoredPathID the id of the path to get
----@return Path? path the path, nil if no path.
-function Routing.getPathFromID(path_id)
-	-- return the path
-	return g_savedata.routing.stored_paths[path_id]
-end
-
---- Function for getting a path id from the hash
----@param path_hash PathHash the hash of the path to get
----@return StoredPathID? path_id the id of the path, nil if no path.
-function Routing.getPathIDFromHash(path_hash)
-	-- return the path id
-	return g_savedata.routing.path_hashes[path_hash]
-end
-
---- Function for getting a path from the hash
----@param path_hash PathHash the hash of the path to get
----@return Path? path the path, nil if no path.
-function Routing.getPathFromHash(path_hash)
-	-- get the path id
-	local path_id = Routing.getPathIDFromHash(path_hash)
-
-	-- if the path id is nil
-	if not path_id then
-		-- return nil, as there is no path
-		return nil
-	end
-
-	-- return the path
-	return g_savedata.routing.stored_paths[path_id]
-end
-
---[[
-
-
-	Definitions
-
-
-]]
 --[[
 	
 Copyright 2024 Liam Matthews
@@ -12078,365 +11619,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
-
---[[
-
-
-	Library Setup
-
-
-]]
-
--- required libraries
-
----@diagnostic disable:duplicate-doc-field
----@diagnostic disable:duplicate-doc-alias
----@diagnostic disable:duplicate-set-field
-
---[[ 
-	LIBRARY DESCRIPTION
-]]
-
--- library name
-LandRoute = {}
-
---[[
-
-
-	Classes
-
-
-]]
-
---[[
-
-
-	Constants
-
-
-]]
-
---[[
-
-
-	Variables
-
-
-]]
-
-g_savedata.routing.land = {
-	debug_routes = {}
-}
-
---[[
-
-
-	Functions
-
-
-]]
-
---- Function for creating a land route
----@param start_matrix SWMatrix the start of the route
----@param end_matrix SWMatrix the end of the route
----@return Route
-function LandRoute.new(start_matrix, end_matrix)
-
-	--[[
-		Try getting the path from the stored paths
-
-		First, grab the hash of the path, and then check if it's stored, if not, then create it
-		but if it's created, then we can use that instead.
-	]]
-
-	-- Grab the hash
-	local hash = Routing.getPathHash(start_matrix, end_matrix, "land")
-
-	-- Check if the path is stored
-	local path_id = Routing.getPathIDFromHash(hash)
-
-	-- If the path is not stored.
-	if not path_id then
-		-- Create the path
-		path = Pathfinding.getLandPath(start_matrix, end_matrix)
-
-		-- Store the path
-		path_id = Routing.storePath(path, hash)
-	end
-
-	-- Create the route
-	---@type Route
-	local route = {
-		stored_path_id = path_id,
-		route_type = "land",
-		path_index = 1,
-		start_matrix = start_matrix,
-		end_matrix = end_matrix,
-	}
-
-	return route
-end
-
--- Define a command to test out getting a land path
-Command.registerCommand(
-	"test_land_path",
-	---@param full_message string the full message
-	---@param peer_id integer the peer_id of the sender
-	---@param arg table the arguments of the command.
-	function(full_message, peer_id, arg)
-		--- Have the player's position be the start pos, and then have them specify x, y, z for destination
-		local start_matrix = server.getPlayerPos(peer_id)
-
-		-- Get the destination
-		local destination = Vector3.new(
-			tonumber(arg[1]) or 0,
-			tonumber(arg[2]) or 0,
-			tonumber(arg[3]) or 0
-		)
-
-		-- Create the end matrix
-		local end_matrix = matrix.identity()
-
-		-- Set the end matrix position
-		end_matrix[13] = destination.x
-		end_matrix[14] = destination.y
-		end_matrix[15] = destination.z
-
-		-- Create the route
-		local route = LandRoute.new(start_matrix, end_matrix)
-
-		-- Store the route
-		table.insert(g_savedata.routing.land.debug_routes, route)
-
-		-- Get the path from the route
-		local path = Routing.getPathFromID(route.stored_path_id)
-
-		if not path then
-			return
-		end
-
-		-- Display the path on the map.
-		for path_index = 1, #path do
-			local path_node = path[path_index]
-
-			-- Display the path node
-			Map.addMapCircle(
-				-1,
-				path_node.ui_id,
-				matrix.translation(path_node.x, path_node.y, path_node.z),
-				5,
-				1,
-				0,
-				255,
-				25,
-				255,
-				16
-			)
-
-			-- if the path_index is greater than 1, then display the line between the two nodes
-			if path_index > 1 then
-				local previous_path_node = path[path_index - 1]
-
-				-- Display the line
-				server.addMapLine(
-					-1,
-					path_node.ui_id,
-					matrix.translation(previous_path_node.x, previous_path_node.y, previous_path_node.z),
-					matrix.translation(path_node.x, path_node.y, path_node.z),
-					1,
-					0,
-					255,
-					25,
-					255
-				)
-			end
-		end
-	end,
-	"admin",
-	"",
-	"",
-	{""}
-)
-
--- Define a command to remove all drawn debug land nodes, and clear them from the table.
-Command.registerCommand(
-	"clear_land_path_debug",
-	---@param full_message string the full message
-	---@param peer_id integer the peer_id of the sender
-	---@param arg table the arguments of the command.
-	function(full_message, peer_id, arg)
-		-- Remove all the map circles
-		for _, route in pairs(g_savedata.routing.land.debug_routes) do
-			local path = Routing.getPathFromID(route.stored_path_id)
-
-			if not path then
-				return
-			end
-
-			-- Display the path on the map.
-			for path_index = 1, #path do
-				local path_node = path[path_index]
-
-				-- Display the path node
-				server.removeMapID(-1, path_node.ui_id)
-			end
-		end
-
-		-- Clear the table
-		g_savedata.routing.land.debug_routes = {}
-	end,
-	"admin",
-	"",
-	"",
-	{""}
-)
-
-
-
---[[
-
-	Commands
-
-]]
-
---- Command for showing all graph nodes that possibly failed merging, resulting in the path not crossing the tile border properly.
--- Define a command to test out getting a land path
-Command.registerCommand(
-	"show_failed_merge_nodes",
-	---@param full_message string the full message
-	---@param peer_id integer the peer_id of the sender
-	---@param arg table the arguments of the command.
-	function(full_message, peer_id, arg)
-
-		-- Make sure the ui_id for the failed node merge ui is set
-		g_savedata.routing.failed_node_merge_ui_id = g_savedata.routing.failed_node_merge_ui_id or server.getMapID()
-
-		-- Remove all of the previous drawn circles
-		server.removeMapID(-1, g_savedata.routing.failed_node_merge_ui_id)
-
-		---@class NodeToMergeCheckData
-		---@field node_data NodeData the node data
-		---@field position Vector3 the position of the node
-
-		-- Define a list of graph nodes that are within the distance to the tile border
-		---@type table<integer, NodeToMergeCheckData>
-		local nodes_to_check = {}
-
-		-- Iterate through every single graph node
-		for x, x_table in pairs(g_savedata.graph_nodes.nodes) do
-			
-			-- Iterate through all of the nodes on this x axis
-			for z, node_data in pairs(x_table) do
-
-				-- Get the node's position as a vector2
-				local node_position_vec2 = Vector2.new(
-					tonumber(x) --[[@as number]],
-					tonumber(z) --[[@as number]]
-				)
-
-				-- Get the closest tile border distance for this node
-				local closest_tile_border_distance = Pathfinding.distanceToClosestTileBorder(node_position_vec2)
-
-				-- Check if the node is within the distance to the tile border
-				if closest_tile_border_distance <= FAILED_NODE_TILE_BORDER_DISTANCE then
-					-- Add the node to the list of nodes to check
-					table.insert(nodes_to_check, {
-						node_data = node_data,
-						position = Vector3.new(
-							node_position_vec2.x,
-							node_data.y,
-							node_position_vec2.y
-						)
-					})
-				end
-			end
-		end
-
-		-- Define a list of nodes that failed merging
-		---@type table<integer, NodeToMergeCheckData>
-		local failed_merge_nodes = {}
-
-		-- Iterate through all of the nodes to check
-		for node_index = 1, #nodes_to_check do
-			-- Get the node to check
-			local node_to_check = nodes_to_check[node_index]
-
-			-- If this node has any nodes within it's merge distance
-			local has_nodes_within_merge_distance = false
-
-			-- Iterate through all of the nodes to check against
-			for node_to_check_against_index = 1, #nodes_to_check do
-				-- Get the node to check against
-				local node_to_check_against = nodes_to_check[node_to_check_against_index]
-
-				-- Skip if the nodes are the same
-				if node_index == node_to_check_against_index then
-					goto continue
-				end
-
-				-- Skip if the nodes are not within the merge distance
-				if Vector3.euclideanDistance(node_to_check.position, node_to_check_against.position) > NODE_MERGE_DISTANCE then
-					goto continue
-				end
-
-				-- Skip if this node is on the same tile
-				if server.getTile(Vector3.toMatrix(node_to_check.position)).name == server.getTile(Vector3.toMatrix(node_to_check_against.position)).name then
-					goto continue
-				end
-
-				-- Set that this node has nodes within it's merge distance
-				has_nodes_within_merge_distance = true
-
-				-- Break
-				break
-
-				---@diagnostic disable-next-line: code-after-break
-				::continue::
-			end
-
-			-- If this node has no nodes within it's merge distance
-			if not has_nodes_within_merge_distance then
-				-- Add it to the list of failed merge nodes
-				table.insert(failed_merge_nodes, node_to_check)
-			end
-		end
-
-		-- Iterate through all of the failed merge nodes, and draw them.
-		for node_index = 1, #failed_merge_nodes do
-			-- Get the node
-			local node = failed_merge_nodes[node_index]
-
-			-- Draw the node
-			Map.addMapCircle(peer_id, g_savedata.routing.failed_node_merge_ui_id, Vector3.toMatrix(node.position), 10, 1, 255, 0, 0, 255, 15)
-		end
-
-		d.print(("Drew %d nodes that possibly failed to merge."):format(#failed_merge_nodes), true, 0, peer_id)
-	end,
-	"admin",
-	"Shows all graph nodes that possibly failed merging, resulting in the path not crossing the tile border properly.",
-	"Shows all graph nodes that possible failed merging.",
-	{""}
-)
---[[
-	
-Copyright 2024 Liam Matthews
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-]]
-
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -12527,6 +11710,13 @@ prefabs_to_initialise = {}
 
 
 ]]
+
+--- Function for getting a prefab from it's name.
+---@param prefab_name string the name of the prefab to get.
+---@return VehiclePrefab|nil the prefab, or nil if it does not exist.
+function VehiclePrefab.getPrefab(prefab_name)
+	return g_savedata.vehicle_prefab.prefabs[prefab_name]
+end
 
 --[[
 
@@ -12937,6 +12127,2679 @@ Command.registerCommand(
 	"Resets the setup state of all prefabs, for debugging purposes.",
 	"Resets the setup state of all prefabs.",
 	{""}
+)
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Tracks the speeds of vehicles, used to integrate the speed tracker into the vehicle system
+
+	Able to support a set amount of resolutions, or a specified one.
+
+	Code isn't the cleanest and is a bit confusing, as trying get good type and variable names is difficult due to the amount of optimisations being done for this.
+]]
+
+-- library name
+VehicleSpeedTracker = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias VehicleSpeedTrackerID integer the id of the speed tracker. Used to index the table of the speed data.
+
+---@class VehicleSpeedTrackerData
+---@field vehicle_id integer the id of the vehicle it is tracking the speed of
+---@field tracker_id VehicleSpeedTrackerID the id of the speed tracker.
+---@field update_rate VehicleSpeedTrackerUpdateRateResolution the update rate of this speed tracker.
+---@field smoothing_amount integer the number of entries back it will store and average from for outputting the speed.
+---@field speed number the speed of the vehicle in m/s.
+---@field speed_history table<integer, number> the raw calculated speed history.
+---@field last_vector Vector3 the previous position of the vehicle.
+---@field last_updated_tick integer the last tick the speed was updated.
+
+---@alias VehicleSpeedTrackerTickerData table<integer, VehicleSpeedTrackerID> indexed by their tick id, stores the tracker id for the vehicle.
+
+---@alias VehicleSpeedTrackerTickers table<VEHICLE_SPEED_TRACKER_UPDATE_RATE, VehicleSpeedTrackerTickerData> indexed by the ticker update rate, stores the ticker data.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+---@enum VehicleSpeedTrackerUpdateRateResolution
+VEHICLE_SPEED_TRACKER_UPDATE_RATE = {
+	PERFECT = 1, -- update speed every tick
+	HIGH = 10, -- update speed every 10 ticks
+	MEDIUM = time.second * 0.5, -- update speed every 500ms (30 ticks)
+	LOW = time.second * 2, -- update speed every 2s (120 ticks)
+	EXTREMELY_LOW = time.second*5 -- update speed every 5s (300 ticks)
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.vehicle_speed_tracker = {
+
+	---@type VehicleSpeedTrackerTickers
+	tickers = {}, -- Stores the data for the tickers, iterated through in onTick
+
+	---@type table<VehicleSpeedTrackerID, VehicleSpeedTrackerData>
+	trackers = {}, -- Stores the data for the vehicles, indexed by their tracker id.
+
+	---@type VehicleSpeedTrackerID
+	next_tracker_id = 1 -- The next id to assign.
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+
+	External Usage
+
+]]
+
+--- Used to setup a vehicle to have it's speed tracked.
+---@param vehicle_id integer the vehicle_id of the vehicle to track.
+---@param update_rate VehicleSpeedTrackerUpdateRateResolution the update rate resolution.
+---@param smoothing_amount integer the number of ticks to smooth between.
+---@return VehicleSpeedTrackerID|nil tracker_id the id of the tracker, nil on error.
+---@return boolean is_success if it successfully created the speed tracker.
+function VehicleSpeedTracker.track(vehicle_id, update_rate, smoothing_amount)
+
+	-- Get the vehicle's current matrix
+	local current_pos, is_success = server.getVehiclePos(vehicle_id)
+
+	-- If it failed, return early.
+	if not is_success then
+		d.print(("(VehicleSpeedTracker.track) Failed to get position of vehicle %s, aborting creation of the speed tracker."):format(vehicle_id), true, 0)
+		return -1, false
+	end
+
+	-- Get the tracker id
+	local tracker_id = g_savedata.libraries.vehicle_speed_tracker.next_tracker_id
+
+	-- Increment the next tracker id
+	g_savedata.libraries.vehicle_speed_tracker.next_tracker_id = g_savedata.libraries.vehicle_speed_tracker.next_tracker_id + 1
+
+	-- Create the tracker
+	---@type VehicleSpeedTrackerData
+	local tracker_data = {
+		vehicle_id = vehicle_id, -- set the vehicle_id
+		tracker_id = tracker_id, -- set the tracker id
+		update_rate = update_rate, -- set the update rate
+		speed = 0, -- default the speed to 0
+		smoothing_amount = smoothing_amount, -- set the smoothing amount
+		speed_history = {}, -- default the speed history to be an empty table
+		last_vector = Vector3.fromMatrix(current_pos, true), -- set the last vector as the current vector
+		last_updated_tick = g_savedata.tick_counter - 1 -- Set the last updated tick to the previous tick, to prevent the onTick loop potentially iterating this on this tick, resulting in a divide by 0 error.
+	}
+
+	-- Store it in the trackers table
+	g_savedata.libraries.vehicle_speed_tracker.trackers[tracker_id] = tracker_data
+
+	-- If the table for this update rate has not been made, create it.
+	g_savedata.libraries.vehicle_speed_tracker.tickers[update_rate] = g_savedata.libraries.vehicle_speed_tracker.tickers[update_rate] or {}
+
+	-- Insert this tracker_id into the table for this update rate.
+	table.insert(g_savedata.libraries.vehicle_speed_tracker.tickers[update_rate], tracker_id)
+
+	-- Return is_success as true, and return the tracker_id.
+	return tracker_id, true
+end
+
+--[[
+
+	Callbacks
+
+]]
+
+--- Called by onTick, ticks the vehicles to update their speeds.
+---@param game_ticks integer the number of ticks since the last tick.
+function VehicleSpeedTracker.onTick(game_ticks)
+
+	-- Iterate through all of the update rates
+	for update_rate, potential_tracker_ids_to_update in pairs(g_savedata.libraries.vehicle_speed_tracker.tickers) do
+
+		-- Get the tick id of the current tick
+		local tick_id = g_savedata.tick_counter % update_rate
+
+		-- Go through all of the vehicles to update.
+		for 
+			ticker_index = tick_id + 1, -- Start at the ticker id + 1, as tick ids start at 0.
+			#potential_tracker_ids_to_update, -- Go until we hit the number of trackers on this tick.
+			update_rate -- Increment by the update rate.
+		do
+			-- Update the vehicle's speed
+			VehicleSpeedTracker.update(potential_tracker_ids_to_update[ticker_index])
+		end
+	end
+end
+
+--[[
+
+	Internal Usage
+
+]]
+
+--- Update the speed of a vehicle
+---@param tracker_id VehicleSpeedTrackerID the id of the tracker to update.
+function VehicleSpeedTracker.update(tracker_id)
+	--*INFO: does not validate very much, as this will be called by onTick very frequently, so minimising performance impact is a priority.
+
+	-- Get the tracker data.
+	local tracker_data = g_savedata.libraries.vehicle_speed_tracker.trackers[tracker_id]
+
+	-- Get the vehicle's current matrix
+	local current_position, _ = server.getVehiclePos(tracker_data.vehicle_id)
+
+	-- Get the current position as a vector
+	local current_vector = Vector3.fromMatrix(current_position)
+
+	-- Get the speed, from the last vector and time since it was last updated.
+	local current_speed = Vector3.euclideanDistance(
+		current_vector,
+		tracker_data.last_vector
+	) * time.second/(g_savedata.tick_counter - tracker_data.last_updated_tick)
+
+	-- Add the speed to the speed history table
+	table.insert(tracker_data.speed_history, current_speed)
+
+	-- Get the number of speed entries for this tracker.
+	local speed_entries = #tracker_data.speed_history
+
+	-- If theres more speed entires than the smoothing amount, remove the last one
+	if speed_entries > tracker_data.smoothing_amount then
+		table.remove(tracker_data.speed_history, speed_entries)
+
+		-- Remove 1 from the number of entries
+		speed_entries = speed_entries - 1
+	end
+
+	-- Define the total speed.
+	local total_speed = 0
+
+	-- Total up all of the speeds
+	for speed_index = 1, speed_entries do
+		total_speed = total_speed + tracker_data.speed_history[speed_index]
+	end
+
+	-- Set and calculate the average speed.
+	tracker_data.speed = total_speed/speed_entries
+
+	-- Set the previous vector.
+	tracker_data.last_vector = current_vector
+
+	-- Set the time the speed was last updated to this tick.
+	tracker_data.last_updated_tick = g_savedata.tick_counter
+end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	LIBRARY DESCRIPTION
+]]
+
+-- library name
+Vehicle = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias GenericVIN integer the generic vehicle identifier number, used to identify generic vehicles from eachother, without needing to rely on group_ids or vehicle_ids.
+
+---@class GenericVehicle
+---@field generic_vin GenericVIN the generic vehicle identifier number for this vehicle.
+---@field prefab_name string the name of the prefab for this vehicle.
+---@field group_id integer the group_id of this vehicle.
+---@field vehicle_ids table<integer, integer> the vehicle_ids in this vehicle.
+---@field speed_tracker_ids table<integer, VehicleSpeedTrackerID> the speed tracker id for this vehicle. Indexed by the vehicle_id.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.generic_vehicles = {
+
+	---@type table<GenericVIN, GenericVehicle>
+	vehicles = {}, -- Stores all of the generic vehicles, indexed by their generic VIN.
+
+	---@type GenericVIN
+	next_generic_vin = 1 -- The next generic VIN to assign.
+
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for spawning a new generic vehicle from the prefab data, at a specific transform.
+---@param prefab_name string the name of the prefab for the vehicle.
+---@param transform SWMatrix the transform to spawn the vehicle at.
+---@return GenericVIN generic_vin the generic vehicle identifier number for this vehicle.
+---@return boolean is_success if it successfully spawned the vehicle.
+function Vehicle.spawn(prefab_name, transform)
+
+	-- Get the generic VIN for this vehicle
+	local generic_vin = g_savedata.libraries.generic_vehicles.next_generic_vin
+
+	-- Increment the next generic VIN
+	g_savedata.libraries.generic_vehicles.next_generic_vin = g_savedata.libraries.generic_vehicles.next_generic_vin + 1
+
+	-- Get the prefab data
+	local prefab_data = VehiclePrefab.getPrefab(prefab_name)
+
+	-- If we failed to get the prefab data, return early.
+	if not prefab_data then
+		d.print(("(Vehicle.spawn) Failed to get the prefab data for prefab %s, aborting creation of the generic vehicle."):format(prefab_name), true, 1)
+		return -1, false
+	end
+
+	-- Spawn a vehicle from the spawning data stored in the prefab
+	local component_data, is_success = ComponentSpawner.spawn(prefab_data.spawning_data, transform)
+
+	-- If we failed to spawn the vehicle, return early.
+	if not is_success then
+		d.print(("(Vehicle.spawn) Failed to spawn the vehicle from the prefab %s, aborting creation of the generic vehicle."):format(prefab_name), true, 1)
+		return -1, false
+	end
+
+	-- Create the generic vehicle data
+	local generic_vehicle = {
+		generic_vin = generic_vin,
+		prefab_name = prefab_name,
+		group_id = component_data.group_id,
+		vehicle_ids = component_data.vehicle_ids,
+		speed_tracker_ids = {}
+	}
+
+	-- Add the generic vehicle to the list of generic vehicles
+	g_savedata.libraries.generic_vehicles.vehicles[generic_vin] = generic_vehicle
+
+	-- Return the generic vehicle identifier number
+	return generic_vin, true
+end
+
+--- Function for getting the speed of the vehicle, in m/s.
+---@param generic_vin GenericVIN the generic VIN of the vehicle.
+---@param vehicle_id integer|nil the specific vehicle_id to grab the speed of, nil to just grab the main body's speed.
+---@return number speed the speed of the vehicle.
+---@return boolean is_success if it successfully got the speed.
+function Vehicle.getSpeed(generic_vin, vehicle_id)
+	-- Get the vehicle from the generic vin
+	local vehicle = g_savedata.libraries.generic_vehicles.vehicles[generic_vin]
+
+	-- If the vehicle_id was not specified, default it to the main body_id.
+	vehicle_id = vehicle_id or vehicle.vehicle_ids[1]
+
+	-- Get the speed tracker_id for this vehicle_id
+	local speed_tracker_id = vehicle.speed_tracker_ids[vehicle_id]
+
+	-- If we failed, return.
+	if not speed_tracker_id then
+		d.print(("(Vehicle.getSpeed) Failed to get the speed_tracker_id for vehicle id %s with the generic vin of %s. Make sure that it's actually created!"):format(vehicle_id, generic_vin), true, 1)
+		return 0, false
+	end
+
+	-- Otherwise, get the speed tracker via the tracker id.
+	local speed_tracker_data = g_savedata.libraries.vehicle_speed_tracker.trackers[speed_tracker_id]
+
+	-- If we failed to get the data, return early.
+	if not speed_tracker_data then
+		d.print(("(Vehicle.getSpeed) Failed to get the data for speed tracker with id %s, Generic VIN: %s, Vehicle ID: %s"):format(speed_tracker_id, generic_vin, vehicle_id), true, 1)
+		return 0, false
+	end
+
+	-- Otherwise, return the speed
+	return speed_tracker_data.speed, true
+end
+
+--- Function for getting a generic vehicle from their vin.
+---@param generic_vin GenericVIN the generic vehicle identifier number.
+---@return GenericVehicle|nil generic_vehicle the generic vehicle data.
+function Vehicle.getGenericVehicle(generic_vin)
+	return g_savedata.libraries.generic_vehicles.vehicles[generic_vin]
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Contains some code for math on Vector 2s, as in, a 2D vector.
+]]
+
+-- library name
+Vector2 = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class Vector2
+---@field x number
+---@field y number Usually the z axis in disguise.
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for creating a new Vector2
+---@param x number
+---@param y number
+---@return Vector2
+function Vector2.new(x, y)
+	-- create the vector
+	local vector = {
+		x = x,
+		y = y
+	}
+
+	-- return the vector
+	return vector
+end
+
+--- Function for creating a Vector2 from polar coordinates
+---@param distance number the distance from the origin
+---@param angle number the angle from the origin
+---@return Vector2
+function Vector2.fromPolar(distance, angle)
+	-- create the vector from the polar coordinates
+	local vector = {
+		x = distance * math.cos(angle),
+		y = distance * math.sin(angle)
+	}
+
+	-- return the vector
+	return vector
+end
+
+--- Function for adding two Vector2s
+---@param a Vector2
+---@param b Vector2
+---@return Vector2
+function Vector2.add(a, b)
+	-- create the added vector
+	local vector = {
+		x = a.x + b.x,
+		y = a.y + b.y
+	}
+
+	-- return the vector
+	return vector
+end
+
+--- Function for getting the euclidean distance
+---@param a Vector2
+---@param b Vector2
+---@return number euclidean_distance euclidean distance between the two 2D vectors.
+function Vector2.euclideanDistance(a, b)
+	-- get the relative x position
+	local rx = a.x - b.x
+
+	-- get the relative y position
+	local ry = a.y - b.y
+
+	-- return the distance
+	return math.sqrt(rx*rx+ry*ry)
+end
+
+--- Function for getting the manhattan distance
+---@param a Vector2
+---@param b Vector2
+---@return number manhattan_distance manhattan distance between the two 2D vectors.
+function Vector2.manhattanDistance(a, b)
+	-- return the distance
+	return (
+		math.abs(a.x - b.x) + -- get manhattan distance on x axis
+		math.abs(a.y - b.y) -- get manhattan distance on y axis
+	)
+end
+
+--- Function for getting the angle from vector a to vector b
+---@param a Vector2
+---@param b Vector2
+---@return number angle the angle from vector a to vector b
+function Vector2.angleBetween(a, b)
+	-- get the relative x position
+	local rx = b.x - a.x
+
+	-- get the relative y position
+	local ry = b.y - a.y
+
+	-- return the angle
+	return math.atan(ry, rx)
+end
+-- This library is for controlling or getting things about the Enemy AI.
+
+-- required libraries
+
+-- library name
+AI = {}
+
+--- @param vehicle_object vehicle_object the vehicle you want to set the state of
+--- @param state string the state you want to set the vehicle to
+--- @return boolean success if the state was set
+function AI.setState(vehicle_object, state)
+	if vehicle_object then
+		if state ~= vehicle_object.state.s then
+			if state == VEHICLE.STATE.HOLDING then
+				vehicle_object.holding_target = vehicle_object.transform
+			end
+			vehicle_object.state.s = state
+		end
+	else
+		d.print("(AI.setState) vehicle_object is nil!", true, 1)
+	end
+	return false
+end
+
+--# made for use with toggles in buttons (only use for toggle inputs to seats)
+---@param vehicle_id integer the vehicle's id that has the seat you want to set
+---@param seat_name string the name of the seat you want to set
+---@param axis_ws number w/s axis
+---@param axis_ad number a/d axis
+---@param axis_ud number up down axis
+---@param axis_lr number left right axis
+---@param ... boolean buttons (1-7) (7 is trigger)
+---@return boolean set_seat if the seat was set
+function AI.setSeat(vehicle_id, seat_name, axis_ws, axis_ad, axis_ud, axis_lr, ...)
+	
+	if not vehicle_id then
+		d.print("(AI.setSeat) vehicle_id is nil!", true, 1)
+		return false
+	end
+
+	if not seat_name then
+		d.print("(AI.setSeat) seat_name is nil!", true, 1)
+		return false
+	end
+
+	local button = table.pack(...)
+
+	-- sets any nil values to 0 or false
+	axis_ws = axis_ws or 0
+	axis_ad = axis_ad or 0
+	axis_ud = axis_ud or 0
+	axis_lr = axis_lr or 0
+
+	for i = 1, 7 do
+		button[i] = button[i] or false
+	end
+
+	g_savedata.seat_states = g_savedata.seat_states or {}
+
+
+	if not g_savedata.seat_states[vehicle_id] or not g_savedata.seat_states[vehicle_id][seat_name] then
+
+		g_savedata.seat_states[vehicle_id] = g_savedata.seat_states[vehicle_id] or {}
+		g_savedata.seat_states[vehicle_id][seat_name] = {}
+
+		for i = 1, 7 do
+			g_savedata.seat_states[vehicle_id][seat_name][i] = false
+		end
+	end
+
+	for i = 1, 7 do
+		if button[i] ~= g_savedata.seat_states[vehicle_id][seat_name][i] then
+			g_savedata.seat_states[vehicle_id][seat_name][i] = button[i]
+			button[i] = true
+		else
+			button[i] = false
+		end
+	end
+
+	s.setVehicleSeat(vehicle_id, seat_name, axis_ws, axis_ad, axis_ud, axis_lr, button[1], button[2], button[3], button[4], button[5], button[6], button[7])
+	return true
+end
+
+
+--require("libraries.icm.spawnModifiers")
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+-- library name
+Pathfinding = {}
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- Increment the distance by 5m each time.
+PATHFINDING_NUDGE_DISTANCE_INCREMENT = 5
+
+-- The max nudge distance until we increment the angle again.
+PATHFINDING_NUDGE_DISTANCE_MAX = 30
+
+-- Increment angle by a quarter pi (45 degrees) each time, when the nudge distance is reached.
+PATHFINDING_NUDGE_ANGLE_INCREMENT = math.pi/4
+
+-- Increment the angle until we reach the max angle. (360 degrees)
+PATHFINDING_NUDGE_ANGLE_MAX = math.tau
+
+-- The maximum number of nodes in path until it stops trying to add more, to avoid infinite recursion.
+PATHFINDING_MAX_NODES = 700
+
+-- The distance the final path has to be to either the x or z tile border in order to try to start nudging.
+PATHFINDING_START_NUDGING_DISTANCE = 30
+
+--[[
+
+
+	Variables
+   
+
+]]
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class PathNode
+---@field x integer the x coordinate of the path node
+---@field y integer the y coordinate of the path node
+---@field z integer the z coordinate of the path node
+---@field ui_id SWUI_ID the ui id of the path node for debug
+---@field consumption_distance number the consumption distance for the path node.
+
+--- The path to follow, starting from the end and to the beginning,<br>the last node [#path] is always the destination, [1] is the node we're currently going to, and [0] is the previous one.
+---@alias Path table<integer, PathNode>
+
+---@enum YPathfinderNodeDataNSO
+---| '0' # the node is not specific to vanilla or NSO
+---| '1' # the node is specific for NSO
+---| '2' # the node is specific for vanilla
+
+
+---@class YPathfinderNodeData
+---@field y number the y coordinate of the node
+---@field type "land_path"|"ocean_path"	the type of the node
+---@field NSO YPathfinderNodeDataNSO if the node is for NSO or not
+---@field cdm number the consumption distance multiplier for the node. Short formed, to try to keep the save file size a bit lower.
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+
+	Internal Usage
+
+]]
+
+-- Get the distance to the closest tile border
+---@param vector Vector2 the vector2 to get the distance to the closest tile border from
+---@return number distance the distance to the closest tile border
+function Pathfinding.distanceToClosestTileBorder(vector)
+
+	--* Tiles are 1000m by 1000m, so we can just get the distance to the closest tile border by getting the distance to the closest 500m by 500m border.
+
+	-- Get the x distance
+	local x_distance = math.abs((vector.x-250)%1000-250)
+
+	-- Get the z distance
+	local z_distance = math.abs((vector.y-250)%1000-250)
+
+	return math.min(x_distance, z_distance)
+end
+
+-- Get the angle between the two nodes
+---@param node1 PathNode the first node
+---@param node2 PathNode the second node
+---@return number angle the angle between the two nodes
+function angleBetweenNodes(node1, node2)
+	-- Get the vector2 of the first node
+	local node1_vector = Vector2.new(node1.x, node1.z)
+
+	-- Get the vector2 of the second node
+	local node2_vector = Vector2.new(node2.x, node2.z)
+
+	-- Get the angle between the two nodes
+	return Vector2.angleBetween(node1_vector, node2_vector)
+end
+
+--- Returns if two pathfind nodes are the same
+---@param node1 PathNode the first node
+---@param node2 PathNode the second node
+---@return boolean is_same if the two nodes are the same
+function isPathNodeEqual(node1, node2)
+	-- if x is different, return false
+	if node1.x ~= node2.x then
+		return false
+	-- if y is different, return false
+	elseif node1.y ~= node2.y then
+		return false
+	-- if z is different, return false
+	elseif node1.z ~= node2.z then
+		return false
+	-- if ui_id is different, return false
+	elseif node1.ui_id ~= node2.ui_id then
+		return false
+	end
+
+	-- otherwise, return true, they are the same
+	return true
+end
+
+--- Converts a SW node into a PathNode
+---@param sw_node SWPathFindPoint the SW node to turn into a PathNode
+---@param base_consume_distance number the base consume distance for the path.
+---@return PathNode path_node the path node
+function pathNodeFromSWNode(sw_node, base_consume_distance)
+
+	-- If the node is missing the y and/or cdm fields, then print an error.
+	---@diagnostic disable-next-line: undefined-field
+	if not sw_node.y or not sw_node.cdm then
+		d.print(("12996: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+	end
+
+	return {
+		x = sw_node.x,
+		---@diagnostic disable-next-line: undefined-field
+		y = sw_node.y or 0,
+		z = sw_node.z,
+		ui_id = server.getMapID(),
+		---@diagnostic disable-next-line: undefined-field
+		consumption_distance = base_consume_distance * (sw_node.cdm or 1)
+	}
+end
+
+--- Converts a Matrix into a PathNode
+---@param matrix_transform SWMatrix the Matrix to turn into a PathNode
+---@param base_consume_distance number the base consume distance for the path.
+---@return PathNode path_node the path node
+function pathNodeFromMatrix(matrix_transform, base_consume_distance)
+	return {
+		x = matrix_transform[13],
+		y = matrix_transform[14],
+		z = matrix_transform[15],
+		ui_id = server.getMapID(),
+		consumption_distance = base_consume_distance
+	}
+end
+
+--- Converts a node list returned by the modified server.pathfind or modified server.pathfindOcean into a Path.
+---@param node_list table the node list returned by the modified server.pathfind or modified server.pathfindOcean
+---@return Path path the path
+function getPathFromNodeList(node_list, base_consume_distance)
+	-- Define the path
+	---@type Path
+	local path = {}
+
+	-- Iterate through each node in the node list.
+	for node_index = 1, #node_list do
+		-- Convert it to a PathNode and add it to the path.
+		table.insert(path, pathNodeFromSWNode(node_list[node_index], base_consume_distance))
+	end
+
+	-- Return the path
+	return path
+end
+
+--- Merges two paths together, putting the second path after the first path.<br><h3>NOTE: This function may also modify the original given path1, but this is not accounted for to save on performance.</h3>
+---@param path1 Path the first path (the path to be put first)
+---@param path2 Path the second path (the pathto be put after the first path)
+---@return Path path the merged path
+function mergePaths(path1, path2)
+
+	-- for each node in path2, add it to the end of path1
+	for node_index = 1, #path2 do
+		table.insert(path1, path2[node_index])
+	end
+
+	-- return the merged path
+	return path1
+end
+
+-- Get the pathfinding exclusion tags
+---@return string exclude the pathfinding exclusion tags
+function getPathfindingExclusionTags()
+	-- define the exclude variable
+	local exclude = ""
+
+	-- if NSO is enabled, then exclude vanilla only graph nodes.
+	if g_savedata.info.mods.NSO then
+		exclude = "not_NSO"
+	-- otherwise, exclude NSO only graph nodes.
+	else
+		exclude = "NSO"
+	end
+
+	-- return exclusion tags
+	return exclude
+end
+
+--- More reliable pathfinding, that will nudge the pathfinding start position incrementing bit by bit in each direction if the end position is near a tile border<br> as sometimes, it will be unable to pass through the tile borders normally.
+---@param matrix_start SWMatrix the start position of the path
+---@param matrix_end SWMatrix the end position of the path
+---@param required_tags string the tags that the path must have
+---@param avoided_tags string the tags that the path must not have
+---@param base_consume_distance number the base consume distance for the path.
+---@param previous_path_count integer? the number of nodes in the previous "parent" path, used by the function itself, leave undefined.
+---@return Path path the path, trying to avoid being stuck on tile borders.
+function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, base_consume_distance, previous_path_count)
+
+	-- default previous_path_count to 0
+	previous_path_count = previous_path_count or 0
+
+	-- Define the path
+	---@type Path
+	local path = {
+		pathNodeFromMatrix(matrix_start, base_consume_distance)
+	}
+
+	--- Function to finalise the path, by adding the matrix_end to the end of the path.
+	---@param path Path the path to finalise
+	---@return Path path the finalised path
+	local function finalisePath(path)
+		-- Add the matrix_end to the end of the path
+		table.insert(path, pathNodeFromMatrix(matrix_end, base_consume_distance))
+
+		-- Return the finalised path
+		return path
+	end
+	
+	--- Function to check if we should nudge the pathfinding again, this checks if it's possible that we're stuck on the tile border.
+	---@param check_path Path the path to check if we should nudge.
+	---@return boolean should_nudge if we should nudge the pathfinding again.
+	local function shouldNudge(check_path)
+		-- Get the number of nodes
+		local node_count = #check_path
+
+		--- Return false if we're over the 5000 node limit
+		if node_count + previous_path_count >= PATHFINDING_MAX_NODES then
+			return false
+		end
+
+		-- Get the last node.
+		local last_node = check_path[node_count]
+
+		-- Get a vector2 of the last node
+		local last_node_vector = Vector2.new(last_node.x, last_node.z)
+
+		-- Get the distance to the closest tile border
+		local distance_to_closest_tile_border = Pathfinding.distanceToClosestTileBorder(last_node_vector)
+
+		-- If we're within the start nudge distance, then we should nudge.
+		if distance_to_closest_tile_border <= PATHFINDING_START_NUDGING_DISTANCE then
+			return true
+		end
+
+		-- Otherwise, we do not need to nudge.
+		return false
+	end
+
+	-- Get the inital path
+	local initial_path = server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags)
+
+	-- Merge the initial path with the path
+	path = mergePaths(path, getPathFromNodeList(initial_path, base_consume_distance))
+
+	d.print(("Node Count: %s"):format(#path + previous_path_count), true, 0)
+
+	-- Check if we do not need to nudge, if we don't need to, then just return early.
+	if not shouldNudge(path) then
+		-- finalise the path
+		return finalisePath(path)
+	end
+
+	--- Function to get the path from the nudging operation, as a function, so we can just return to exit the loop completely.
+	---@return Path path the path from the nudging operation
+	local function startNudging()
+		-- Get the number of nodes in the path
+		local node_count = #path
+
+		-- Get the last node
+		local last_node = path[node_count]
+
+		-- Get the angle from the second last node to the last node
+		local starting_angle = angleBetweenNodes(path[node_count-1], last_node)
+
+		-- Get the vector 2 of the last node
+		local last_node_vector = Vector2.new(last_node.x, last_node.z)
+
+		-- Iterate through each angle, starting at the starting_angle from the above calculation, and then until we hit the limit + starting_angle from above, and incrementing by the angle increment.
+		for nudge_angle = starting_angle, PATHFINDING_NUDGE_ANGLE_MAX + starting_angle, PATHFINDING_NUDGE_ANGLE_INCREMENT do
+
+			-- Iterate through each distance, starting at the increment, until we hit the limit, and incrementing by the distance increment.
+			for nudge_distance = PATHFINDING_NUDGE_DISTANCE_INCREMENT, PATHFINDING_NUDGE_DISTANCE_MAX, PATHFINDING_NUDGE_DISTANCE_INCREMENT do
+
+				-- Draw blue triangle at the nudge position
+				Map.addMapCircle(
+					-1,
+					server.getMapID(),
+					matrix.translation(
+						last_node_vector.x + nudge_distance * math.sin(nudge_angle),
+						last_node.y,
+						last_node_vector.y + nudge_distance * math.cos(nudge_angle)
+					),
+					5,
+					1,
+					0,
+					25,
+					255,
+					255,
+					3
+				)
+				
+				-- Get the vector from the polar coordinates using the nudge_distance and nudge_angle
+				local nudge_vector = Vector2.fromPolar(nudge_distance, nudge_angle)
+
+				-- Add the nudge vector to the last node vector
+				local nudged_last_node_vector = Vector2.add(last_node_vector, nudge_vector)
+
+				-- Create the matrix for the nudged last node
+				local nudged_new_start_matrix = matrix.translation(
+					nudged_last_node_vector.x,
+					last_node.y,
+					nudged_last_node_vector.y
+				)
+
+				-- Get the path from the nudged last node
+				local nudged_node_list = server.pathfind(nudged_new_start_matrix, matrix_end, required_tags, avoided_tags)
+
+				-- Convert the node list into a path
+				local nudged_path = getPathFromNodeList(nudged_node_list, base_consume_distance)
+
+				--[[
+					If the last node of the nudged path is the same as the last node of the current path, 
+					then continue to the next iteration, as we've not moved past the tile border.
+				]]
+				if isPathNodeEqual(nudged_path[#nudged_path], last_node) then
+					goto continue
+				end
+
+				--[[
+					We've found a path with a different last node, so we can merge the paths together, and then return the path, but before we do, 
+					send the path to nudgePathfind again, to check if it's now stuck on a tile border in another area.
+				]]
+
+				-- Merge the paths together
+				path = mergePaths(path, nudged_path)
+
+				--[[
+					return the path after we check it again for nudging
+				]]
+
+				--* "do end" required to avoid it yelling that it expected EOF :)
+				do
+					return mergePaths(
+						path,
+						-- nudge the pathfinding again, and return the result, as we want to make sure we did not get stuck on another tile border.
+						nudgePathfind(
+							matrix.translation( -- Set the start matrix as our last matrix.
+								nudged_path[#nudged_path].x,
+								nudged_path[#nudged_path].y,
+								nudged_path[#nudged_path].z
+							),
+							matrix_end,
+							required_tags,
+							avoided_tags,
+							base_consume_distance,
+							#path + previous_path_count
+						)
+					)
+				end
+
+				::continue::
+			end
+		end
+
+		-- Just in case if we somehow get here, return an empty table.
+		return {}
+	end
+
+	--[[
+		Otherwise, we need to nudge, so start nudging, and return the result after finalising it.
+	]]
+	return finalisePath(startNudging())
+end
+
+--[[
+
+	External Usage
+
+]]
+
+--- Gets the path for a land vehicle
+---@param origin SWMatrix the origin, start position of the path
+---@param destination SWMatrix the destination, end position of the path
+---@param base_consume_distance number the base consumption distance for the path.
+---@return Path path
+function Pathfinding.getLandPath(origin, destination, base_consume_distance)
+	-- get the tags to exclude
+	local exclude = getPathfindingExclusionTags()
+
+	-- Set the inclusion tag to "land_path"
+	local include = "land_path"
+
+	-- Get the path
+	local path = nudgePathfind(origin, destination, include, exclude, base_consume_distance)
+
+	-- Return the path
+	return path
+end
+
+-- ---@param vehicle_object vehicle_object the vehicle you want to add the path for
+-- ---@param target_dest SWMatrix the destination for the path
+-- ---@param translate_forward_distance number? the increment of the distance, used to slowly try moving the vehicle's matrix forwards, if its at a tile's boundery, and its unable to move, used by the function itself, leave undefined.
+-- function Pathfinding.addPath(vehicle_object, target_dest, translate_forward_distance)
+
+-- 	-- path tags to exclude
+-- 	local exclude = ""
+
+-- 	if g_savedata.info.mods.NSO then
+-- 		exclude = "not_NSO" -- exclude non NSO graph nodes
+-- 	else
+-- 		exclude = "NSO" -- exclude NSO graph nodes
+-- 	end
+
+-- 	if vehicle_object.vehicle_type == VEHICLE.TYPE.TURRET then 
+-- 		AI.setState(vehicle_object, VEHICLE.STATE.STATIONARY)
+-- 		return
+
+-- 	elseif vehicle_object.vehicle_type == VEHICLE.TYPE.BOAT then
+-- 		local dest_x, dest_y, dest_z = matrix.position(target_dest)
+
+-- 		local path_start_pos = nil
+
+-- 		if #vehicle_object.path > 0 then
+-- 			local waypoint_end = vehicle_object.path[#vehicle_object.path]
+-- 			path_start_pos = matrix.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z)
+-- 		else
+-- 			path_start_pos = vehicle_object.transform
+-- 		end
+
+-- 		-- makes sure only small ships can take the tight areas
+		
+-- 		if vehicle_object.size ~= "small" then
+-- 			exclude = exclude..",tight_area"
+-- 		end
+
+-- 		-- calculates route
+-- 		local path_list = server.pathfind(path_start_pos, matrix.translation(target_dest[13], 0, target_dest[15]), "ocean_path", exclude)
+
+-- 		for _, path in pairs(path_list) do
+-- 			if not path.y then
+-- 				path.y = 0
+-- 			end
+-- 			if path.y > 1 then
+-- 				break
+-- 			end 
+-- 			table.insert(vehicle_object.path, { 
+-- 				x = path.x,
+-- 				y = path.y,
+-- 				z = path.z,
+-- 				ui_id = server.getMapID()
+-- 			})
+-- 		end
+-- 	elseif vehicle_object.vehicle_type == VEHICLE.TYPE.LAND then
+-- 		--local dest_x, dest_y, dest_z = m.position(target_dest)
+
+-- 		local path_start_pos = nil
+
+-- 		if #vehicle_object.path > 0 then
+-- 			local waypoint_end = vehicle_object.path[#vehicle_object.path]
+
+-- 			if translate_forward_distance then
+-- 				local second_last_path_pos
+-- 				if #vehicle_object.path < 2 then
+-- 					second_last_path_pos = vehicle_object.transform
+-- 				else
+-- 					local second_last_path = vehicle_object.path[#vehicle_object.path - 1]
+-- 					second_last_path_pos = matrix.translation(second_last_path.x, second_last_path.y, second_last_path.z)
+-- 				end
+
+-- 				local yaw, _ = math.angleToFace(second_last_path_pos[13], waypoint_end.x, second_last_path_pos[15], waypoint_end.z)
+
+-- 				path_start_pos = matrix.translation(waypoint_end.x + translate_forward_distance * math.sin(yaw), waypoint_end.y, waypoint_end.z + translate_forward_distance * math.cos(yaw))
+			
+-- 				--[[server.addMapLine(-1, vehicle_object.ui_id, m.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z), path_start_pos, 1, 255, 255, 255, 255)
+			
+-- 				d.print("path_start_pos (existing paths)", false, 0)
+-- 				d.print(path_start_pos)]]
+-- 			else
+-- 				path_start_pos = matrix.translation(waypoint_end.x, waypoint_end.y, waypoint_end.z)
+-- 			end
+-- 		else
+-- 			path_start_pos = vehicle_object.transform
+
+-- 			if translate_forward_distance then
+-- 				path_start_pos = matrix.multiply(vehicle_object.transform, matrix.translation(0, 0, translate_forward_distance))
+-- 				--[[server.addMapLine(-1, vehicle_object.ui_id, vehicle_object.transform, path_start_pos, 1, 150, 150, 150, 255)
+-- 				d.print("path_start_pos (no existing paths)", false, 0)
+-- 				d.print(path_start_pos)]]
+-- 			else
+-- 				path_start_pos = vehicle_object.transform
+-- 			end
+-- 		end
+
+-- 		start_x, start_y, start_z = m.position(vehicle_object.transform)
+
+-- 		local exclude_offroad = false
+
+-- 		local squad_index, squad = Squad.getSquad(vehicle_object.id)
+-- 		if squad.command == SQUAD.COMMAND.CARGO then
+-- 			for c_vehicle_id, c_vehicle_object in pairs(squad.vehicles) do
+-- 				if g_savedata.cargo_vehicles[c_vehicle_id] then
+-- 					exclude_offroad = not g_savedata.cargo_vehicles[c_vehicle_id].route_data.can_offroad
+-- 					break
+-- 				end
+-- 			end
+-- 		end
+
+-- 		if not vehicle_object.can_offroad or exclude_offroad then
+-- 			exclude = exclude..",offroad"
+-- 		end
+
+-- 		local vehicle_list_id = sm.getVehicleListID(vehicle_object.name)
+-- 		local y_modifier = g_savedata.vehicle_list[vehicle_list_id].vehicle.transform[14]
+
+-- 		local dest_at_vehicle_y = matrix.translation(target_dest[13], vehicle_object.transform[14], target_dest[15])
+
+-- 		local path_list = server.pathfind(path_start_pos, dest_at_vehicle_y, "land_path", exclude)
+-- 		for path_index, path in pairs(path_list) do
+
+-- 			local path_matrix = matrix.translation(path.x, path.y, path.z)
+
+-- 			local distance = matrix.distance(vehicle_object.transform, path_matrix)
+
+-- 			if path_index ~= 1 or #path_list == 1 or matrix.distance(vehicle_object.transform, dest_at_vehicle_y) > matrix.distance(dest_at_vehicle_y, path_matrix) and distance >= 7 then
+				
+-- 				if not path.y then
+-- 					--d.print("not path.y\npath.x: "..tostring(path.x).."\npath.y: "..tostring(path.y).."\npath.z: "..tostring(path.z), true, 1)
+-- 					break
+-- 				end
+
+-- 				table.insert(vehicle_object.path, { 
+-- 					x =  path.x, 
+-- 					y = (path.y + y_modifier), 
+-- 					z = path.z, 
+-- 					ui_id = server.getMapID() 
+-- 				})
+-- 			end
+-- 		end
+
+-- 		if #vehicle_object.path > 1 then
+-- 			-- remove paths which are a waste (eg, makes the vehicle needlessly go backwards when it could just go to the next waypoint)
+-- 			local next_path_matrix = matrix.translation(vehicle_object.path[2].x, vehicle_object.path[2].y, vehicle_object.path[2].z)
+-- 			if matrix.xzDistance(vehicle_object.transform, next_path_matrix) < matrix.xzDistance(matrix.translation(vehicle_object.path[1].x, vehicle_object.path[1].y, vehicle_object.path[1].z), next_path_matrix) then
+-- 				p.nextPath(vehicle_object)
+-- 			end
+-- 		end
+
+-- 		--[[
+-- 			checks if the vehicle is basically stuck, and if its at a tile border, if it is, 
+-- 			try moving matrix forwards slightly, and keep trying till we've got a path, 
+-- 			or until we reach a set max distance, to avoid infinite recursion.
+-- 		]]
+
+-- 		local max_attempt_distance = 30
+-- 		local max_attempt_increment = 5
+
+-- 		translate_forward_distance = translate_forward_distance or 0
+
+-- 		if translate_forward_distance < max_attempt_distance then
+-- 			local last_path = vehicle_object.path[#vehicle_object.path]
+
+-- 			-- if theres no last path, just set it as the vehicle's positon.
+-- 			if not last_path then
+-- 				last_path = {
+-- 					x = vehicle_object.transform[13],
+-- 					z = vehicle_object.transform[15]
+-- 				}
+-- 			end
+
+-- 			-- checks if we're within the max_attempt_distance of any tile border
+-- 			local tile_x_border_distance = math.abs((last_path.x-250)%1000-250)
+-- 			local tile_z_border_distance = math.abs((last_path.z-250)%1000-250)
+
+-- 			if tile_x_border_distance <= max_attempt_distance or tile_z_border_distance <= max_attempt_distance then
+-- 				-- increments the translate_forward_distance
+-- 				translate_forward_distance = translate_forward_distance + max_attempt_increment
+
+-- 				d.print(("(Pathfinding.addPath) moving the pathfinding start pos forwards by %sm"):format(translate_forward_distance), true, 0)
+
+-- 				Pathfinding.addPath(vehicle_object, target_dest, translate_forward_distance)
+-- 			end
+-- 		else
+-- 			d.print(("(Pathfinding.addPath) despite moving the pathfinding start pos forward by %sm, pathfinding still failed for vehicle with id %s, aborting to avoid infinite recursion"):format(translate_forward_distance, vehicle_object.id), true, 0)
+-- 		end
+-- 	else
+-- 		table.insert(vehicle_object.path, { 
+-- 			x = target_dest[13], 
+-- 			y = target_dest[14], 
+-- 			z = target_dest[15], 
+-- 			ui_id = server.getMapID() 
+-- 		})
+-- 	end
+-- 	vehicle_object.path[0] = {
+-- 		x = vehicle_object.transform[13],
+-- 		y = vehicle_object.transform[14],
+-- 		z = vehicle_object.transform[15],
+-- 		ui_id = server.getMapID()
+-- 	}
+
+-- 	AI.setState(vehicle_object, VEHICLE.STATE.PATHING)
+-- end
+
+-- Credit to woe
+function Pathfinding.updatePathfinding()
+	local old_pathfind = server.pathfind --temporarily remember what the old function did
+	local old_pathfindOcean = server.pathfindOcean
+	function server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --permanantly do this new function using the old name.
+		local path = old_pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --do the normal old function
+		--d.print("(updatePathfinding) getting path y", true, 0)
+		return Pathfinding.getPathY(path) --add y to all of the paths.
+	end
+	function server.pathfindOcean(matrix_start, matrix_end)
+		local path = old_pathfindOcean(matrix_start, matrix_end)
+		return Pathfinding.getPathY(path)
+	end
+end
+
+local node_decimal_places = 0
+
+-- Credit to woe
+function Pathfinding.getPathY(path)
+	if not g_savedata.graph_nodes.init then --if it has never built the node's table
+		Pathfinding.createPathY() --build the table this one time
+		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
+	end
+	for each in pairs(path) do
+
+		local x = math.round(path[each].x, node_decimal_places)
+		local z = math.round(path[each].z, node_decimal_places)
+
+		if g_savedata.graph_nodes.nodes[x] and g_savedata.graph_nodes.nodes[x][z] then --if y exists
+			path[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
+			--d.print("path["..each.."].y: "..tostring(path[each].y), true, 0)
+			path[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
+		end
+	end
+	return path --return the path with the added, or not, y values.
+end
+
+-- Credit to woe
+function Pathfinding.createPathY() --this looks through all env mods to see if there is a "zone" then makes a table of y values based on x and z as keys.
+
+	local isGraphNode = function(tag)
+		if tag == "land_path" or tag == "ocean_path" then
+			return tag
+		end
+		return false
+	end
+
+	-- indexed by name, this is so we dont have to constantly call server.getTileTransform for the same tiles. 
+	local tile_locations = {}
+
+	local start_time = server.getTimeMillisec()
+	d.print("Creating Path Y...", true, 0)
+	local total_paths = 0
+	local empty_matrix = matrix.translation(0, 0, 0)
+	for addon_index = 0, server.getAddonCount() - 1 do
+		local ADDON_DATA = server.getAddonData(addon_index)
+		if ADDON_DATA.location_count and ADDON_DATA.location_count > 0 then
+			for location_index = 0, ADDON_DATA.location_count - 1 do
+				local LOCATION_DATA = server.getLocationData(addon_index, location_index)
+				if LOCATION_DATA.env_mod and LOCATION_DATA.component_count > 0 then
+					for component_index = 0, LOCATION_DATA.component_count - 1 do
+						local COMPONENT_DATA = server.getLocationComponentData(
+							addon_index, location_index, component_index
+						)
+						if COMPONENT_DATA.type == "zone" then
+							local graph_node = isGraphNode(COMPONENT_DATA.tags[1])
+							if graph_node then
+
+								local transform_matrix = tile_locations[LOCATION_DATA.tile]
+								if not transform_matrix then
+									tile_locations[LOCATION_DATA.tile] = server.getTileTransform(
+										empty_matrix,
+										LOCATION_DATA.tile,
+										100000
+									)
+
+									transform_matrix = tile_locations[LOCATION_DATA.tile]
+								end
+
+								if transform_matrix then
+									local real_transform = matrix.multiplyXZ(COMPONENT_DATA.transform, transform_matrix)
+									local x = math.round(real_transform[13], node_decimal_places)
+									local last_tag = COMPONENT_DATA.tags[#COMPONENT_DATA.tags]
+									g_savedata.graph_nodes.nodes[x] = g_savedata.graph_nodes.nodes[x] or {}
+									g_savedata.graph_nodes.nodes[x][math.round(real_transform[15], node_decimal_places)] = {
+										y = real_transform[14],
+										type = graph_node,
+										NSO = last_tag == "NSO" and 1 or last_tag == "not_NSO" and 2 or 0 --[[@as YPathfinderNodeDataNSO]],
+										cdm = Tags.getValue(COMPONENT_DATA.tags, "consume_distance_multiplier", false) --[[@as number]] or 1
+									}
+									total_paths = total_paths + 1
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	d.print("Got Y level of all paths\nNumber of nodes: "..total_paths.."\nTime taken: "..(millisecondsSince(start_time)/1000).."s", true, 0)
+end
+
+-- function Pathfinding.resetPath(vehicle_object)
+-- 	for _, v in pairs(vehicle_object.path) do
+-- 		server.removeMapID(-1, v.ui_id)
+-- 	end
+
+-- 	vehicle_object.path = {}
+-- end
+
+-- -- makes the vehicle go to its next path
+-- ---@param vehicle_object vehicle_object the vehicle object which is going to its next path
+-- ---@return number|nil more_paths the number of paths left, nil if error
+-- ---@return boolean is_success if it successfully went to the next path
+-- function Pathfinding.nextPath(vehicle_object)
+
+-- 	--? makes sure vehicle_object is not nil
+-- 	if not vehicle_object then
+-- 		d.print("(Vehicle.nextPath) vehicle_object is nil!", true, 1)
+-- 		return nil, false
+-- 	end
+
+-- 	--? makes sure the vehicle_object has paths
+-- 	if not vehicle_object.path then
+-- 		d.print("(Vehicle.nextPath) vehicle_object.path is nil! vehicle_id: "..tostring(vehicle_object.id), true, 1)
+-- 		return nil, false
+-- 	end
+
+-- 	if vehicle_object.path[1] then
+-- 		if vehicle_object.path[0] then
+-- 			server.removeMapID(-1, vehicle_object.path[0].ui_id)
+-- 		end
+-- 		vehicle_object.path[0] = {
+-- 			x = vehicle_object.path[1].x,
+-- 			y = vehicle_object.path[1].y,
+-- 			z = vehicle_object.path[1].z,
+-- 			ui_id = vehicle_object.path[1].ui_id
+-- 		}
+-- 		table.remove(vehicle_object.path, 1)
+-- 	end
+
+-- 	return #vehicle_object.path, true
+-- end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Handles the creation of routes by interfacing with pathfinding.lua.
+
+	Stores routes by a hash, in order to avoid recalculating the same route over and over again, when we could just pull the ones we've already calculated.
+]]
+
+-- library name
+Routing = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias StoredPathID integer the id of a stored path
+
+---@class Route
+---@field stored_path_id StoredPathID the id of the stored path
+---@field route_type string the type of route
+---@field path_index integer the index that the vehicle is at on the path
+---@field start_matrix SWMatrix the start of the route
+---@field end_matrix SWMatrix the end of the route
+
+---@alias PathHash string the hash of a path, format is: start x + | + start y + | + start z + | + end x + | + end y + | + end z + | + route type
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The distance the node must be to the tile border to be checked for if it failed merging.
+FAILED_NODE_TILE_BORDER_DISTANCE = 4
+
+-- The distance the node must be to another node for it to be considered merged
+NODE_MERGE_DISTANCE = 10 -- Thanks antie
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.routing = {
+	---@type table<StoredPathID, Path>
+	stored_paths = {}, -- A table of stored paths, used for getting a path from an id, to avoid needing to store the same path multiple times, and to avoid needing to re-calculating them for the same start/end positions.
+
+	---@type StoredPathID
+	next_path_id = 1, -- The next path id to use
+
+	---@type table<PathHash, StoredPathID>
+	path_hashes = {}, -- A table of path hashes to stored path ids, used for checking if a path has already been stored
+
+	---@type SWUI_ID
+	failed_node_merge_ui_id = nil -- The ui id of the failed node merge ui
+}
+
+--- The stored defined operations, for operating vehicles of that class.
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for getting a path hash
+---@param start_matrix SWMatrix the start of the route
+---@param end_matrix SWMatrix the end of the route
+---@param route_type string the type of route
+---@return PathHash hash the hash of the route
+function Routing.getPathHash(start_matrix, end_matrix, route_type)
+	-- create the hash
+	local hash = ("%0.1f|%0.1f|%0.1f|%0.1f|%0.1f|%0.1f|%s"):format(
+		start_matrix[13],
+		start_matrix[14],
+		start_matrix[15],
+		end_matrix[13],
+		end_matrix[14],
+		end_matrix[15],
+		route_type
+	)
+
+	-- return the hash
+	return hash
+end
+
+--- Function for storing a path
+---@param path Path the path to store
+---@param path_hash PathHash the hash of the path
+---@return integer path_id path id of the stored path, if path has already been stored, returns it's id.
+function Routing.storePath(path, path_hash)
+	-- Check if the path has already been stored
+	if g_savedata.routing.path_hashes[path_hash] then
+		-- return existing id
+		return g_savedata.routing.path_hashes[path_hash]
+	end
+
+	-- store the path
+	g_savedata.routing.stored_paths[g_savedata.routing.next_path_id] = path
+
+	-- store the path hash
+	g_savedata.routing.path_hashes[path_hash] = g_savedata.routing.next_path_id
+
+	-- increment the next path id
+	g_savedata.routing.next_path_id = g_savedata.routing.next_path_id + 1
+
+	return g_savedata.routing.next_path_id - 1
+end
+
+--- Function for resetting all stored paths
+function Routing.resetStoredPaths()
+	-- reset the stored paths
+	g_savedata.routing.stored_paths = {}
+
+	-- reset the path hashes
+	g_savedata.routing.path_hashes = {}
+end
+
+--- Function for getting a path from the id
+---@param path_id StoredPathID the id of the path to get
+---@return Path? path the path, nil if no path.
+function Routing.getPathFromID(path_id)
+	-- return the path
+	return g_savedata.routing.stored_paths[path_id]
+end
+
+--- Function for getting a path id from the hash
+---@param path_hash PathHash the hash of the path to get
+---@return StoredPathID? path_id the id of the path, nil if no path.
+function Routing.getPathIDFromHash(path_hash)
+	-- return the path id
+	return g_savedata.routing.path_hashes[path_hash]
+end
+
+--- Function for getting a path from the hash
+---@param path_hash PathHash the hash of the path to get
+---@return Path? path the path, nil if no path.
+function Routing.getPathFromHash(path_hash)
+	-- get the path id
+	local path_id = Routing.getPathIDFromHash(path_hash)
+
+	-- if the path id is nil
+	if not path_id then
+		-- return nil, as there is no path
+		return nil
+	end
+
+	-- return the path
+	return g_savedata.routing.stored_paths[path_id]
+end
+
+--[[
+
+
+	Definitions
+
+
+]]
+
+--[[
+
+	Commands
+
+]]
+
+--- Command for showing all graph nodes that possibly failed merging, resulting in the path not crossing the tile border properly.
+-- Define a command to test out getting a land path
+Command.registerCommand(
+	"show_failed_merge_nodes",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+
+		-- Make sure the ui_id for the failed node merge ui is set
+		g_savedata.routing.failed_node_merge_ui_id = g_savedata.routing.failed_node_merge_ui_id or server.getMapID()
+
+		-- Remove all of the previous drawn circles
+		server.removeMapID(-1, g_savedata.routing.failed_node_merge_ui_id)
+
+		---@class NodeToMergeCheckData
+		---@field node_data NodeData the node data
+		---@field position Vector3 the position of the node
+
+		-- Define a list of graph nodes that are within the distance to the tile border
+		---@type table<integer, NodeToMergeCheckData>
+		local nodes_to_check = {}
+
+		-- Iterate through every single graph node
+		for x, x_table in pairs(g_savedata.graph_nodes.nodes) do
+			
+			-- Iterate through all of the nodes on this x axis
+			for z, node_data in pairs(x_table) do
+
+				-- Get the node's position as a vector2
+				local node_position_vec2 = Vector2.new(
+					tonumber(x) --[[@as number]],
+					tonumber(z) --[[@as number]]
+				)
+
+				-- Get the closest tile border distance for this node
+				local closest_tile_border_distance = Pathfinding.distanceToClosestTileBorder(node_position_vec2)
+
+				-- Check if the node is within the distance to the tile border
+				if closest_tile_border_distance <= FAILED_NODE_TILE_BORDER_DISTANCE then
+					-- Add the node to the list of nodes to check
+					table.insert(nodes_to_check, {
+						node_data = node_data,
+						position = Vector3.new(
+							node_position_vec2.x,
+							node_data.y,
+							node_position_vec2.y
+						)
+					})
+				end
+			end
+		end
+
+		-- Define a list of nodes that failed merging
+		---@type table<integer, NodeToMergeCheckData>
+		local failed_merge_nodes = {}
+
+		-- Iterate through all of the nodes to check
+		for node_index = 1, #nodes_to_check do
+			-- Get the node to check
+			local node_to_check = nodes_to_check[node_index]
+
+			-- If this node has any nodes within it's merge distance
+			local has_nodes_within_merge_distance = false
+
+			-- Iterate through all of the nodes to check against
+			for node_to_check_against_index = 1, #nodes_to_check do
+				-- Get the node to check against
+				local node_to_check_against = nodes_to_check[node_to_check_against_index]
+
+				-- Skip if the nodes are the same
+				if node_index == node_to_check_against_index then
+					goto continue
+				end
+
+				-- Skip if the nodes are not within the merge distance
+				if Vector3.euclideanDistance(node_to_check.position, node_to_check_against.position) > NODE_MERGE_DISTANCE then
+					goto continue
+				end
+
+				-- Skip if this node is on the same tile
+				if server.getTile(Vector3.toMatrix(node_to_check.position)).name == server.getTile(Vector3.toMatrix(node_to_check_against.position)).name then
+					goto continue
+				end
+
+				-- Set that this node has nodes within it's merge distance
+				has_nodes_within_merge_distance = true
+
+				-- Break
+				break
+
+				---@diagnostic disable-next-line: code-after-break
+				::continue::
+			end
+
+			-- If this node has no nodes within it's merge distance
+			if not has_nodes_within_merge_distance then
+				-- Add it to the list of failed merge nodes
+				table.insert(failed_merge_nodes, node_to_check)
+			end
+		end
+
+		-- Iterate through all of the failed merge nodes, and draw them.
+		for node_index = 1, #failed_merge_nodes do
+			-- Get the node
+			local node = failed_merge_nodes[node_index]
+
+			-- Draw the node
+			Map.addMapCircle(peer_id, g_savedata.routing.failed_node_merge_ui_id, Vector3.toMatrix(node.position), 10, 1, 255, 0, 0, 255, 15)
+		end
+
+		d.print(("Drew %d nodes that possibly failed to merge."):format(#failed_merge_nodes), true, 0, peer_id)
+	end,
+	"admin",
+	"Shows all graph nodes that possibly failed merging, resulting in the path not crossing the tile border properly.",
+	"Shows all graph nodes that possible failed merging.",
+	{""}
+)
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	LIBRARY DESCRIPTION
+]]
+
+-- library name
+LandRoute = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The base land consumption distance, means how many metres the vehicle has to be within the node for it to get sent to the next node in the path.
+BASE_LAND_CONSUMPTION_DISTANCE = 5
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.routing.land = {
+	debug_routes = {}
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for creating a land route
+---@param start_matrix SWMatrix the start of the route
+---@param end_matrix SWMatrix the end of the route
+---@return Route
+function LandRoute.new(start_matrix, end_matrix)
+
+	--[[
+		Try getting the path from the stored paths
+
+		First, grab the hash of the path, and then check if it's stored, if not, then create it
+		but if it's created, then we can use that instead.
+	]]
+
+	-- Grab the hash
+	local hash = Routing.getPathHash(start_matrix, end_matrix, "land")
+
+	-- Check if the path is stored
+	local path_id = Routing.getPathIDFromHash(hash)
+
+	-- If the path is not stored.
+	if not path_id then
+		-- Create the path
+		path = Pathfinding.getLandPath(start_matrix, end_matrix, BASE_LAND_CONSUMPTION_DISTANCE)
+
+		-- Store the path
+		path_id = Routing.storePath(path, hash)
+	end
+
+	-- Create the route
+	---@type Route
+	local route = {
+		stored_path_id = path_id,
+		route_type = "land",
+		path_index = 1,
+		start_matrix = start_matrix,
+		end_matrix = end_matrix,
+	}
+
+	return route
+end
+
+-- Define a command to test out getting a land path
+Command.registerCommand(
+	"test_land_path",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		--- Have the player's position be the start pos, and then have them specify x, y, z for destination
+		local start_matrix = server.getPlayerPos(peer_id)
+
+		-- Get the destination
+		local destination = Vector3.new(
+			tonumber(arg[1]) or 0,
+			tonumber(arg[2]) or 0,
+			tonumber(arg[3]) or 0
+		)
+
+		-- Create the end matrix
+		local end_matrix = matrix.identity()
+
+		-- Set the end matrix position
+		end_matrix[13] = destination.x
+		end_matrix[14] = destination.y
+		end_matrix[15] = destination.z
+
+		-- Create the route
+		local route = LandRoute.new(start_matrix, end_matrix)
+
+		-- Store the route
+		table.insert(g_savedata.routing.land.debug_routes, route)
+
+		-- Get the path from the route
+		local path = Routing.getPathFromID(route.stored_path_id)
+
+		if not path then
+			return
+		end
+
+		-- Display the path on the map.
+		for path_index = 1, #path do
+			local path_node = path[path_index]
+
+			-- Display the path node
+			Map.addMapCircle(
+				-1,
+				path_node.ui_id,
+				matrix.translation(path_node.x, path_node.y, path_node.z),
+				5,
+				1,
+				0,
+				255,
+				25,
+				255,
+				16
+			)
+
+			-- if the path_index is greater than 1, then display the line between the two nodes
+			if path_index > 1 then
+				local previous_path_node = path[path_index - 1]
+
+				-- Display the line
+				server.addMapLine(
+					-1,
+					path_node.ui_id,
+					matrix.translation(previous_path_node.x, previous_path_node.y, previous_path_node.z),
+					matrix.translation(path_node.x, path_node.y, path_node.z),
+					1,
+					0,
+					255,
+					25,
+					255
+				)
+			end
+		end
+	end,
+	"admin",
+	"",
+	"",
+	{""}
+)
+
+-- Define a command to remove all drawn debug land nodes, and clear them from the table.
+Command.registerCommand(
+	"clear_land_path_debug",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- Remove all the map circles
+		for _, route in pairs(g_savedata.routing.land.debug_routes) do
+			local path = Routing.getPathFromID(route.stored_path_id)
+
+			if not path then
+				return
+			end
+
+			-- Display the path on the map.
+			for path_index = 1, #path do
+				local path_node = path[path_index]
+
+				-- Display the path node
+				server.removeMapID(-1, path_node.ui_id)
+			end
+		end
+
+		-- Clear the table
+		g_savedata.routing.land.debug_routes = {}
+	end,
+	"admin",
+	"",
+	"",
+	{""}
+)
+
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Stores and handles the data for drivable vehicles.
+
+	Also has the onTick for driving the actual vehicles.
+]]
+
+--TODO: Formation system. Could be used for things like a convoy, fighters keeping formation, police car pit maneuver, etc.
+
+-- library name
+DrivableVehicle = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias DrivableVehicleID integer
+
+---@class DrivableVehicle
+---@field drivable_vehicle_id DrivableVehicleID the id of the drivable vehicle.
+---@field generic_vin GenericVIN the generic vehicle identifier number for this vehicle.
+---@field transform SWMatrix the transform of the vehicle.
+---@field route Route|nil the route for this vehicle.
+---@field vehicle_type DrivableVehicleType the type of vehicle this is.
+---@field max_speed number the max speed of the vehicle in m/s.
+
+---@class SeatInput
+---@field axis_w number the input for the w/s axis, -1 to 1 (1 is w, -1 is s).
+---@field axis_d number the input for the a/d axis, -1 to 1 (1 is d, -1 is a).
+---@field axis_up number the input for the up/down arrow key axis, -1 to 1 (1 is up, -1 is down).
+---@field axis_left number the input for the left/right arrow key axis, -1 to 1 (1 is left, -1 is right).
+---@field button1 boolean the input for the key 1.
+---@field button2 boolean the input for the key 2.
+---@field button3 boolean the input for the key 3.
+---@field button4 boolean the input for the key 4.
+---@field button5 boolean the input for the key 5.
+---@field button6 boolean the input for the key 6.
+---@field trigger boolean the input for the trigger (space).
+
+
+--[[
+
+
+	Constants
+
+
+]]
+
+---@enum DrivableVehicleType
+DRIVABLE_VEHICLE_TYPE = {
+	AIR = 0,
+	LAND = 1,
+	SEA = 2,
+	UNKNOWN = 3
+}
+
+--- The number of ticks to split the loaded drivable vehicles by.
+LOADED_DRIVABLE_VEHICLE_UPDATE_RATE = 5
+
+UNLOADED_DRIVABLE_VEHICLE_UPDATE_RATE = 1--time.second*5
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.drivable_vehicles = {
+	---@type table<DrivableVehicleID, DrivableVehicle>
+	vehicles = {}, -- Stores all of the drivable vehicles, indexed by drivable vehicle id.
+
+	---@type table<integer, DrivableVehicleID>
+	loaded = {}, -- Stores all of the loaded drivable vehicles, stores the drivable vehicle id.
+
+	---@type table<integer, DrivableVehicleID>
+	unloaded = {}, -- Stores all of the unloaded drivable vehicles, stores the drivable vehicle id.
+
+	---@type DrivableVehicleID
+	next_drivable_vehicle_id = 1 -- The next drivable vehicle id to assign.
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for spawning a new drivable vehicle from the prefab data at a specific transform.
+---@param prefab_name string the name of the prefab for the vehicle.
+---@param transform SWMatrix the transform to spawn the vehicle at.
+---@return DrivableVehicleID integer the id of the spawned vehicle.
+---@return boolean is_success if it successfully spawned the vehicle.
+function DrivableVehicle.spawn(prefab_name, transform)
+	-- Spawn the generic vehicle and get the VIN
+	local generic_vin, is_success = Vehicle.spawn(prefab_name, transform)
+
+	-- If the vehicle failed to be spawned, return early.
+	if not is_success then
+		d.print(("(DrivableVehicle.spawn) Failed to spawn vehicle with prefab name %s, aborting creation of the drivable vehicle."):format(prefab_name), true, 0)
+		return -1, false
+	end
+
+	-- Get the drivable vehicle id
+	local drivable_vehicle_id = g_savedata.libraries.drivable_vehicles.next_drivable_vehicle_id
+
+	-- Increment the next drivable vehicle id
+	g_savedata.libraries.drivable_vehicles.next_drivable_vehicle_id = g_savedata.libraries.drivable_vehicles.next_drivable_vehicle_id + 1
+
+	--[[
+		Get the vehicle type from the tag "medium".
+	]]
+
+	-- default to unknown.
+	local drivable_vehicle_type = DRIVABLE_VEHICLE_TYPE.UNKNOWN
+
+	-- Get the prefab's data
+	local prefab_data = VehiclePrefab.getPrefab(prefab_name)
+
+	-- If we failed to get the prefab data, return early.
+	if not prefab_data then
+		d.print(("(DrivableVehicle.spawn) Failed to get the prefab data for prefab %s, aborting creation of the drivable vehicle."):format(prefab_name), true, 1)
+		return -1, false
+	end
+
+	-- Get the medium
+	local medium = Tags.getValue(prefab_data.tags, "medium", true)
+
+	-- If the medium is "air", set the vehicle type to air.
+	if medium == "air" then
+		drivable_vehicle_type = DRIVABLE_VEHICLE_TYPE.AIR
+	-- If the medium is "land", set the vehicle type to land.
+	elseif medium == "land" then
+		drivable_vehicle_type = DRIVABLE_VEHICLE_TYPE.LAND
+	-- If the medium is "sea", set the vehicle type to sea.
+	elseif medium == "sea" then
+		drivable_vehicle_type = DRIVABLE_VEHICLE_TYPE.SEA
+	end
+
+	-- Get the max speed of the vehicle, default to 0 if not specified, tag is in kmh format.
+	local raw_max_speed = Tags.getValue(prefab_data.tags, "max_speed", false) --[[@as number]] or 0
+
+	-- Get the max speed in m/s
+	local max_speed = UnitConversions.kilometresPerHour.toMetresPerSecond(raw_max_speed)
+
+	-- Create the drivable vehicle
+	---@type DrivableVehicle
+	local drivable_vehicle = {
+		drivable_vehicle_id = drivable_vehicle_id,
+		generic_vin = generic_vin,
+		transform = transform,
+		route = nil,
+		max_speed = max_speed,
+		vehicle_type = drivable_vehicle_type
+	}
+
+	-- Add the drivable vehicle to g_savedata
+	g_savedata.libraries.drivable_vehicles.vehicles[drivable_vehicle_id] = drivable_vehicle
+
+	-- Add the drivable vehicle to the unloaded list
+	table.insert(g_savedata.libraries.drivable_vehicles.unloaded, drivable_vehicle_id)
+
+	-- Return the drivable vehicle id
+	return drivable_vehicle_id, true
+end
+
+--- Function for setting the target position for a drivable vehicle.
+---@param drivable_vehicle_id DrivableVehicleID the id of the drivable vehicle.
+---@param target_matrix SWMatrix the target position for the vehicle.
+---@return boolean is_success if it successfully updated fthe route.
+function DrivableVehicle.updateTargetPosition(drivable_vehicle_id, target_matrix)
+
+	-- Get the drivable vehicle
+	local drivable_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[drivable_vehicle_id]
+
+	-- Define the route variable
+	local route
+
+	-- If the vehicle type is land, use land calculation.
+	if drivable_vehicle.vehicle_type == DRIVABLE_VEHICLE_TYPE.LAND then
+		route = LandRoute.new(drivable_vehicle.transform, target_matrix)
+	end
+
+	-- Set the route.
+	drivable_vehicle.route = route
+
+	-- Return true that it was a success.
+	return true
+end
+
+--- Function for getting an empty seat input identity
+---@return SeatInput seat_input the empty seat input identity.
+function DrivableVehicle.getSeatInputIdentity()
+	---@type SeatInput
+	return {
+		axis_w = 0,
+		axis_d = 0,
+		axis_up = 0,
+		axis_left = 0,
+		button1 = false,
+		button2 = false,
+		button3 = false,
+		button4 = false,
+		button5 = false,
+		button6 = false,
+		trigger = false
+	}
+end
+
+--- Function for getting a vehicle's target speed.
+---@param drivable_vehicle DrivableVehicle the vehicle to get the target speed for.
+---@return number target_speed the target speed of the vehicle.
+function DrivableVehicle.getTargetSpeed(drivable_vehicle)
+	-- In the future, will be alot more complex, taking into account vehicles ahead, and trying to keep a distance from them, as well as speed limits. But for now, just return the max speed.
+	return drivable_vehicle.max_speed
+end
+
+--[[
+
+	Callbacks
+
+]]
+
+--- Ticks the drivable vehicles.
+function DrivableVehicle.onTick(game_ticks)
+	-- Go through the loaded vehicles for this tick and update them.
+	for loaded_vehicle_index = g_savedata.tick_counter % LOADED_DRIVABLE_VEHICLE_UPDATE_RATE + 1, #g_savedata.libraries.drivable_vehicles.loaded, LOADED_DRIVABLE_VEHICLE_UPDATE_RATE do
+		-- Get the loaded vehicle id.
+		local loaded_vehicle_id = g_savedata.libraries.drivable_vehicles.loaded[loaded_vehicle_index]
+		-- Get the loaded vehicle.
+		local loaded_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[loaded_vehicle_id]
+	end
+
+	-- Go through the unloaded vehicles for this tick and update them.
+	for unloaded_vehicle_index = g_savedata.tick_counter % UNLOADED_DRIVABLE_VEHICLE_UPDATE_RATE + 1, #g_savedata.libraries.drivable_vehicles.unloaded, UNLOADED_DRIVABLE_VEHICLE_UPDATE_RATE do
+		-- Get the unloaded vehicle id.
+		local unloaded_vehicle_id = g_savedata.libraries.drivable_vehicles.unloaded[unloaded_vehicle_index]
+
+		-- Get the unloaded vehicle.
+		local unloaded_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[unloaded_vehicle_id]
+
+		-- If this vehicle does not have a route, then skip this vehicle.
+		if not unloaded_vehicle.route then
+			goto continue
+		end
+
+		-- Get the path.
+		local path = Routing.getPathFromID(unloaded_vehicle.route.stored_path_id)
+
+		-- Check if the path recieved is not nil.
+		if not path then
+			goto continue
+		end
+
+		-- Get the desired speed of the vehicle
+		local movement_speed = DrivableVehicle.getTargetSpeed(unloaded_vehicle)
+
+		-- Calculate how far the vehicle should travel this tick
+		local distance_can_travel = movement_speed * (UNLOADED_DRIVABLE_VEHICLE_UPDATE_RATE / time.second)
+		
+		-- Get the generic vehicle for this vehicle
+		local generic_vehicle = Vehicle.getGenericVehicle(unloaded_vehicle.generic_vin)
+
+		-- If the generic vehicle is nil, then skip this vehicle.
+		if not generic_vehicle then
+			goto continue
+		end
+
+		-- Update the current position of this vehicle.
+		unloaded_vehicle.transform, is_success = server.getVehiclePos(generic_vehicle.vehicle_ids[1])
+
+		-- If we failed to get it's position, skip.
+		if not is_success then
+			goto continue
+		end
+
+		---@type SWUI_ID
+		local ui_id = generic_vehicle.group_id + 100005 --[[@as SWUI_ID]]
+
+		server.removeMapObject(-1, ui_id)
+		--server.addMapObject(-1, ui_id, 1, 12, 0, 0, 0, 0, generic_vehicle.vehicle_ids[1], 0, generic_vehicle.prefab_name, 0, generic_vehicle.prefab_name)
+		server.addMapObject(-1, ui_id, 0, 12, unloaded_vehicle.transform[13], unloaded_vehicle.transform[15], 0, 0, 0, 0, generic_vehicle.prefab_name, 0, generic_vehicle.prefab_name)
+
+		--d.print(("Vehicle %d is at\nx: %s\nz: %s"):format(unloaded_vehicle.generic_vin, unloaded_vehicle.transform[13], unloaded_vehicle.transform[15]), true, 0)
+		--goto continue
+
+		--[[
+			Move the vehicle along it's path.
+		]]
+
+		-- Set the last_pos to the transform of the vehicle. This will be moved along the path.
+		local last_position = Vector3.fromMatrix(unloaded_vehicle.transform, true)
+
+		-- Iterate through the path.
+		for path_index = unloaded_vehicle.route.path_index, #path do
+			-- Get the node
+			local node = path[path_index]
+
+			-- Create a vector for the position of this node
+			local node_position = Vector3.new(node.x, node.y, node.z)
+
+			-- Calculate the distance from last_position to the node of this path, set to minimum 0.0001, to avoid division by 0.
+			local distance_to_waypoint = math.max(Vector3.euclideanDistance(last_position, node_position), 0.0001)
+
+			-- Get the progress the vehicle can travel along this path.
+			local progress = math.min(distance_can_travel / distance_to_waypoint, 1)
+
+			--[[
+				Set last pos to the position of the node if progress is 1
+
+				Otherwise, travel along the path by progress.
+			]]
+
+			-- Remove how much we're travelling from the distance to the waypoint.
+			distance_can_travel = distance_can_travel - distance_to_waypoint * progress
+			
+			-- Check if the progress is 1
+			if progress == 1 then
+				-- Set the last position to the node position.
+				last_position = node_position
+
+				-- Increment the path index the vehicle is on.
+				unloaded_vehicle.route.path_index = unloaded_vehicle.route.path_index + 1
+			else
+				-- Travel along the path by progress.
+				last_position = Vector3.lerp(last_position, node_position, progress)
+
+				-- Break, as we cannot move any more.
+				break
+			end
+		end
+
+		-- Move the group to the last position.
+		server.moveVehicle(generic_vehicle.vehicle_ids[1], Vector3.toMatrix(last_position))
+
+		::continue::
+	end
+end
+
+Command.registerCommand(
+	"test_land_vehicle",
+	function()
+		local drivable_vehicle_id, is_success = DrivableVehicle.spawn("Test Land Vehicle", matrix.translation(-6024, 50, -29117))
+		
+		DrivableVehicle.updateTargetPosition(drivable_vehicle_id, matrix.translation(-21310, 50, -28852))
+	end,
+	"admin",
+	"Temporary Debug Command.",
+	"Temporary Debug Command.",
+	{""}
+)
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Used to define the ways of driving vehicles, by the type of vehicle, driving style, driving state, and driving conditions.
+	As an example, for a land vehicle, you could define a driving style of "tank", with the additional styles of "attack_vehicle", and conditions such as "turn_to_target",
+		which is only triggered if a certain condition is hit.
+
+		The conditions are in a priority hiarchy, and it goes on a basis by the current state, starting from the highest priority
+			If that condition is not met, it instead goes to the next highest priority.
+			Or, if that condition is not defined for the current state, it instead checks it on the general vehicle state.
+]]
+
+-- library name
+DrivingVehicles = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class DrivingTypeData
+---@field vehicle_type DrivableVehicleType the type of vehicle this is.
+---@field driving_styles table<DrivingStyleName, DrivingStyle> the driving styles for this vehicle type.
+---@field defineStyle fun(self: DrivingTypeData, style_name: DrivingStyleName):DrivingStyle the function to define a driving style for this vehicle type.
+
+---@alias DrivingStyleName string The driving style for this vehicle type, for example, "tank".
+
+---@class DrivingStyle
+---@field driving_style DrivingStyleName the name of the driving style of this vehicle, for example, "tank".
+---@field driving_states table<DrivingStateName, DrivingState> the driving states for this driving style.
+---@field defineState fun(self: DrivingStyle, state_name: DrivingStateName):DrivingState the function to define a driving state for this driving style.
+
+---@alias DrivingStateName string the name of the driving state of this vehicle, for example, "attack_vehicle".
+
+---@class DrivingState
+---@field driving_state DrivingStateName the name of the driving state of this vehicle, for example, "attack_vehicle".
+---@field conditions table<DrivingConditionPriority, DrivingCondition> the conditions for this driving state.
+---@field defineCondition fun(self: DrivingState, condition_name: DrivingConditionName, priority: DrivingConditionPriority, condition_function: (fun(vehicle: DrivableVehicle):boolean)|boolean, behaviour: fun(vehicle: DrivableVehicle):SeatInput) the function to define a driving condition for this driving state.
+
+---@alias DrivingConditionName string the name of the driving condition of this vehicle, for example, "turn_to_target".
+---@alias DrivingConditionPriority integer the priority of the driving condition, highest priority is checked first.
+
+---@class DrivingCondition
+---@field driving_condition DrivingConditionName the name of the driving condition of this vehicle, for example, "turn_to_target".
+---@field priority integer the priority of this condition, highest priority is checked first.
+---@field condition_function boolean|fun(vehicle: DrivableVehicle):boolean the function that checks if this condition is met.
+---@field behaviour fun(vehicle: DrivableVehicle):SeatInput the behaviour to execute if this condition is met. The buttons do not work like vanilla, and instead, true will just have the button be on, and false will have it be off, instead of toggling it.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+	Stores the driving data for all of the vehicle types.
+]]
+
+---@type table<DrivableVehicleType, DrivingTypeData>
+driving_types = {}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Defines a driving type for a vehicle type. If it already exists, it will return the existing driving type data.
+---@param vehicle_type DrivableVehicleType the type of vehicle to define the driving type for.
+---@return DrivingTypeData driving_type_data driving type data for this vehicle type.
+function DrivingVehicles.define(vehicle_type)
+
+	-- Check if it already exists
+	if driving_types[vehicle_type] then
+		-- If it does, return the existing one.
+		return driving_types[vehicle_type]
+	end
+
+	-- Create the driving type data for this vehicle type.
+	---@type DrivingTypeData
+	local driving_type_data = {
+		vehicle_type = vehicle_type,
+		driving_styles = {},
+		defineStyle = DrivingVehicles.defineStyle
+	}
+
+	-- Add the driving type data to the driving types.
+	driving_types[vehicle_type] = driving_type_data
+
+	-- Return the driving type data.
+	return driving_types[vehicle_type]
+end
+
+--- Defines a driving style for a vehicle type.
+---@param self DrivingTypeData
+---@param style_name DrivingStyleName
+---@return DrivingStyle driving_style the driving style for this vehicle type.
+function DrivingVehicles.defineStyle(self, style_name)
+	
+	-- Check if it already exists
+	if self.driving_styles[style_name] then
+		-- If it does, return the existing one.
+		return self.driving_styles[style_name]
+	end
+
+	-- Create the driving style for this vehicle type.
+	---@type DrivingStyle
+	local driving_style = {
+		driving_style = style_name,
+		driving_states = {},
+		defineState = DrivingVehicles.defineState
+	}
+
+	-- Add the driving style to the driving styles.
+	self.driving_styles[style_name] = driving_style
+
+	-- Return the driving style.
+	return self.driving_styles[style_name]
+end
+
+--- Defines a driving state for a driving style.
+---@param self DrivingStyle
+---@param state_name DrivingStyleName
+function DrivingVehicles.defineState(self, state_name)
+
+	-- Check if it already exists
+	if self.driving_states[state_name] then
+		-- If it does, return the existing one.
+		return self.driving_states[state_name]
+	end
+
+	--- Create the driving state for this driving style.
+	---@type DrivingState
+	local driving_state = {
+		driving_state = state_name,
+		conditions = {},
+		defineCondition = DrivingVehicles.defineCondition
+	}
+
+	-- Add the driving state to the driving states.
+	self.driving_states[state_name] = driving_state
+
+	-- Return the driving state.
+	return self.driving_states[state_name]
+end
+
+--- Defines a driving condition for a driving state.
+---@param self DrivingState
+---@param condition_name DrivingConditionName
+---@param priority DrivingConditionPriority
+---@param condition_function boolean|fun(vehicle: DrivableVehicle):boolean
+---@param behaviour fun(vehicle: DrivableVehicle):SeatInput the behaviour to execute if this condition is met. The buttons do not work like vanilla, and instead, true will just have the button be on, and false will have it be off, instead of toggling it.
+function DrivingVehicles.defineCondition(self, condition_name, priority, condition_function, behaviour)
+	-- Create the driving condition for this driving state.
+	---@type DrivingCondition
+	local driving_condition = {
+		driving_condition = condition_name,
+		priority = priority,
+		condition_function = condition_function,
+		behaviour = behaviour
+	}
+
+	-- Add the condition to the conditions.
+	table.insert(self.conditions, driving_condition)
+
+	-- Sort the conditions by priority.
+	table.sort(self.conditions, function(a, b)
+		return a.priority > b.priority
+	end)
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Has the required files to include for the driving type definitions.
+]]
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Sets up the driving behaviour of ships.
+]]
+
+
+-- Define/Get the sea driving type.
+sea_driving_type = DrivingVehicles.define(DRIVABLE_VEHICLE_TYPE.SEA)
+
+-- Define the ship driving style.
+ship_driving_type = sea_driving_type:defineStyle("ship_basic")
+
+-- Define the general driving state
+ship_general_driving_state = ship_driving_type:defineState("general")
+
+-- Define the normal ship driving condition (driving normally).
+ship_normal_driving_condition = ship_general_driving_state:defineCondition(
+	"normal",
+	0,
+	true,
+	function(vehicle)
+		-- Get an empty seat input identity.
+		local seat_input = DrivableVehicle.getSeatInputIdentity()
+
+		-- Return the seat input
+		return seat_input
+	end
 )
 -- This library is for controlling or getting things about the AI.
 
@@ -13670,7 +15533,157 @@ function Map.addMapCircle(peer_id, ui_id, center_matrix, radius, width, r, g, b,
 		s.addMapLine(peer_id, ui_id, start_matrix, end_matrix, width, r, g, b, a)
 	end
 end
- -- functions for drawing on the map -- custom math functions -- custom matrix functions -- functions for pathfinding -- functions relating to Players -- functions for script/world setup.
+ -- functions for drawing on the map -- custom math functions
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+-- library name
+ExecutionQueue = {}
+
+-- shortened library name
+eq = ExecutionQueue
+
+--[[
+
+
+	Variables
+   
+
+]]
+
+s = s or server
+
+queued_executions = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+---# print function just in case debugging.lua is not present.
+---@param message string the message you want to print
+---@param requires_debug ?boolean if it requires <debug_type> debug to be enabled
+---@param debug_type ?integer the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler) 
+---@param peer_id ?integer if you want to send it to a specific player, leave empty to send to all players
+function ExecutionQueue.print(message, requires_debug, debug_type, peer_id)
+	if not d then
+		s.announce("alu", tostring(message))
+		return
+	end
+
+	d.print(message, requires_debug, debug_type, peer_id)
+end
+
+function ExecutionQueue.tick()
+	local queued_executions_to_remove = {}
+
+	for i = 1, #queued_executions do
+		local queued_execution = queued_executions[i]
+		queued_execution:tick()
+
+		if queued_execution.expired then
+			--[[
+				insert at start to ensure that it removes the ones with the greatest indecies first
+				otherwise would cause issues where for example, it has to remove index 1 and 2, so it
+				removes index 1, but now index 2 is index 1, so when it would go to remove index 2
+				it would actually then remove index 3, leaving index 2 to still be there.
+			]]
+			table.insert(queued_executions_to_remove, 1, i)
+		end
+	end
+
+	for i = 1, #queued_executions_to_remove do
+		table.remove(queued_executions, queued_executions_to_remove[i])
+	end
+end
+
+-- Queue a function to be called when the condition is true, store variables you may want to use in variable_table, and then index the stored variables in the functions via "self:getVar(variable_index)" and self must be defined as a parametre for the function. NOTE: on reloads, all queued_executions will be deleted, this is because we cannot store functions in g_savedata. If you need it after reloads as well, consider trying to rebuild the queued functions in onCreate().
+---@param execute_condition function this function must return true for function_to_execute to be executed.
+---@param function_to_execute function this function will be executed when execute_condition is true.
+---@param variable_table table? use this table to store variables you'll want to use in execute_condition and/or function_to_execute, index these variables in the functions via "self:getVar(variable_index)", and self must be defined as a parametre for the function.
+---@param execute_count integer? the number of times this can be executed, once it hits 0, it will be removed, set to -1 for infinite executions (until reload), defaults to 1
+---@param expire_timer number? the number of ticks until it expires, once it hits 0, it will be removed, set to -1 to never expire (until reload), defaults to -1
+---@return boolean is_success if it successfully the queued execution
+function ExecutionQueue.queue(execute_condition, function_to_execute, variable_table, execute_count, expire_timer)
+
+	if not execute_condition then
+		eq.print("(ExecutionQueue) execute_condition is not defined!", true, 1)
+		return false
+	end
+
+	if type(execute_condition) ~= "function" then
+		eq.print(("(ExecutionQueue) execute_condition is not a function! (execute_condition: %s type: %s"):format(tostring(execute_condition), type(execute_condition)), true, 1)
+		return false
+	end
+
+	if not function_to_execute then
+		eq.print("(ExecutionQueue) function_to_execute is not defined!", true, 1)
+		return false
+	end
+
+	if type(function_to_execute) ~= "function" then
+		eq.print(("(ExecutionQueue) function_to_execute is not a function! (function_to_execute: %s type: %s"):format(tostring(function_to_execute), type(function_to_execute)), true, 1)
+		return false
+	end
+
+	variable_table = variable_table or {}
+
+	local queued_execution = {
+		variable_table = variable_table,
+		execute_condition = execute_condition,
+		function_to_execute = function_to_execute,
+		execute_count = execute_count or 1,
+		expire_timer = expire_timer or -1,
+		expired = false
+	}
+
+	function queued_execution:getVar(variable_index)
+		return self.variable_table[variable_index]
+	end
+
+	function queued_execution:tick()
+		-- see if we've met the execution conditions
+		if self:execute_condition() then
+			-- execute the function
+			self:function_to_execute()
+
+			-- decrement execute_count
+			self.execute_count = self.execute_count - 1
+		end
+
+		-- decrement expire_timer
+		self.expire_timer = self.expire_timer - 1
+
+		-- if we're expired/fully used
+		if self.execute_count == 0 or self.expire_timer == 0 then
+			-- expire self, to be deleted.
+			self.expired = true
+		end
+	end
+
+	table.insert(queued_executions, queued_execution)
+
+	return true
+end
+ -- custom matrix functions -- functions for pathfinding -- functions relating to Players -- functions for script/world setup.
 -- required libraries
 
 -- library name
@@ -14519,6 +16532,7 @@ function OLD_Vehicle.teleport(vehicle_id, transform)
 end]]
  -- functions related to vehicles, and parsing data on them
 
+
 function onCreate(is_world_create)
 
 	-- start the timer for when the world has started to be setup
@@ -14580,28 +16594,88 @@ function onCreate(is_world_create)
 	)
 
 	ac.sendCommunication("onCreate()", 0)
-
-	d.print(("World setup complete! took: %.3fs"):format(Ticks.millisecondsSince(world_setup_time)/1000), true, 0, -1)
 end
 
 --- Called 1 tick after the world has been created, to prevent issues with the addon indexes getting mixed up
 ---@param is_world_create boolean if the world is being created
 function setupMain(is_world_create)
+
+	-- start the timer for when the world has started to be setup
+	local world_setup_time = server.getTimeMillisec()
+
 	-- Setup the prefabs
 	VehiclePrefab.generatePrefabs()
+
+	g_savedata.info.setup = true
+
+	for debug_type, debug_setting in pairs(g_savedata.debug) do
+		if (debug_setting.needs_setup_on_reload and debug_setting.enabled) or (is_world_create and debug_setting.default) then
+			local debug_id = d.debugIDFromType(debug_type)
+
+			if debug_setting.needs_setup_on_reload then
+				d.handleDebug(debug_type, true, 0)
+			end
+
+			d.setDebug(debug_id, -1, true)
+
+		end
+	end
+
+	
+	d.print(("%s setup complete! took: %.3f%s"):format(SHORT_ADDON_NAME, millisecondsSince(world_setup_time)/1000, "s"), true, 0)
+
+	-- this one will reset every reload/load of the world, this ensures that tracebacks wont be enabled before setupMain is finished.
+	addon_setup = true
 end
 
 function onPlayerJoin(steam_id, name, peer_id, is_admin, is_auth)
-	Players.onJoin(tostring(steam_id), peer_id)
+	if not g_savedata.info.setup then
+		d.print("Setting up IMAI for the first time, this may take a few seconds.", false, 0, peer_id)
+	end
+
+	eq.queue(
+		function()
+			return is_dlc_weapons and addon_setup
+		end,
+		function(self)
+
+			local peer_id = self:getVar("peer_id")
+			local steam_id = self:getVar("steam_id")
+
+			Players.onJoin(steam_id, peer_id)
+
+			local player = Players.dataBySID(steam_id)
+
+			if player then
+				for debug_type, debug_data in pairs(g_savedata.debug) do
+					if debug_data.auto_enable then
+						d.setDebug(d.debugIDFromType(debug_type), peer_id, true)
+					end
+				end
+			end
+		end,
+		{
+			peer_id = peer_id,
+			steam_id = tostring(steam_id)
+		},
+		1,
+		-1
+	)
 end
 
 function onTick(game_ticks)
+
+	if g_savedata.debug.traceback.enabled then
+		ac.sendCommunication("DEBUG.TRACEBACK.ERROR_CHECKER", 0)
+	end
 
 	g_savedata.tick_counter = g_savedata.tick_counter + 1
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
 
 	VehiclePrefab.onTick(game_ticks)
+
+	VehicleSpeedTracker.onTick(game_ticks)
 
 	Effects.onTick(game_ticks)
 
@@ -14610,6 +16684,8 @@ function onTick(game_ticks)
 	Missions.onTick(game_ticks)
 
 	Animator.onTick(game_ticks)
+
+	DrivableVehicle.onTick(game_ticks)
 end
 
 --------------------------------------------------------------------------------

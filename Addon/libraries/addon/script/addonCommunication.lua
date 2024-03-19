@@ -61,7 +61,7 @@ function AddonCommunication.executeOnReply(short_addon_name, message, port, exec
 
 	local expiry = -1
 	if timeout ~= -1 then
-		expiry = s.getTimeMillisec() + timeout*60
+		expiry = server.getTimeMillisec() + timeout*60
 	end
 
 	table.insert(replies_awaiting, {
@@ -77,7 +77,7 @@ end
 function AddonCommunication.tick()
 	for reply_index, reply in ipairs(replies_awaiting) do
 		-- check if this reply has expired
-		if reply.expiry ~= -1 and s.getTimeMillisec() > reply.expiry then
+		if reply.expiry ~= -1 and server.getTimeMillisec() > reply.expiry then
 			-- it has expired
 			d.print(("A function awaiting a reply of %s from %s has expired."):format(reply.message, reply.short_addon_name), true, 0)
 			table.remove(replies_awaiting, reply_index)
@@ -97,7 +97,7 @@ function AddonCommunication.sendCommunication(message, port)
 	local prepared_message = ("%s:%s"):format(SHORT_ADDON_NAME, message)
 
 	-- send the message
-	s.httpGet(port, prepared_message)
+	server.httpGet(port, prepared_message)
 end
 
 function httpReply(port, message)

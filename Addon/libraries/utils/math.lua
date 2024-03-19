@@ -247,3 +247,18 @@ function math.quadraticBezier(last, new, p1, progress)
 	-- calculate and return the point.
 	return inverse_progress_squared * last + 2 * inverse_progress * progress * p1 + progress_squared * new
 end
+
+--- Function for rounding a number.
+---@param x number the number to round.
+---@param decimal_places number|nil the number of decimal places to round to.
+---@return number rounded_x the rounded number.
+function math.round(x, decimal_places)
+	-- Default the number of decimal places to 0 if unspecified.
+	decimal_places = decimal_places or 0
+
+	-- Multiply the number by 10^places, this gives us the number to multiply and divide by to preserve the desired number of decimal places.
+	local decimal_multplier = 10^decimal_places
+
+	-- Round with the number of places.
+	return math.floor(x * decimal_multplier + 0.5) / decimal_multplier
+end

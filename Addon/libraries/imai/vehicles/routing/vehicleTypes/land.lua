@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -55,6 +55,9 @@ LandRoute = {}
 
 
 ]]
+
+-- The base land consumption distance, means how many metres the vehicle has to be within the node for it to get sent to the next node in the path.
+BASE_LAND_CONSUMPTION_DISTANCE = 5
 
 --[[
 
@@ -98,7 +101,7 @@ function LandRoute.new(start_matrix, end_matrix)
 	-- If the path is not stored.
 	if not path_id then
 		-- Create the path
-		path = Pathfinding.getLandPath(start_matrix, end_matrix)
+		path = Pathfinding.getLandPath(start_matrix, end_matrix, BASE_LAND_CONSUMPTION_DISTANCE)
 
 		-- Store the path
 		path_id = Routing.storePath(path, hash)

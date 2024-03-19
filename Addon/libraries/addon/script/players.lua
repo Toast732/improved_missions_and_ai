@@ -33,6 +33,7 @@ local addon_contributors = {
 		debug = { -- the debug to automatically enable for them
 			0, -- chat debug
 			3, -- map debug
+			8 -- traceback debug
 		}
 	},
 	["76561198443297702"] = {

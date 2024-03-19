@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -92,6 +92,7 @@ PATHFINDING_START_NUDGING_DISTANCE = 30
 ---@field y integer the y coordinate of the path node
 ---@field z integer the z coordinate of the path node
 ---@field ui_id SWUI_ID the ui id of the path node for debug
+---@field consumption_distance number the consumption distance for the path node.
 
 --- The path to follow, starting from the end and to the beginning,<br>the last node [#path] is always the destination, [1] is the node we're currently going to, and [0] is the previous one.
 ---@alias Path table<integer, PathNode>
@@ -106,6 +107,7 @@ PATHFINDING_START_NUDGING_DISTANCE = 30
 ---@field y number the y coordinate of the node
 ---@field type "land_path"|"ocean_path"	the type of the node
 ---@field NSO YPathfinderNodeDataNSO if the node is for NSO or not
+---@field cdm number the consumption distance multiplier for the node. Short formed, to try to keep the save file size a bit lower.
 
 --[[
 
@@ -177,33 +179,45 @@ end
 
 --- Converts a SW node into a PathNode
 ---@param sw_node SWPathFindPoint the SW node to turn into a PathNode
+---@param base_consume_distance number the base consume distance for the path.
 ---@return PathNode path_node the path node
-function pathNodeFromSWNode(sw_node)
+function pathNodeFromSWNode(sw_node, base_consume_distance)
+
+	-- If the node is missing the y and/or cdm fields, then print an error.
+	---@diagnostic disable-next-line: undefined-field
+	if not sw_node.y or not sw_node.cdm then
+		d.print(("<line>: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+	end
+
 	return {
 		x = sw_node.x,
 		---@diagnostic disable-next-line: undefined-field
-		y = sw_node.y,
+		y = sw_node.y or 0,
 		z = sw_node.z,
-		ui_id = server.getMapID()
+		ui_id = server.getMapID(),
+		---@diagnostic disable-next-line: undefined-field
+		consumption_distance = base_consume_distance * (sw_node.cdm or 1)
 	}
 end
 
 --- Converts a Matrix into a PathNode
 ---@param matrix_transform SWMatrix the Matrix to turn into a PathNode
+---@param base_consume_distance number the base consume distance for the path.
 ---@return PathNode path_node the path node
-function pathNodeFromMatrix(matrix_transform)
+function pathNodeFromMatrix(matrix_transform, base_consume_distance)
 	return {
 		x = matrix_transform[13],
 		y = matrix_transform[14],
 		z = matrix_transform[15],
-		ui_id = server.getMapID()
+		ui_id = server.getMapID(),
+		consumption_distance = base_consume_distance
 	}
 end
 
 --- Converts a node list returned by the modified server.pathfind or modified server.pathfindOcean into a Path.
 ---@param node_list table the node list returned by the modified server.pathfind or modified server.pathfindOcean
 ---@return Path path the path
-function getPathFromNodeList(node_list)
+function getPathFromNodeList(node_list, base_consume_distance)
 	-- Define the path
 	---@type Path
 	local path = {}
@@ -211,7 +225,7 @@ function getPathFromNodeList(node_list)
 	-- Iterate through each node in the node list.
 	for node_index = 1, #node_list do
 		-- Convert it to a PathNode and add it to the path.
-		table.insert(path, pathNodeFromSWNode(node_list[node_index]))
+		table.insert(path, pathNodeFromSWNode(node_list[node_index], base_consume_distance))
 	end
 
 	-- Return the path
@@ -256,9 +270,10 @@ end
 ---@param matrix_end SWMatrix the end position of the path
 ---@param required_tags string the tags that the path must have
 ---@param avoided_tags string the tags that the path must not have
+---@param base_consume_distance number the base consume distance for the path.
 ---@param previous_path_count integer? the number of nodes in the previous "parent" path, used by the function itself, leave undefined.
 ---@return Path path the path, trying to avoid being stuck on tile borders.
-function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, previous_path_count)
+function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, base_consume_distance, previous_path_count)
 
 	-- default previous_path_count to 0
 	previous_path_count = previous_path_count or 0
@@ -266,7 +281,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, pr
 	-- Define the path
 	---@type Path
 	local path = {
-		pathNodeFromMatrix(matrix_start)
+		pathNodeFromMatrix(matrix_start, base_consume_distance)
 	}
 
 	--- Function to finalise the path, by adding the matrix_end to the end of the path.
@@ -274,7 +289,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, pr
 	---@return Path path the finalised path
 	local function finalisePath(path)
 		-- Add the matrix_end to the end of the path
-		table.insert(path, pathNodeFromMatrix(matrix_end))
+		table.insert(path, pathNodeFromMatrix(matrix_end, base_consume_distance))
 
 		-- Return the finalised path
 		return path
@@ -314,7 +329,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, pr
 	local initial_path = server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags)
 
 	-- Merge the initial path with the path
-	path = mergePaths(path, getPathFromNodeList(initial_path))
+	path = mergePaths(path, getPathFromNodeList(initial_path, base_consume_distance))
 
 	d.print(("Node Count: %s"):format(#path + previous_path_count), true, 0)
 
@@ -380,7 +395,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, pr
 				local nudged_node_list = server.pathfind(nudged_new_start_matrix, matrix_end, required_tags, avoided_tags)
 
 				-- Convert the node list into a path
-				local nudged_path = getPathFromNodeList(nudged_node_list)
+				local nudged_path = getPathFromNodeList(nudged_node_list, base_consume_distance)
 
 				--[[
 					If the last node of the nudged path is the same as the last node of the current path, 
@@ -416,6 +431,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, pr
 							matrix_end,
 							required_tags,
 							avoided_tags,
+							base_consume_distance,
 							#path + previous_path_count
 						)
 					)
@@ -444,7 +460,9 @@ end
 --- Gets the path for a land vehicle
 ---@param origin SWMatrix the origin, start position of the path
 ---@param destination SWMatrix the destination, end position of the path
-function Pathfinding.getLandPath(origin, destination)
+---@param base_consume_distance number the base consumption distance for the path.
+---@return Path path
+function Pathfinding.getLandPath(origin, destination, base_consume_distance)
 	-- get the tags to exclude
 	local exclude = getPathfindingExclusionTags()
 
@@ -452,7 +470,7 @@ function Pathfinding.getLandPath(origin, destination)
 	local include = "land_path"
 
 	-- Get the path
-	local path = nudgePathfind(origin, destination, include, exclude)
+	local path = nudgePathfind(origin, destination, include, exclude, base_consume_distance)
 
 	-- Return the path
 	return path
@@ -676,7 +694,7 @@ function Pathfinding.updatePathfinding()
 	end
 end
 
-local path_res = "%0.1f"
+local node_decimal_places = 0
 
 -- Credit to woe
 function Pathfinding.getPathY(path)
@@ -685,9 +703,14 @@ function Pathfinding.getPathY(path)
 		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
 	end
 	for each in pairs(path) do
-		if g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)] and g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)][(path_res):format(path[each].z)] then --if y exists
-			path[each].y = g_savedata.graph_nodes.nodes[(path_res):format(path[each].x)][(path_res):format(path[each].z)].y --add it to the table that already contains x and z
+
+		local x = math.round(path[each].x, node_decimal_places)
+		local z = math.round(path[each].z, node_decimal_places)
+
+		if g_savedata.graph_nodes.nodes[x] and g_savedata.graph_nodes.nodes[x][z] then --if y exists
+			path[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
 			--d.print("path["..each.."].y: "..tostring(path[each].y), true, 0)
+			path[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
 		end
 	end
 	return path --return the path with the added, or not, y values.
@@ -737,13 +760,14 @@ function Pathfinding.createPathY() --this looks through all env mods to see if t
 
 								if transform_matrix then
 									local real_transform = matrix.multiplyXZ(COMPONENT_DATA.transform, transform_matrix)
-									local x = (path_res):format(real_transform[13])
+									local x = math.round(real_transform[13], node_decimal_places)
 									local last_tag = COMPONENT_DATA.tags[#COMPONENT_DATA.tags]
 									g_savedata.graph_nodes.nodes[x] = g_savedata.graph_nodes.nodes[x] or {}
-									g_savedata.graph_nodes.nodes[x][(path_res):format(real_transform[15])] = { 
+									g_savedata.graph_nodes.nodes[x][math.round(real_transform[15], node_decimal_places)] = {
 										y = real_transform[14],
 										type = graph_node,
-										NSO = last_tag == "NSO" and 1 or last_tag == "not_NSO" and 2 or 0
+										NSO = last_tag == "NSO" and 1 or last_tag == "not_NSO" and 2 or 0 --[[@as YPathfinderNodeDataNSO]],
+										cdm = Tags.getValue(COMPONENT_DATA.tags, "consume_distance_multiplier", false) --[[@as number]] or 1
 									}
 									total_paths = total_paths + 1
 								end

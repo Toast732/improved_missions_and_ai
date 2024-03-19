@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -109,6 +109,13 @@ prefabs_to_initialise = {}
 
 
 ]]
+
+--- Function for getting a prefab from it's name.
+---@param prefab_name string the name of the prefab to get.
+---@return VehiclePrefab|nil the prefab, or nil if it does not exist.
+function VehiclePrefab.getPrefab(prefab_name)
+	return g_savedata.vehicle_prefab.prefabs[prefab_name]
+end
 
 --[[
 

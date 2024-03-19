@@ -33,7 +33,7 @@ require("libraries.utils.string")
 
 ---@alias defaultCommandPermissions "none"|"auth"|"admin"|"script"|"auth_script"|"admin_script"
 
----@class command
+---@class Command
 ---@field name string the name of the command
 ---@field function_to_execute function the function to execute when the command is called, given params are: full_message, peer_id, arg
 ---@field required_permission defaultCommandPermissions|string the permission this command requires
@@ -48,7 +48,7 @@ require("libraries.utils.string")
 local registered_commands = {}
 ]]
 
----@type table<prefix, table<commandName, command>>
+---@type table<prefix, table<commandName, Command>>
 commands = {}
 
 -- where all of the registered permissions are stored.
@@ -106,6 +106,25 @@ function onCustomCommand(full_message, peer_id, is_admin, is_auth, prefix, comma
 
 	-- call the command
 	command_data.function_to_execute(full_message, peer_id, table.pack(...))
+
+	return true
+end
+
+---@param prefix prefix? the string of the prefix to use, eg: "ICM" if left nil, uses SHORT_ADDON_NAME instead.
+---@return string formatted_prefix the prefix, but formatted properly.
+function Command.formatPrefix(prefix)
+	prefix = prefix or SHORT_ADDON_NAME
+
+	-- Make the prefix lowercase.
+	prefix = prefix:lower()
+
+	-- Add the question mark to the start of the prefix if wasn't already added.
+	if prefix:sub(1, 1) ~= "?" then
+		prefix = "?"..prefix
+	end
+
+	-- return the formatted prefix
+	return prefix
 end
 
 ---# Registers a command
@@ -115,16 +134,11 @@ end
 ---@param description string the description of the command
 ---@param short_description string the shortened description of the command
 ---@param examples table<integer, string> examples of using the command, prefix and the command will be added to the strings automatically.
----@param prefix prefix? the prefix for the command, leave blank to use the addon's short name as the prefix.
-function Command.registerCommand(name, function_to_execute, required_permission, description, short_description, examples, prefix)
+---@param unformatted_prefix prefix? the prefix for the command, leave blank to use the addon's short name as the prefix.
+function Command.registerCommand(name, function_to_execute, required_permission, description, short_description, examples, unformatted_prefix)
 	
-	-- default the prefix to the short addon's name, if the prefix is not specified.
-	prefix = prefix or SHORT_ADDON_NAME:lower()
-
-	-- add the question mark to the start of the prefix if wasn't already added.
-	if prefix:sub(1, 1) ~= "?" then
-		prefix = "?"..prefix
-	end
+	-- Format the prefix.
+	local prefix = Command.formatPrefix(unformatted_prefix)
 
 	-- make the name friendly
 	name = name:friendly() --[[@as string]]
@@ -135,7 +149,7 @@ function Command.registerCommand(name, function_to_execute, required_permission,
 		return
 	end
 	
-	---@type command
+	---@type Command
 	local command_data = {
 		name = name,
 		function_to_execute = function_to_execute,
@@ -181,12 +195,13 @@ end
 
 --[[
 
-	scripts to be put after this one
+	Scripts to be put after this one
 
 ]]
 
 --[[
-	definitions
+	Definitions
 ]]
+
 require("libraries.addon.commands.command.definitions.commandPermissions")
-require("libraries.addon.commands.command.definitions.commands")
+require("libraries.addon.commands.command.definitions.defaultCommandModules")

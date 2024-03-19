@@ -21,6 +21,12 @@
 			".vscode",
 			"Addon/_build/out"
 		],
-		"lifeboatapi.stormworks.user.authorName": ""
+		"lifeboatapi.stormworks.user.authorName": "",
+		"discord.detailsEditing": "{file_name} ({file_size})",
+		"discord.largeImageIdling": "Idling",
+		"discord.detailsIdling": "Leaving it Open in the Background.",
+		"discord.removeTimestamp": false,
+		"discord.lowerDetailsEditing": "{workspace}",
+		"discord.removeRemoteRepository": false
 	}
 }
