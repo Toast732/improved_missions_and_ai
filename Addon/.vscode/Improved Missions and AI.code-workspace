@@ -27,6 +27,7 @@
 		"discord.detailsIdling": "Leaving it Open in the Background.",
 		"discord.removeTimestamp": false,
 		"discord.lowerDetailsEditing": "{workspace}",
-		"discord.removeRemoteRepository": false
+		"discord.removeRemoteRepository": false,
+		"editor.stickyScroll.maxLineCount": 10
 	}
 }

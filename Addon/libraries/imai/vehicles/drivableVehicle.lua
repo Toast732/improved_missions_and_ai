@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -29,6 +29,8 @@ limitations under the License.
 -- required libraries
 require("libraries.utils.unitConversions")
 require("libraries.utils.vector3")
+
+require("libraries.addon.callbacks.binder.binder")
 
 require("libraries.imai.vehicles.vehicle")
 require("libraries.imai.vehicles.routing.vehicleTypes.land")
@@ -61,10 +63,12 @@ DrivableVehicle = {}
 ---@class DrivableVehicle
 ---@field drivable_vehicle_id DrivableVehicleID the id of the drivable vehicle.
 ---@field generic_vin GenericVIN the generic vehicle identifier number for this vehicle.
+---@field prefab_name string the name of the prefab for the vehicle.
 ---@field transform SWMatrix the transform of the vehicle.
 ---@field route Route|nil the route for this vehicle.
 ---@field vehicle_type DrivableVehicleType the type of vehicle this is.
 ---@field max_speed number the max speed of the vehicle in m/s.
+---@field driving_style string the driving style of the vehicle.
 
 ---@class SeatInput
 ---@field axis_w number the input for the w/s axis, -1 to 1 (1 is w, -1 is s).
@@ -118,6 +122,9 @@ g_savedata.libraries.drivable_vehicles = {
 
 	---@type table<integer, DrivableVehicleID>
 	unloaded = {}, -- Stores all of the unloaded drivable vehicles, stores the drivable vehicle id.
+
+	---@type table<integer, DrivableVehicleID>
+	vehicle_id_map = {}, -- Indexed by vehicle_id, stores the drivable vehicle id.
 
 	---@type DrivableVehicleID
 	next_drivable_vehicle_id = 1 -- The next drivable vehicle id to assign.
@@ -188,15 +195,20 @@ function DrivableVehicle.spawn(prefab_name, transform)
 	-- Get the max speed in m/s
 	local max_speed = UnitConversions.kilometresPerHour.toMetresPerSecond(raw_max_speed)
 
+	-- Get the driving style
+	local driving_style = Tags.getValue(prefab_data.tags, "driving_style", false) --[[@as string]] or "unknown"
+
 	-- Create the drivable vehicle
 	---@type DrivableVehicle
 	local drivable_vehicle = {
 		drivable_vehicle_id = drivable_vehicle_id,
 		generic_vin = generic_vin,
+		prefab_name = prefab_name,
 		transform = transform,
 		route = nil,
 		max_speed = max_speed,
-		vehicle_type = drivable_vehicle_type
+		vehicle_type = drivable_vehicle_type,
+		driving_style = driving_style
 	}
 
 	-- Add the drivable vehicle to g_savedata
@@ -204,6 +216,18 @@ function DrivableVehicle.spawn(prefab_name, transform)
 
 	-- Add the drivable vehicle to the unloaded list
 	table.insert(g_savedata.libraries.drivable_vehicles.unloaded, drivable_vehicle_id)
+
+	-- Get the vehicle using the generic vin
+	local generic_vehicle = Vehicle.getGenericVehicle(generic_vin)
+
+	-- If the vehicle is nil, return early.
+	if not generic_vehicle then
+		d.print(("(DrivableVehicle.spawn) Failed to get the vehicle with generic vin %d, aborting creation of the drivable vehicle."):format(generic_vin), true, 1)
+		return -1, false
+	end
+
+	-- Add the drivable vehicle to the vehicle id map
+	g_savedata.libraries.drivable_vehicles.vehicle_id_map[generic_vehicle.vehicle_ids[1]] = drivable_vehicle_id
 
 	-- Return the drivable vehicle id
 	return drivable_vehicle_id, true
@@ -258,6 +282,36 @@ end
 function DrivableVehicle.getTargetSpeed(drivable_vehicle)
 	-- In the future, will be alot more complex, taking into account vehicles ahead, and trying to keep a distance from them, as well as speed limits. But for now, just return the max speed.
 	return drivable_vehicle.max_speed
+end
+
+--- Function for removing a vehicle from the loaded list.
+---@param drivable_vehicle_id DrivableVehicleID the drivable vehicle id to remove from the loaded list.
+function DrivableVehicle.removeVehicleFromLoaded(drivable_vehicle_id)
+	-- Go through all vehicles in the loaded list.
+	for loaded_vehicle_index = 1, #g_savedata.libraries.drivable_vehicles.loaded do
+		-- Check if this is the drivable vehicle id we're looking for.
+		if g_savedata.libraries.drivable_vehicles.loaded[loaded_vehicle_index] == drivable_vehicle_id then
+			-- Remove it from the list.
+			table.remove(g_savedata.libraries.drivable_vehicles.loaded, loaded_vehicle_index)
+			-- Break, as we found what we're looking for, and there's no reason to look further.
+			break
+		end
+	end
+end
+
+--- Function for removing a vehicle from the unloaded list.
+---@param drivable_vehicle_id DrivableVehicleID the drivable vehicle id to remove from the unloaded list.
+function DrivableVehicle.removeVehicleFromUnloaded(drivable_vehicle_id)
+	-- Go through all vehicles in the unloaded list.
+	for unloaded_vehicle_index = 1, #g_savedata.libraries.drivable_vehicles.unloaded do
+		-- Check if this is the drivable vehicle id we're looking for.
+		if g_savedata.libraries.drivable_vehicles.unloaded[unloaded_vehicle_index] == drivable_vehicle_id then
+			-- Remove it from the list.
+			table.remove(g_savedata.libraries.drivable_vehicles.unloaded, unloaded_vehicle_index)
+			-- Break, as we found what we're looking for, and there's no reason to look further.
+			break
+		end
+	end
 end
 
 --[[
@@ -333,6 +387,17 @@ function DrivableVehicle.onTick(game_ticks)
 			Move the vehicle along it's path.
 		]]
 
+		-- Get the prefab
+		local prefab = VehiclePrefab.getPrefab(unloaded_vehicle.prefab_name)
+
+		-- If the prefab is nil, skip this vehicle.
+		if not prefab then
+			goto continue
+		end
+
+		-- Get the vehicle's offset as a vector.
+		local vehicle_offset_vector = Vector3.fromMatrix(prefab.transform_offset, true)
+
 		-- Set the last_pos to the transform of the vehicle. This will be moved along the path.
 		local last_position = Vector3.fromMatrix(unloaded_vehicle.transform, true)
 
@@ -342,7 +407,7 @@ function DrivableVehicle.onTick(game_ticks)
 			local node = path[path_index]
 
 			-- Create a vector for the position of this node
-			local node_position = Vector3.new(node.x, node.y, node.z)
+			local node_position = Vector3.add(Vector3.new(node.x, node.y, node.z), vehicle_offset_vector)
 
 			-- Calculate the distance from last_position to the node of this path, set to minimum 0.0001, to avoid division by 0.
 			local distance_to_waypoint = math.max(Vector3.euclideanDistance(last_position, node_position), 0.0001)
@@ -381,6 +446,52 @@ function DrivableVehicle.onTick(game_ticks)
 		::continue::
 	end
 end
+
+--[[
+	Binds
+]]
+
+
+-- Bind to onVehicleLoad, to add the vehicle to the loaded list.
+Binder.bind.onVehicleLoad(
+	---@param vehicle_id integer the vehicle_id of the spawned vehicle.
+	function(vehicle_id)
+
+		-- Get the drivable vehicle id.
+		local drivable_vehicle_id = g_savedata.libraries.drivable_vehicles.vehicle_id_map[vehicle_id]
+
+		-- Check if this vehicle is a drivable vehicle, if not, return.
+		if not drivable_vehicle_id then
+			return
+		end
+
+		-- Remove the vehicle from the unloaded list.
+		DrivableVehicle.removeVehicleFromUnloaded(drivable_vehicle_id)
+
+		-- Add the vehicle to the loaded list.
+		table.insert(g_savedata.libraries.drivable_vehicles.loaded, drivable_vehicle_id)
+	end
+)
+
+-- Bind to onVehicleUnload, to remove the vehicle from the loaded list.
+Binder.bind.onVehicleUnload(
+	---@param vehicle_id integer the vehicle_id of the spawned vehicle.
+	function(vehicle_id)
+		-- Get the drivable vehicle id.
+		local drivable_vehicle_id = g_savedata.libraries.drivable_vehicles.vehicle_id_map[vehicle_id]
+
+		-- Check if this vehicle is a drivable vehicle, if not, return.
+		if not drivable_vehicle_id then
+			return
+		end
+
+		-- Remove the vehicle from the loaded list.
+		DrivableVehicle.removeVehicleFromLoaded(drivable_vehicle_id)
+
+		-- Add the vehicle to the unloaded list.
+		table.insert(g_savedata.libraries.drivable_vehicles.unloaded, drivable_vehicle_id)
+	end
+)
 
 Command.registerCommand(
 	"test_land_vehicle",

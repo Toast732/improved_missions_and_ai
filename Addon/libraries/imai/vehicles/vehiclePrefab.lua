@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -54,6 +54,7 @@ VehiclePrefab = {}
 ---@class VehiclePrefab
 ---@field name string The name of the vehicle prefab, as set in the component's name field.
 ---@field tags Tags The tags of the vehicle prefab, as set in the component's tags field.
+---@field transform_offset SWMatrix the transform offset of the vehicle prefab. Useful for trying to have it load in at the right height.
 ---@field spawning_data SpawningData the spawning data used to spawn the vehicle prefab.
 ---@field mass number The mass of the vehicle prefab, gotten via spawning the vehicle and getting the mass of the vehicle.
 ---@field voxels number The voxels of the vehicle prefab, gotten via spawning the vehicle and getting the voxels of the vehicle.
@@ -191,6 +192,7 @@ function VehiclePrefab.generatePrefabs()
 		local prefab_data = {
 			name = component_data.display_name,
 			tags = component_data.tags,
+			transform_offset = component_data.transform,
 			spawning_data = spawning_data,
 			mass = 0,
 			voxels = 0,

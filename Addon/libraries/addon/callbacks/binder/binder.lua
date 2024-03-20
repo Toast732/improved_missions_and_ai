@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -56,9 +56,13 @@ Binder = {
 -- onVehicleLoad
 ---@alias CallbackOnVehicleLoad fun(vehicle_id: integer)
 
+-- onVehicleUnload
+---@alias CallbackOnVehicleUnload fun(vehicle_id: integer)
+
 ---@alias Callback
 ---| CallbackOnGroupSpawn
 ---| CallbackOnVehicleLoad
+---| CallbackOnVehicleUnload
 
 ---@class BindedCallback
 ---@field callback Callback the callback to call
@@ -75,7 +79,8 @@ Binder = {
 ---@type table<string, table<integer, BindedCallback>>
 binded_callbacks = {
 	onGroupSpawn = {},
-	onVehicleLoad = {}
+	onVehicleLoad = {},
+	onVehicleUnload = {}
 }
 
 --[[
@@ -211,6 +216,7 @@ function onVehicleLoad(...)
 	end
 end
 
+
 --[[
 	Create bind function
 ]]
@@ -221,6 +227,55 @@ end
 function Binder.bind.onVehicleLoad(callback, priority)
 	bindCallback(
 		"onVehicleLoad",
+		callback,
+		priority
+	)
+end
+
+--[[
+
+	onVehicleUnload
+
+]]
+
+--[[
+	Inject.
+]]
+
+old_onVehicleUnload = onVehicleUnload
+
+---@private
+function onVehicleUnload(...)
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.onVehicleUnload
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+
+	-- call old callback, if it exists
+	if old_onVehicleUnload then
+		old_onVehicleUnload(...)
+	end
+end
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the onVehicleUnload callback.
+---@param callback CallbackOnVehicleLoad the callback to bind to the onVehicleUnload callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.onVehicleUnload(callback, priority)
+	bindCallback(
+		"onVehicleUnload",
 		callback,
 		priority
 	)
