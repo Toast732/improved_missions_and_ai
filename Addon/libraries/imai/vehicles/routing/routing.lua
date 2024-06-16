@@ -55,7 +55,7 @@ Routing = {}
 ---@class Route
 ---@field stored_path_id StoredPathID the id of the stored path
 ---@field route_type string the type of route
----@field path_index integer the index that the vehicle is at on the path
+---@field path_index integer the index that the vehicle has reached on the path
 ---@field start_matrix SWMatrix the start of the route
 ---@field end_matrix SWMatrix the end of the route
 
@@ -162,7 +162,7 @@ end
 
 --- Function for getting a path from the id
 ---@param path_id StoredPathID the id of the path to get
----@return Path? path the path, nil if no path.
+---@return Path|nil path the path, nil if no path.
 function Routing.getPathFromID(path_id)
 	-- return the path
 	return g_savedata.routing.stored_paths[path_id]
@@ -317,7 +317,10 @@ Command.registerCommand(
 			local node = failed_merge_nodes[node_index]
 
 			-- Draw the node
-			Map.addMapCircle(peer_id, g_savedata.routing.failed_node_merge_ui_id, Vector3.toMatrix(node.position), 10, 1, 255, 0, 0, 255, 15)
+			Map.addMapCircle(peer_id, g_savedata.routing.failed_node_merge_ui_id, Vector3.toMatrix(node.position), NODE_MERGE_DISTANCE, 1, 255, 0, 0, 255, 12)
+			
+			-- Draw a label for it, saying what node it thinks it is on.
+			server.addMapLabel(peer_id, g_savedata.routing.failed_node_merge_ui_id, 2, ("Tile Name: %s"):format(server.getTile(Vector3.toMatrix(node.position)).name), node.position.x, node.position.z)
 		end
 
 		d.print(("Drew %d nodes that possibly failed to merge."):format(#failed_merge_nodes), true, 0, peer_id)

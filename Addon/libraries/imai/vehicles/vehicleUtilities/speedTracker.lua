@@ -222,7 +222,7 @@ function VehicleSpeedTracker.update(tracker_id)
 	) * time.second/(g_savedata.tick_counter - tracker_data.last_updated_tick)
 
 	-- Add the speed to the speed history table
-	table.insert(tracker_data.speed_history, current_speed)
+	table.insert(tracker_data.speed_history, 1, current_speed)
 
 	-- Get the number of speed entries for this tracker.
 	local speed_entries = #tracker_data.speed_history
@@ -233,6 +233,12 @@ function VehicleSpeedTracker.update(tracker_id)
 
 		-- Remove 1 from the number of entries
 		speed_entries = speed_entries - 1
+	end
+
+	-- If theres still more, remove them all.
+	if speed_entries > tracker_data.smoothing_amount then
+		speed_entries = 0
+		tracker_data.speed_history = {}
 	end
 
 	-- Define the total speed.

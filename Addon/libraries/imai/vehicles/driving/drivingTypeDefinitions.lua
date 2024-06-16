@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -36,4 +36,5 @@ limitations under the License.
 	Has the required files to include for the driving type definitions.
 ]]
 
-require("libraries.imai.vehicles.driving.shipDefinition")
+require("libraries.imai.vehicles.driving.drivingTypes.carDefinition")
+require("libraries.imai.vehicles.driving.drivingTypes.shipDefinition")

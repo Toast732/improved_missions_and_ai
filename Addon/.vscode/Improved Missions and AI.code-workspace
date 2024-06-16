@@ -28,6 +28,16 @@
 		"discord.removeTimestamp": false,
 		"discord.lowerDetailsEditing": "{workspace}",
 		"discord.removeRemoteRepository": false,
-		"editor.stickyScroll.maxLineCount": 10
+		"editor.stickyScroll.maxLineCount": 10,
+		"diffEditor.experimental.showMoves": true,
+		"workbench.editor.decorations.badges": true,
+		"workbench.editor.centeredLayoutFixedWidth": false,
+		"explorer.fileNesting.enabled": false,
+		"search.showLineNumbers": true,
+		"debug.console.closeOnEnd": true,
+		"Lua.completion.callSnippet": "Disable",
+		"editor.autoClosingComments": "always",
+		"editor.autoClosingBrackets": "always",
+		"editor.autoClosingQuotes": "always"
 	}
 }

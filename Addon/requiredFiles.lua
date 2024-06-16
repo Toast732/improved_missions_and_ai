@@ -10,6 +10,8 @@
 
 ]]
 
+require("libraries.imai.tick.commands.pauseCommand")
+
 require("libraries.addon.utils.objects.object")
 
 require("libraries.addon.commands.command.command") -- command handler, used to register commands.

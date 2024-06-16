@@ -28,6 +28,7 @@ limitations under the License.
 
 -- required libraries
 require("libraries.imai.vehicles.drivableVehicle")
+require("libraries.addon.script.debugging")
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -215,6 +216,66 @@ function DrivingVehicles.defineCondition(self, condition_name, priority, conditi
 	table.sort(self.conditions, function(a, b)
 		return a.priority > b.priority
 	end)
+end
+
+--- Tick a DrivableVehicle, Returns the seat input.
+---@param drivable_vehicle DrivableVehicle The drivable vehicle to tick.
+---@return SeatInput seat_input the seat_input from the function.
+function DrivingVehicles.tick(drivable_vehicle)
+	-- Get the driving type for this vehicle type.
+	local driving_type = driving_types[drivable_vehicle.vehicle_type]
+
+	-- If driving_type is nil, print an error, and return empty seat input identity
+	if not driving_type then
+		d.print(("There are no driving type for %s!"):format(drivable_vehicle.vehicle_type), true, 1)
+		return DrivableVehicle.getSeatInputIdentity()
+	end
+
+	-- Get the driving style for this vehicle's driving style.
+	local driving_style = driving_type.driving_styles[drivable_vehicle.driving_style]
+
+	-- If driving_style is nil, print an error, and return empty seat input identity
+	if not driving_style then
+		d.print(("There are no driving style %s for vehicles with the type of %s!"):format(drivable_vehicle.driving_style, drivable_vehicle.vehicle_type), true, 1)
+		return DrivableVehicle.getSeatInputIdentity()
+	end
+
+	-- Get the vehicle driving state
+	local driving_state = driving_style.driving_states[drivable_vehicle.driving_state]
+
+	-- If driving_state is nil, print an error, and return empty seat input identity
+	if not driving_state then
+		d.print(("There are no driving state %s for vehicles with the type of %s and driving style of %s!"):format(drivable_vehicle.driving_state, drivable_vehicle.vehicle_type, drivable_vehicle.driving_style), true, 1)
+		return DrivableVehicle.getSeatInputIdentity()
+	end
+
+	-- Get the generic vehicle
+	local generic_vehicle = Vehicle.getGenericVehicle(drivable_vehicle.generic_vin)
+
+	-- If generic_vehicle is nil, print an error, and return empty seat input identity
+	if not generic_vehicle then
+		d.print(("There is no generic vehicle with the vin of %s!"):format(drivable_vehicle.generic_vin), true, 1)
+		return DrivableVehicle.getSeatInputIdentity()
+	end
+
+	-- Iterate through all of the conditions, and check if they are met.
+	for condition_priority = 1, #driving_state.conditions do
+		-- Get the condition
+		local condition = driving_state.conditions[condition_priority]
+
+		-- Check if the condition is met
+		if condition.condition_function == true or condition.condition_function(drivable_vehicle) then
+			-- Set the tooltip
+			server.setVehicleTooltip(generic_vehicle.vehicle_ids[1], condition.driving_condition)
+			
+			-- If it is, return the behaviour
+			return condition.behaviour(drivable_vehicle)
+		end
+	end
+
+	-- If no conditions are met, return an empty seat input identity.
+	d.print(("No conditions are met for the vehicle with the type of %s, driving style of %s, and driving state of %s!"):format(drivable_vehicle.vehicle_type, drivable_vehicle.driving_style, drivable_vehicle.driving_state), true, 1)
+	return DrivableVehicle.getSeatInputIdentity()
 end
 
 require("libraries.imai.vehicles.driving.drivingTypeDefinitions")

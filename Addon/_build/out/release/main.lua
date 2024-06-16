@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.18)"
+ADDON_VERSION = "(0.0.1.19)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -234,6 +234,8 @@ limitations under the License.
 
 ]]
 
+-- Library Version 0.0.1
+
 --[[
 
 
@@ -242,142 +244,7 @@ limitations under the License.
 
 ]]
 
----@diagnostic disable:duplicate-doc-field
----@diagnostic disable:duplicate-doc-alias
----@diagnostic disable:duplicate-set-field
-
---[[ 
-	Adds additional functions related to handling objects, such as onObjectDespawn,
-	Object.exists(), etc
-]]
-
--- library name
-Object = {}
-
---[[
-
-
-	Variables
-
-
-]]
-
-g_savedata.libraries.objects = {
-	object_list = {}, ---@type table<integer, SWObjectData> indexed by object_id, value is the object's data.
-	despawned_objects = {} ---@type table<integer, true> indexed by object_id, a table of objects that have been despawned.
-}
-
-local g_objects = g_savedata.libraries.objects
-
----# Adds an object to the object list
----@param object_id integer the object_id of the object to add.
----@return boolean is_success if it successfully added the object to the object list, returns false if the object doesn't actually exist.
-function Object.addObject(object_id)
-	local object_data = server.getObjectData(object_id)
-
-	-- the object doesn't actually exist
-	if not object_data then
-		d.print(("263: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
-		return false
-	end
-
-	-- add the object to the object list
-	g_objects.object_list[object_id] = object_data
-
-	return true
-end
-
----# Checks if an object exists
----@param object_id integer the object_id of the object which we want to see if it exists.
----@return boolean exists if the object exists
-function Object.exists(object_id)
-
-	-- Early return, if it exists within our object list, we don't need to call any sw functions.
-	if g_objects.object_list[object_id] then
-		return true
-	end
-
-	-- This object has been despawned, it cannot exist.
-	if g_objects.despawned_objects[object_id] then
-		return false
-	end
-
-	-- Do a function call to the game which returns false for is_success when the object cannot be found (meaning it doesn't exist)
-	local _, exists = server.getObjectSimulating(object_id)
-
-	-- This object exists, add it to the object list
-	if exists then
-		Object.addObject(object_id)
-	end
-
-	return exists
-end
-
----# Safer check for if an object exists, as it just asks the game directly instead of having its own tables
----@param object_id integer the object_id of the object which we want to see if it exists.
----@return boolean exists if the object exists
-function Object.safeExists(object_id)
-
-	-- Do a function call to the game which returns false for is_success when the object cannot be found (meaning it doesn't exist)
-	local _, exists = server.getObjectSimulating(object_id)
-
-	-- This object exists and it doesn't yet exist in the object list, add it to the object list
-	if exists and not g_objects.object_list[object_id] then
-		Object.addObject(object_id)
-	end
-
-	return exists
-end
-
--- Intercept onObjectUnload calls
-local old_onObjectUnload = onObjectUnload
-function onObjectUnload(object_id)
-	-- avoid error if onObjectUnload is not used anywhere else before.
-	if old_onObjectUnload then
-		old_onObjectUnload(object_id)
-	end
-
-	-- if this object no longer exists
-	if not Object.safeExists(object_id) then
-
-		local object_data = g_objects.object_list[object_id]
-
-		-- remove this object from the object list
-		g_objects.object_list[object_id] = nil
-
-		-- add this object to the list of objects that have been despawned
-		g_objects.despawned_objects[object_id] = true
-
-		-- call a onObjectDespawn function, if it exists
-		---@diagnostic disable-next-line:undefined-global
-		if onObjectDespawn then
-			---@diagnostic disable-next-line:undefined-global
-			onObjectDespawn(object_id, object_data)
-		end
-
-		-- check if its a character, if object_data exists
-		if object_data and object_data.object_type == 1 then
-			-- call the onCharacterDespawn function, if it exists
-			---@diagnostic disable-next-line:undefined-global
-			if onCharacterDespawn then
-				---@diagnostic disable-next-line:undefined-global
-				onCharacterDespawn(object_id, object_data)
-			end
-		end
-	end
-end
-
----@param object_id integer the object_id of the object which was despawned.
----@param object_data SWObjectData? the object data of the object which was despawned. (Not always gotten, advise on not relying on the given object_data)
-function onObjectDespawn(object_id, object_data)
-
-end
-
----@param object_id integer the object_id of the character which was despawned.
----@param object_data SWObjectData? the object data of the character which was despawned. (Data may be incomplete, advise on not relying on the given object_data)
-function onCharacterDespawn(object_id, object_data)
-
-end
+-- required libraries
 --[[
 	
 Copyright 2024 Liam Matthews
@@ -4180,8 +4047,198 @@ Command.registerCommand(
 	{"g_savedata", "Command", "g_savedata.tick_counter"}
 )
 
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
 
- -- command handler, used to register commands.
+--[[
+
+	Registers the pause command.
+
+]]
+
+g_savedata.paused = false
+
+-- Pause command
+Command.registerCommand(
+	"pause",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- Invert the paused state
+		g_savedata.paused = not g_savedata.paused
+
+		-- Print the new state
+		d.print(("%saused %s"):format(g_savedata.paused and "P" or "Unp", SHORT_ADDON_NAME), false, 0, peer_id)
+	end,
+	"admin",
+	"Prevents the addon's onTick function from executing anything, some important tickers may bypass (eg: prefab setup).",
+	"Pauses the script's ticker.",
+	{""}
+)
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Adds additional functions related to handling objects, such as onObjectDespawn,
+	Object.exists(), etc
+]]
+
+-- library name
+Object = {}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.objects = {
+	object_list = {}, ---@type table<integer, SWObjectData> indexed by object_id, value is the object's data.
+	despawned_objects = {} ---@type table<integer, true> indexed by object_id, a table of objects that have been despawned.
+}
+
+local g_objects = g_savedata.libraries.objects
+
+---# Adds an object to the object list
+---@param object_id integer the object_id of the object to add.
+---@return boolean is_success if it successfully added the object to the object list, returns false if the object doesn't actually exist.
+function Object.addObject(object_id)
+	local object_data = server.getObjectData(object_id)
+
+	-- the object doesn't actually exist
+	if not object_data then
+		d.print(("4124: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
+		return false
+	end
+
+	-- add the object to the object list
+	g_objects.object_list[object_id] = object_data
+
+	return true
+end
+
+---# Checks if an object exists
+---@param object_id integer the object_id of the object which we want to see if it exists.
+---@return boolean exists if the object exists
+function Object.exists(object_id)
+
+	-- Early return, if it exists within our object list, we don't need to call any sw functions.
+	if g_objects.object_list[object_id] then
+		return true
+	end
+
+	-- This object has been despawned, it cannot exist.
+	if g_objects.despawned_objects[object_id] then
+		return false
+	end
+
+	-- Do a function call to the game which returns false for is_success when the object cannot be found (meaning it doesn't exist)
+	local _, exists = server.getObjectSimulating(object_id)
+
+	-- This object exists, add it to the object list
+	if exists then
+		Object.addObject(object_id)
+	end
+
+	return exists
+end
+
+---# Safer check for if an object exists, as it just asks the game directly instead of having its own tables
+---@param object_id integer the object_id of the object which we want to see if it exists.
+---@return boolean exists if the object exists
+function Object.safeExists(object_id)
+
+	-- Do a function call to the game which returns false for is_success when the object cannot be found (meaning it doesn't exist)
+	local _, exists = server.getObjectSimulating(object_id)
+
+	-- This object exists and it doesn't yet exist in the object list, add it to the object list
+	if exists and not g_objects.object_list[object_id] then
+		Object.addObject(object_id)
+	end
+
+	return exists
+end
+
+-- Intercept onObjectUnload calls
+local old_onObjectUnload = onObjectUnload
+function onObjectUnload(object_id)
+	-- avoid error if onObjectUnload is not used anywhere else before.
+	if old_onObjectUnload then
+		old_onObjectUnload(object_id)
+	end
+
+	-- if this object no longer exists
+	if not Object.safeExists(object_id) then
+
+		local object_data = g_objects.object_list[object_id]
+
+		-- remove this object from the object list
+		g_objects.object_list[object_id] = nil
+
+		-- add this object to the list of objects that have been despawned
+		g_objects.despawned_objects[object_id] = true
+
+		-- call a onObjectDespawn function, if it exists
+		---@diagnostic disable-next-line:undefined-global
+		if onObjectDespawn then
+			---@diagnostic disable-next-line:undefined-global
+			onObjectDespawn(object_id, object_data)
+		end
+
+		-- check if its a character, if object_data exists
+		if object_data and object_data.object_type == 1 then
+			-- call the onCharacterDespawn function, if it exists
+			---@diagnostic disable-next-line:undefined-global
+			if onCharacterDespawn then
+				---@diagnostic disable-next-line:undefined-global
+				onCharacterDespawn(object_id, object_data)
+			end
+		end
+	end
+end
+
+---@param object_id integer the object_id of the object which was despawned.
+---@param object_data SWObjectData? the object data of the object which was despawned. (Not always gotten, advise on not relying on the given object_data)
+function onObjectDespawn(object_id, object_data)
+
+end
+
+---@param object_id integer the object_id of the character which was despawned.
+---@param object_data SWObjectData? the object data of the character which was despawned. (Data may be incomplete, advise on not relying on the given object_data)
+function onCharacterDespawn(object_id, object_data)
+
+end -- command handler, used to register commands.
 --[[
 
 Copyright 2024 Liam Matthews
@@ -4300,19 +4357,19 @@ function Effects.apply(name, object, duration, strength)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4286: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4343: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4292: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4349: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false
 	end
 
 	-- if the object cannot have this effect applied.
 	if not effect_applicable_objects[name] or not effect_applicable_objects[name][object.object_type] then
-		d.print(("4298: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
+		d.print(("4355: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4321,7 +4378,7 @@ function Effects.apply(name, object, duration, strength)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4307: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4364: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4364,7 +4421,7 @@ end
 function Effects.remove(object, name)
 	-- if the object was never given
 	if not object then
-		d.print(("4350: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
+		d.print(("4407: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
 		return false, false
 	end
 
@@ -4373,13 +4430,13 @@ function Effects.remove(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4359: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4416: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4365: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4422: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4388,7 +4445,7 @@ function Effects.remove(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4374: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4431: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4440,13 +4497,13 @@ end
 function Effects.removeAll(object)
 	-- if the object was never given
 	if not object then
-		d.print("4426: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
+		d.print("4483: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
 		return 0, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4432: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("4489: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return 0, false
 	end
 
@@ -4455,7 +4512,7 @@ function Effects.removeAll(object)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4441: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
+		d.print(("4498: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
 		return 0, false
 	end
 
@@ -4483,7 +4540,7 @@ function Effects.removeAll(object)
 		
 		-- if this effect does not exist.
 		if not effect_definition then
-			d.print(("4469: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
+			d.print(("4526: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4521,13 +4578,13 @@ function Effects.has(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4507: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4564: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4513: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4570: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4536,7 +4593,7 @@ function Effects.has(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4522: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4579: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4601,7 +4658,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4587: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4644: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -4617,7 +4674,7 @@ function Effects.onTick(game_ticks)
 
 		-- if this effect definition does not exist.
 		if not effect_definition then
-			d.print(("4603: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
+			d.print(("4660: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4628,7 +4685,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4614: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4671: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -5058,21 +5115,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("5044: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("5101: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("5051: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("5108: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("5058: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("5115: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -5110,14 +5167,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("5096: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("5153: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("5103: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("5160: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -5127,7 +5184,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("5113: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("5170: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -5161,7 +5218,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("5147: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("5204: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -5172,7 +5229,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("5158: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("5215: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -5228,7 +5285,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("5214: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("5271: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -5380,7 +5437,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("5366: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("5423: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -5389,7 +5446,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("5375: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("5432: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -5410,7 +5467,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("5396: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("5453: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -5419,7 +5476,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("5405: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("5462: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -6061,7 +6118,7 @@ function Citizens.onTick(game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("6047: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("6104: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -6467,7 +6524,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("6453: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("6510: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -6503,7 +6560,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("6489: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("6546: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -6514,7 +6571,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("6500: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("6557: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -6526,7 +6583,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("6512: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("6569: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -6676,7 +6733,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("6662: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("6719: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -6785,7 +6842,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("6771: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("6828: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -7610,7 +7667,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("7596: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("7653: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -7630,7 +7687,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("7616: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("7673: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -7794,13 +7851,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("7780: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7837: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("7786: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7843: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -7821,17 +7878,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("7807: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("7864: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("7812: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("7869: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("7817: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("7874: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -8729,7 +8786,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8715: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("8772: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -8742,7 +8799,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8728: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("8785: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -12409,7 +12466,7 @@ function VehicleSpeedTracker.update(tracker_id)
 	) * time.second/(g_savedata.tick_counter - tracker_data.last_updated_tick)
 
 	-- Add the speed to the speed history table
-	table.insert(tracker_data.speed_history, current_speed)
+	table.insert(tracker_data.speed_history, 1, current_speed)
 
 	-- Get the number of speed entries for this tracker.
 	local speed_entries = #tracker_data.speed_history
@@ -12420,6 +12477,12 @@ function VehicleSpeedTracker.update(tracker_id)
 
 		-- Remove 1 from the number of entries
 		speed_entries = speed_entries - 1
+	end
+
+	-- If theres still more, remove them all.
+	if speed_entries > tracker_data.smoothing_amount then
+		speed_entries = 0
+		tracker_data.speed_history = {}
 	end
 
 	-- Define the total speed.
@@ -12696,7 +12759,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -12760,6 +12823,32 @@ function Vector2.new(x, y)
 
 	-- return the vector
 	return vector
+end
+
+--- Function for turning a Matrix into a Vector2 (matrix x becomes vector x, matrix z becomes vector y)
+---@param target_matrix SWMatrix
+---@param raw_coordinates boolean? whether or not to return the raw coordinates of the matrix (true), or the transformed coordinates (false/nil).
+---@return Vector2 vector the vector created from the matrix.
+function Vector2.fromMatrix(target_matrix, raw_coordinates)
+	-- if raw_coordinates is true
+	if raw_coordinates then
+		-- return the raw coordinates
+		return {
+			x = target_matrix[13],
+			y = target_matrix[15]
+		}
+	end
+
+	--* raw coordinates is false, return the transformed coordinates
+
+	-- get transformed coordinates (I assume this function properly applies the rotations, scaling, etc to the matrix.)
+	local x, _, z = matrix.position(target_matrix)
+
+	-- return the transformed coordinates
+	return {
+		x = x,
+		y = z
+	}
 end
 
 --- Function for creating a Vector2 from polar coordinates
@@ -12831,7 +12920,206 @@ function Vector2.angleBetween(a, b)
 	local ry = b.y - a.y
 
 	-- return the angle
-	return math.atan(ry, rx)
+	return math.atan(rx, ry)
+end
+
+--- Function for adding two Vector2s.
+---@param a Vector2 the first vector to add.
+---@param b Vector2 the second vector to add.
+---@return Vector2 added_vector the vector created from the addition of the two vectors.
+function Vector2.add(a, b)
+	-- create the vector
+	local added_vector = {
+		x = a.x + b.x,
+		y = a.y + b.y
+	}
+
+	-- return the vector
+	return added_vector
+end
+
+--- Function for subtracting two Vector2s.
+---@param a Vector2 the vector to subtract from.
+---@param b Vector2 the vector to subtract.
+---@return Vector2 subtracted_vector the vector created from the subtraction of the two vectors.
+function Vector2.subtract(a, b)
+	-- create the vector
+	local subtracted_vector = {
+		x = a.x - b.x,
+		y = a.y - b.y
+	}
+
+	-- return the vector
+	return subtracted_vector
+end
+
+--- Function for multiplying two Vector2s.
+---@param a Vector2 the first vector to multiply.
+---@param b Vector2 the second vector to multiply.
+---@return Vector2 multiplied_vector the vector created from the multiplication of the two vectors.
+function Vector2.multiply(a, b)
+	-- create the vector
+	local multiplied_vector = {
+		x = a.x * b.x,
+		y = a.y * b.y
+	}
+
+	-- return the vector
+	return multiplied_vector
+end
+
+--- Function for dividing two Vector2s.
+---@param a Vector2 the vector to divide.
+---@param b Vector2 the vector to divide by.
+---@return Vector2 divided_vector the vector created from the division of the two vectors.
+function Vector2.divide(a, b)
+	-- create the vector
+	local divided_vector = {
+		x = a.x / b.x,
+		y = a.y / b.y
+	}
+
+	-- return the vector
+	return divided_vector
+end
+
+--- Function for doing a scalar division on a vector.
+---@param vector Vector2 the vector to divide.
+---@param scalar number the scalar to divide the vector by.
+---@return Vector2 divided_vector the vector created from the division of the vector by the scalar.
+function Vector2.scalarDivide(vector, scalar)
+	-- create the vector
+	local divided_vector = {
+		x = vector.x / scalar,
+		y = vector.y / scalar
+	}
+
+	-- return the vector
+	return divided_vector
+end
+
+--- Function for doing a scalar multiplication on a vector.
+---@param vector Vector2 the vector to multiply.
+---@param scalar number the scalar to multiply the vector by.
+---@return Vector2 multiplied_vector the vector created from the multiplication of the vector by the scalar.
+function Vector2.scalarMultiply(vector, scalar)
+	-- create the vector
+	local multiplied_vector = {
+		x = vector.x * scalar,
+		y = vector.y * scalar
+	}
+
+	-- return the vector
+	return multiplied_vector
+end
+
+--- Function for doing a dot product on two vectors.
+---@param a Vector2 the first vector to use in the dot product
+---@param b Vector2 the second vector to use in the dot product
+---@return number dot_product the dot product of the two vectors.
+function Vector2.dotProduct(a, b)
+	-- Calculate and Return the dot product.
+	return (
+		a.x * b.x
+		+ a.y * b.y
+	)
+end
+
+--- Function for getting the length of a vector
+---@param vector Vector2 the vector to get the length of
+---@return number length the length of the vector
+function Vector2.length(vector)
+	return math.sqrt(
+		vector.x * vector.x
+		+ vector.y * vector.y
+	)
+end
+
+--- Function for normalising a vector.
+---@param vector Vector2 the vector to normalise.
+---@return Vector2 normalised_vector the normalised vector
+function Vector2.normalise(vector)
+	-- Get the length of the vector
+	local vector_length = Vector2.length(vector)
+
+	-- Do and return a scalar division on the vector by the vector length.
+	return Vector2.scalarDivide(vector, vector_length)
+end
+
+--- Function for doing a scalar projection on a Vector2. Projects position onto a line defined by line_start and line_end, for a given maximum distance.
+---@param position Vector2 the position to project onto the line.
+---@param line_start Vector2 the start position of the line.
+---@param line_end Vector2 the end position of the line.
+---@param maximum_distance number the maximum projection distance.
+---@return Vector2 projected_vector the vector projected onto the line.
+---@return number projected_distance the distance the vector was projected forward by.
+function Vector2.scalarProjection(position, line_start, line_end, maximum_distance)
+	-- Get the position local to the line start
+	local position_vector = Vector2.subtract(position, line_start)
+
+	-- Get the line end position local to the line start
+	local line_vector = Vector2.subtract(line_end, line_start)
+
+	-- Get a normalised version of the line vector.
+	local line_vector_normalised = Vector2.normalise(line_vector)
+
+	-- Get the length of the line vector
+	local line_vector_length = Vector2.length(line_vector)
+
+	-- Get the progress of the position along the line vector.
+	local position_progress =Vector2.dotProduct( -- Get the dot product
+		position_vector,
+		line_vector
+	) / line_vector_length -- Divide by the length of the vector.
+
+	-- Get the position as if it was on the path.
+	local position_on_path = Vector2.add( -- Add the line start and normalised line vector vectors together.
+		line_start,
+		Vector2.scalarMultiply(
+			line_vector_normalised,
+			position_progress -- Scalar Multiply by where the position would be if it was along the line.
+		)
+	)
+
+	-- Calculate the projection distance, by capping it to the line's end.
+	local projection_distance = math.min(
+		Vector2.euclideanDistance(
+			line_end,
+			position_on_path
+		),
+		maximum_distance
+	)
+
+	-- Calculate the projected vector
+	local projected_vector = Vector2.add( -- Add the line start and normalised line vector vectors together.
+		line_start,
+		Vector2.scalarMultiply(
+			line_vector_normalised,
+			position_progress + projection_distance -- Scalar Multiply by the projection distance
+		)
+	)
+
+	-- Return the projected vector.
+	return projected_vector, projection_distance
+end
+
+--- Function for linearly interpolating between two Vector2s.
+---@param source Vector2 the position to interpolate from.
+---@param target Vector2 the position to interpolate to.
+---@param alpha number the alpha value to interpolate by. (0 being source, 1 being target, 0.5 being halfway between source and target, though, not limited to 0-1.)
+---@return Vector2 interpolated_vector the vector created from the interpolation of the two vectors.
+function Vector2.lerp(source, target, alpha)
+	-- Get the inverted alpha for multiplying the source.
+	local inverted_alpha = 1 - alpha
+
+	-- Create the vector
+	local interpolated_vector = Vector2.add(
+		Vector2.scalarMultiply(source, inverted_alpha),
+		Vector2.scalarMultiply(target, alpha)
+	)
+
+	-- Return the vector
+	return interpolated_vector
 end
 -- This library is for controlling or getting things about the Enemy AI.
 
@@ -13067,7 +13355,7 @@ function pathNodeFromSWNode(sw_node, base_consume_distance)
 	-- If the node is missing the y and/or cdm fields, then print an error.
 	---@diagnostic disable-next-line: undefined-field
 	if not sw_node.y or not sw_node.cdm then
-		d.print(("13053: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+		d.print(("13341: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
 	end
 
 	return {
@@ -13731,7 +14019,7 @@ Routing = {}
 ---@class Route
 ---@field stored_path_id StoredPathID the id of the stored path
 ---@field route_type string the type of route
----@field path_index integer the index that the vehicle is at on the path
+---@field path_index integer the index that the vehicle has reached on the path
 ---@field start_matrix SWMatrix the start of the route
 ---@field end_matrix SWMatrix the end of the route
 
@@ -13838,7 +14126,7 @@ end
 
 --- Function for getting a path from the id
 ---@param path_id StoredPathID the id of the path to get
----@return Path? path the path, nil if no path.
+---@return Path|nil path the path, nil if no path.
 function Routing.getPathFromID(path_id)
 	-- return the path
 	return g_savedata.routing.stored_paths[path_id]
@@ -13991,7 +14279,10 @@ Command.registerCommand(
 			local node = failed_merge_nodes[node_index]
 
 			-- Draw the node
-			Map.addMapCircle(peer_id, g_savedata.routing.failed_node_merge_ui_id, Vector3.toMatrix(node.position), 10, 1, 255, 0, 0, 255, 15)
+			Map.addMapCircle(peer_id, g_savedata.routing.failed_node_merge_ui_id, Vector3.toMatrix(node.position), NODE_MERGE_DISTANCE, 1, 255, 0, 0, 255, 12)
+			
+			-- Draw a label for it, saying what node it thinks it is on.
+			server.addMapLabel(peer_id, g_savedata.routing.failed_node_merge_ui_id, 2, ("Tile Name: %s"):format(server.getTile(Vector3.toMatrix(node.position)).name), node.position.x, node.position.z)
 		end
 
 		d.print(("Drew %d nodes that possibly failed to merge."):format(#failed_merge_nodes), true, 0, peer_id)
@@ -14244,6 +14535,7 @@ DrivableVehicle = {}
 ---@field vehicle_type DrivableVehicleType the type of vehicle this is.
 ---@field max_speed number the max speed of the vehicle in m/s.
 ---@field driving_style string the driving style of the vehicle.
+---@field driving_state string the driving state of the vehicle.
 
 ---@class SeatInput
 ---@field axis_w number the input for the w/s axis, -1 to 1 (1 is w, -1 is s).
@@ -14257,6 +14549,13 @@ DrivableVehicle = {}
 ---@field button5 boolean the input for the key 5.
 ---@field button6 boolean the input for the key 6.
 ---@field trigger boolean the input for the trigger (space).
+
+---@class BendNodeData
+---@field position Vector3 the position of the node.
+---@field angle number the angle of the node, from the previous node to the next node.
+---@field distance number the distance to this node from the vehicle, along the road.
+
+---@alias UpcomingTurnData table<integer, BendNodeData> the upcoming turn data
 
 
 --[[
@@ -14276,7 +14575,7 @@ DRIVABLE_VEHICLE_TYPE = {
 }
 
 --- The number of ticks to split the loaded drivable vehicles by.
-LOADED_DRIVABLE_VEHICLE_UPDATE_RATE = 5
+LOADED_DRIVABLE_VEHICLE_UPDATE_RATE = 1--5
 
 UNLOADED_DRIVABLE_VEHICLE_UPDATE_RATE = 1--time.second*5
 
@@ -14371,7 +14670,7 @@ function DrivableVehicle.spawn(prefab_name, transform)
 	local max_speed = UnitConversions.kilometresPerHour.toMetresPerSecond(raw_max_speed)
 
 	-- Get the driving style
-	local driving_style = Tags.getValue(prefab_data.tags, "driving_style", false) --[[@as string]] or "unknown"
+	local driving_style = Tags.getValue(prefab_data.tags, "driving_style", true) --[[@as string]] or "unknown"
 
 	-- Create the drivable vehicle
 	---@type DrivableVehicle
@@ -14383,7 +14682,8 @@ function DrivableVehicle.spawn(prefab_name, transform)
 		route = nil,
 		max_speed = max_speed,
 		vehicle_type = drivable_vehicle_type,
-		driving_style = driving_style
+		driving_style = driving_style,
+		driving_state = "normal"
 	}
 
 	-- Add the drivable vehicle to g_savedata
@@ -14400,6 +14700,18 @@ function DrivableVehicle.spawn(prefab_name, transform)
 		d.print(("(DrivableVehicle.spawn) Failed to get the vehicle with generic vin %d, aborting creation of the drivable vehicle."):format(generic_vin), true, 1)
 		return -1, false
 	end
+
+	-- Start tracking the vehicle's main body's speed
+	local speed_tracker_id, speed_tracker_was_made = VehicleSpeedTracker.track(generic_vehicle.vehicle_ids[1], VEHICLE_SPEED_TRACKER_UPDATE_RATE.HIGH, 3)
+
+	-- If the speed tracker was not made, return early.
+	if not speed_tracker_was_made then
+		d.print(("(DrivableVehicle.spawn) Failed to create the speed tracker for vehicle %d, aborting creation of the drivable vehicle."):format(generic_vehicle.vehicle_ids[1]), true, 1)
+		return -1, false
+	end
+
+	-- Store the speed tracker id for this vehicle on the generic vehicle.
+	generic_vehicle.speed_tracker_ids[1] = speed_tracker_id
 
 	-- Add the drivable vehicle to the vehicle id map
 	g_savedata.libraries.drivable_vehicles.vehicle_id_map[generic_vehicle.vehicle_ids[1]] = drivable_vehicle_id
@@ -14451,12 +14763,172 @@ function DrivableVehicle.getSeatInputIdentity()
 	}
 end
 
+--- Function for setting a seat with a SeatInput
+---@param drivable_vehicle DrivableVehicle the vehicle to set the seat input for.
+---@param seat_input SeatInput the seat input to set for the vehicle.
+function DrivableVehicle.setSeatInput(drivable_vehicle, seat_input)
+	-- Get the generic vehicle for this vehicle
+	local generic_vehicle = Vehicle.getGenericVehicle(drivable_vehicle.generic_vin)
+
+	-- If the generic vehicle is nil, then return early.
+	if not generic_vehicle then
+		return
+	end
+
+	-- Set the seat input for the vehicle.
+	server.setVehicleSeat(
+		generic_vehicle.vehicle_ids[1], 
+		"Driver",
+		seat_input.axis_w,
+		seat_input.axis_d,
+		seat_input.axis_up,
+		seat_input.axis_left,
+		seat_input.button1,
+		seat_input.button2,
+		seat_input.button3,
+		seat_input.button4,
+		seat_input.button5,
+		seat_input.button6,
+		seat_input.trigger
+	)
+end
+
+--- Function for getting the vehicle's speed, uses the speed tracker system.
+---@param drivable_vehicle DrivableVehicle the vehicle to get the speed for.
+---@return number speed the speed of the vehicle.
+function DrivableVehicle.getSpeed(drivable_vehicle)
+	-- Get the generic vehicle for this vehicle
+	local generic_vehicle = Vehicle.getGenericVehicle(drivable_vehicle.generic_vin)
+
+	-- If the generic vehicle is nil, then return early.
+	if not generic_vehicle then
+		d.print(("(DrivableVehicle.getSpeed) Failed to get the generic vehicle for vehicle %d, aborting."):format(drivable_vehicle.generic_vin), true, 1)
+		return 0
+	end
+
+	-- Get the speed tracker id for the vehicle's main body.
+	local speed_tracker_id = generic_vehicle.speed_tracker_ids[1]
+
+	-- If the speed tracker id is nil, return early.
+	if not speed_tracker_id then
+		d.print(("(DrivableVehicle.getSpeed) Failed to get the speed tracker id for vehicle %d, aborting."):format(drivable_vehicle.generic_vin), true, 1)
+		return 0
+	end
+
+	-- Get the speed tracker data for this vehicle.
+	local speed_tracker_data = g_savedata.libraries.vehicle_speed_tracker.trackers[speed_tracker_id]
+
+	-- If the speed tracker data is nil, return early.
+	if not speed_tracker_data then
+		d.print(("(DrivableVehicle.getSpeed) Failed to get the speed tracker data for vehicle %d, aborting."):format(drivable_vehicle.generic_vin), true, 1)
+		return 0
+	end
+
+	-- Return the speed of the vehicle.
+	return speed_tracker_data.speed
+end
+
 --- Function for getting a vehicle's target speed.
 ---@param drivable_vehicle DrivableVehicle the vehicle to get the target speed for.
 ---@return number target_speed the target speed of the vehicle.
 function DrivableVehicle.getTargetSpeed(drivable_vehicle)
 	-- In the future, will be alot more complex, taking into account vehicles ahead, and trying to keep a distance from them, as well as speed limits. But for now, just return the max speed.
 	return drivable_vehicle.max_speed
+end
+
+--- Function for getting the turns along the path for the next desired number of metres.
+---@param drivable_vehicle DrivableVehicle the vehicle to get the turns for.
+---@param distance number the distance to get the turns for.
+---@return UpcomingTurnData|nil upcoming_turn_data the upcoming turn data, nil upon error.
+function DrivableVehicle.getUpcomingTurnData(drivable_vehicle, distance)
+	-- Get the path.
+	local path = Routing.getPathFromID(drivable_vehicle.route.stored_path_id)
+
+	-- If the path is nil, return nil.
+	if not path then
+		d.print(("(DrivableVehicle.getUpcomingTurnData) Failed to get the path from the route with stored path id %d, aborting."):format(drivable_vehicle.route.stored_path_id), true, 1)
+		return nil
+	end
+
+	-- Define the upcoming turn data.
+	---@type UpcomingTurnData
+	local upcoming_turn_data = {}
+
+	-- Start at the vehicle's angle, and then from there, go through the upcoming nodes.
+	local _, previous_yaw, _ = matrix.getMatrixRotation(drivable_vehicle.transform)
+
+	-- Store the previous vector position, start at the vehicle's position.
+	local previous_vec3 = Vector3.fromMatrix(drivable_vehicle.transform, true)
+
+	-- Store the total distance travelled, start at 0.
+	local total_distance_travelled = 0
+
+	-- Iterate through the nodes
+	for node_index = drivable_vehicle.route.path_index + 1, #path do
+		-- Get the node
+		local node = path[node_index]
+
+		-- Create a vector for the position of this node
+		local node_vec2 = Vector2.new(node.x, node.z)
+
+		-- Create a vector2 of the previous node
+		local previous_vec2 = Vector2.new(previous_vec3.x, previous_vec3.z)
+
+		-- Get the distance to this node
+		local distance_to_node = Vector2.euclideanDistance(previous_vec2, node_vec2)
+
+		-- If the total distance travelled is greater than the distance we're looking for, break.
+		if total_distance_travelled > distance then
+			break
+		end
+
+		-- Get the angle between this and the last node.
+		local turn_angle = Vector2.angleBetween(previous_vec2, node_vec2)
+
+		-- Get the bend node data
+		---@type BendNodeData
+		local bend_node_data = {
+			position = previous_vec3,
+			angle = turn_angle - previous_yaw, -- Subtract the previous yaw from it, to get the difference.
+			distance = total_distance_travelled
+		}
+
+		-- Add this to the total distance travelled
+		total_distance_travelled = total_distance_travelled + distance_to_node
+
+		-- Store this into the upcoming turn data
+		table.insert(upcoming_turn_data, bend_node_data)
+
+		-- Set the previous vector to the node vector
+		previous_vec3 = Vector3.new(node.x, node.y, node.z)
+
+		-- Set the previous yaw to the angle between the previous vector and the node vector
+		previous_yaw = turn_angle
+	end
+
+	-- Return the upcoming turn data
+	return upcoming_turn_data
+end
+
+--- Function for checking if a vehicle has a path or not, Returns true if it has a next node to go to.
+---@param drivable_vehicle DrivableVehicle the drivable vehicle to check if it has a path or not.
+---@return boolean has_path if the vehicle has a path or not.
+function DrivableVehicle.hasNextNode(drivable_vehicle)
+	-- If the drivable vehicle's route is nil, return false.
+	if not drivable_vehicle.route then
+		return false
+	end
+
+	-- Get the path from the ID
+	local path = Routing.getPathFromID(drivable_vehicle.route.stored_path_id)
+
+	-- If the path is nil, return false
+	if not path then
+		return false
+	end
+
+	-- Return true if the node we've reached is less than the number of nodes in the path.
+	return #path > drivable_vehicle.route.path_index
 end
 
 --- Function for removing a vehicle from the loaded list.
@@ -14501,8 +14973,36 @@ function DrivableVehicle.onTick(game_ticks)
 	for loaded_vehicle_index = g_savedata.tick_counter % LOADED_DRIVABLE_VEHICLE_UPDATE_RATE + 1, #g_savedata.libraries.drivable_vehicles.loaded, LOADED_DRIVABLE_VEHICLE_UPDATE_RATE do
 		-- Get the loaded vehicle id.
 		local loaded_vehicle_id = g_savedata.libraries.drivable_vehicles.loaded[loaded_vehicle_index]
+
 		-- Get the loaded vehicle.
 		local loaded_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[loaded_vehicle_id]
+
+		-- Get the vehicle's generic vehicle
+		local generic_vehicle = Vehicle.getGenericVehicle(loaded_vehicle.generic_vin)
+
+		-- If the generic vehicle is nil, then skip this vehicle.
+		if not generic_vehicle then
+			goto continue
+		end
+
+		-- Update it's transform
+		local new_transform, got_new_transform = server.getVehiclePos(generic_vehicle.vehicle_ids[1])
+
+		-- If we failed to get it's new position, skip.
+		if not got_new_transform then
+			goto continue
+		end
+
+		-- Set the vehicle's transform to the new transform.
+		loaded_vehicle.transform = new_transform
+
+		-- Get the seat input for this vehicle by ticking it.
+		local seat_input = DrivingVehicles.tick(loaded_vehicle)
+
+		-- Set the seat input for this vehicle.
+		DrivableVehicle.setSeatInput(loaded_vehicle, seat_input)
+
+		::continue::
 	end
 
 	-- Go through the unloaded vehicles for this tick and update them.
@@ -14680,7 +15180,6 @@ Command.registerCommand(
 	"Temporary Debug Command.",
 	{""}
 )
-
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -14869,6 +15368,103 @@ function DrivingVehicles.defineCondition(self, condition_name, priority, conditi
 		return a.priority > b.priority
 	end)
 end
+
+--- Tick a DrivableVehicle, Returns the seat input.
+---@param drivable_vehicle DrivableVehicle The drivable vehicle to tick.
+---@return SeatInput seat_input the seat_input from the function.
+function DrivingVehicles.tick(drivable_vehicle)
+	-- Get the driving type for this vehicle type.
+	local driving_type = driving_types[drivable_vehicle.vehicle_type]
+
+	-- If driving_type is nil, print an error, and return empty seat input identity
+	if not driving_type then
+		d.print(("There are no driving type for %s!"):format(drivable_vehicle.vehicle_type), true, 1)
+		return DrivableVehicle.getSeatInputIdentity()
+	end
+
+	-- Get the driving style for this vehicle's driving style.
+	local driving_style = driving_type.driving_styles[drivable_vehicle.driving_style]
+
+	-- If driving_style is nil, print an error, and return empty seat input identity
+	if not driving_style then
+		d.print(("There are no driving style %s for vehicles with the type of %s!"):format(drivable_vehicle.driving_style, drivable_vehicle.vehicle_type), true, 1)
+		return DrivableVehicle.getSeatInputIdentity()
+	end
+
+	-- Get the vehicle driving state
+	local driving_state = driving_style.driving_states[drivable_vehicle.driving_state]
+
+	-- If driving_state is nil, print an error, and return empty seat input identity
+	if not driving_state then
+		d.print(("There are no driving state %s for vehicles with the type of %s and driving style of %s!"):format(drivable_vehicle.driving_state, drivable_vehicle.vehicle_type, drivable_vehicle.driving_style), true, 1)
+		return DrivableVehicle.getSeatInputIdentity()
+	end
+
+	-- Get the generic vehicle
+	local generic_vehicle = Vehicle.getGenericVehicle(drivable_vehicle.generic_vin)
+
+	-- If generic_vehicle is nil, print an error, and return empty seat input identity
+	if not generic_vehicle then
+		d.print(("There is no generic vehicle with the vin of %s!"):format(drivable_vehicle.generic_vin), true, 1)
+		return DrivableVehicle.getSeatInputIdentity()
+	end
+
+	-- Iterate through all of the conditions, and check if they are met.
+	for condition_priority = 1, #driving_state.conditions do
+		-- Get the condition
+		local condition = driving_state.conditions[condition_priority]
+
+		-- Check if the condition is met
+		if condition.condition_function == true or condition.condition_function(drivable_vehicle) then
+			-- Set the tooltip
+			server.setVehicleTooltip(generic_vehicle.vehicle_ids[1], condition.driving_condition)
+			
+			-- If it is, return the behaviour
+			return condition.behaviour(drivable_vehicle)
+		end
+	end
+
+	-- If no conditions are met, return an empty seat input identity.
+	d.print(("No conditions are met for the vehicle with the type of %s, driving style of %s, and driving state of %s!"):format(drivable_vehicle.vehicle_type, drivable_vehicle.driving_style, drivable_vehicle.driving_state), true, 1)
+	return DrivableVehicle.getSeatInputIdentity()
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Has the required files to include for the driving type definitions.
+]]
 --[[
 	
 Copyright 2024 Liam Matthews
@@ -14904,8 +15500,192 @@ limitations under the License.
 ---@diagnostic disable:duplicate-set-field
 
 --[[ 
-	Has the required files to include for the driving type definitions.
+	Sets up the driving behaviour of cars.
 ]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The distance to project the paths to.
+CAR_PATH_MAX_PROJECTION_DISTANCE = 20
+
+-- The distance to look ahead for upcoming turns.
+CAR_PATH_LOOK_AHEAD_DISTANCE = 150
+
+--[[
+
+
+	Functions
+
+
+]]
+
+-- Define/Get the land driving type.
+land_driving_type = DrivingVehicles.define(DRIVABLE_VEHICLE_TYPE.LAND)
+
+-- Define the car driving style.
+land_driving_style = land_driving_type:defineStyle("car")
+
+-- Define the normal driving state
+land_normal_driving_state = land_driving_style:defineState("normal")
+
+-- Define the normal car driving condition (driving normally).
+land_normal_driving_state:defineCondition(
+	"normal",
+	1,
+	DrivableVehicle.hasNextNode,
+	function(drivable_vehicle)
+		-- Get an empty seat input identity.
+		local seat_input = DrivableVehicle.getSeatInputIdentity()
+
+		-- Set that the engine is on
+		seat_input.button1 = true
+
+		-- Get it's path.
+		local path = Routing.getPathFromID(drivable_vehicle.route.stored_path_id)
+
+		-- Cast that path cannot be nil, as if it was, DrivableVehicle.hasNextNode would've returned false.
+		---@cast path -nil
+
+		-- Alias variables creating previous_node and target_node
+		local previous_node = path[drivable_vehicle.route.path_index]
+
+		local target_node = path[drivable_vehicle.route.path_index + 1]
+
+		-- Create vectors of the nodes.
+		local previous_node_vec2 = Vector2.new(previous_node.x, previous_node.z)
+
+		local target_node_vec2 = Vector2.new(target_node.x, target_node.z)
+
+		-- Create a vector2 of the vehicle's position
+		local vehicle_position_vec2 = Vector2.fromMatrix(drivable_vehicle.transform, true)
+
+		-- Get the projected target pos
+		local projected_position, projection_distance = Vector2.scalarProjection(
+			vehicle_position_vec2,
+			previous_node_vec2,
+			target_node_vec2,
+			CAR_PATH_MAX_PROJECTION_DISTANCE
+		)
+
+		server.removeMapLine(-1, 10000512)
+		server.addMapLine(-1, 10000512, drivable_vehicle.transform, matrix.translation(projected_position.x, 0, projected_position.y), 1, 0, 0, 255, 255)
+
+		-- If our projection distance is less than the consumption distance, go to the next node, for the next tick.
+		if projection_distance < CAR_PATH_MAX_PROJECTION_DISTANCE / 2 then
+			-- Increment the path index
+			drivable_vehicle.route.path_index = drivable_vehicle.route.path_index + 1
+		end
+
+		-- Get the angle the vehicle is facing
+		local _, yaw, _ = matrix.getMatrixRotation(drivable_vehicle.transform)
+
+		-- Get the angle to the target
+		local target_angle = Vector2.angleBetween(vehicle_position_vec2, projected_position)
+
+		-- Set the a/d input.
+		seat_input.axis_d = -math.wrap(yaw - target_angle, -math.pi, math.pi)
+
+		-- Get the upcoming turn data
+		local upcoming_turn_data = DrivableVehicle.getUpcomingTurnData(drivable_vehicle, CAR_PATH_LOOK_AHEAD_DISTANCE)
+
+		-- If the upcoming turn data is nil, return the seat input.
+		if not upcoming_turn_data then
+			return seat_input
+		end
+
+		-- Store the vehicle's target speed to compare later
+		local base_target_speed = drivable_vehicle.max_speed
+
+		-- Set the vehicle's target speed
+		local bent_target_speed = base_target_speed
+
+		for i = 1, 20 do
+			server.removeMapLabel(-1, 10000512)
+		end
+
+		--server.addMapLabel(-1, 10000512, 2, ("Angle: %0.2f\nx: %0.1f\nz: %0.1f"):format(yaw, vehicle_position_vec2.x, vehicle_position_vec2.y), vehicle_position_vec2.x, vehicle_position_vec2.y)
+
+		-- For each bend in the upcoming turn data, reduce the target speed depending upon the bend's angle.
+		for bend_index = 1, #upcoming_turn_data do
+
+			-- Get the bend node data
+			local bend_node_data = upcoming_turn_data[bend_index]
+
+			-- Add to the map.
+			server.addMapLabel(-1, 10000512, 2, ("Angle: %0.2f\nx: %0.1f\nz: %0.1f"):format(bend_node_data.angle, bend_node_data.position.x, bend_node_data.position.z), bend_node_data.position.x, bend_node_data.position.z)
+
+			-- Get the distance ratio
+			local bend_distance_ratio = 1 - math.clamp(bend_node_data.distance / CAR_PATH_LOOK_AHEAD_DISTANCE, 0, 1)
+
+			-- Get the bend speed reduction
+			local bend_speed_reduction = math.clamp(1 - math.abs(bend_node_data.angle * bend_distance_ratio) / math.half_pi, 0.2, 1)
+
+			-- Reduce the target speed
+			bent_target_speed = math.max(bent_target_speed * bend_speed_reduction, base_target_speed * 0.2)
+
+			-- If the target speed is equal to 20% of the vehicle's base target speed, return.
+			if bent_target_speed == base_target_speed * 0.2 then
+				break
+			end
+		end
+
+		-- Set the w/s input.
+		seat_input.axis_w = bent_target_speed / drivable_vehicle.max_speed
+
+		-- Get the vehicle's current speed.
+		local current_speed = DrivableVehicle.getSpeed(drivable_vehicle)
+
+		-- Get the difference as a ratio between the vehicle's target speed and it's current speed.
+		local speed_difference_ratio = 1 - current_speed / bent_target_speed
+
+		-- If the speed difference ratio says that the vehicle needs to increase in speed by at least 20%, increase the w/s input depending upon the difference.
+		if speed_difference_ratio > 0.2 then
+			seat_input.axis_w = math.min(seat_input.axis_w + speed_difference_ratio * 0.5, 1)
+		
+		-- If the speed difference ratio says that the vehicle needs to decrease in speed by at least 10%, decrease the w/s input depending upon the difference.
+		elseif speed_difference_ratio < -0.1 then
+			seat_input.axis_w = math.max(seat_input.axis_w + speed_difference_ratio * 0.5, 0)
+		end
+
+		-- If the speed difference ratio says that the vehicle needs to decrease in speed by at least 30%, set the up/down (brakes) input depending upon the difference.
+		if speed_difference_ratio < -0.3 then
+			seat_input.axis_up = math.min(speed_difference_ratio * -0.5, 1)
+		end
+
+		-- If the brakes have been applied at all, set the w/s input to 0.
+		if seat_input.axis_up < 0 then
+			seat_input.axis_w = 0
+		end
+
+		-- Get the generic vehicle
+		local generic_vehicle = Vehicle.getGenericVehicle(drivable_vehicle.generic_vin)
+
+		drivable_vehicle.temp_ui_id = drivable_vehicle.temp_ui_id or server.getMapID()
+
+		--server.removePopup(-1, drivable_vehicle.temp_ui_id)
+		server.setPopup(-1, drivable_vehicle.temp_ui_id, "eaw", true, ("Speed: %s\nTarget Speed: %s"):format(current_speed, bent_target_speed), 0, 0, 0, 2500, generic_vehicle.vehicle_ids[1], 0)
+		
+		-- Return the seat input
+		return seat_input
+	end
+)
+
+-- Define the stopped car driving condition (stopped)
+land_normal_driving_state:defineCondition(
+	"stopped_reached_end",
+	0,
+	true,
+	function(vehicle)
+		-- Return an empty seat input.
+		return DrivableVehicle.getSeatInputIdentity()
+	end
+)
 --[[
 	
 Copyright 2024 Liam Matthews
@@ -16787,6 +17567,24 @@ function setupMain(is_world_create)
 		end
 	end
 
+	-- Remove weather.
+	server.setGameSetting("override_weather", true)
+	server.setWeather(0, 0, 0)
+
+	-- Remove AI Damage
+	server.setGameSetting("npc_damage", false)
+
+	-- Remove Vehicle Damage
+	server.setGameSetting("vehicle_damage", false)
+
+	-- Remove Player Damage
+	server.setGameSetting("player_damage", false)
+
+	-- Clear FOW
+	server.setGameSetting("clear_fow", true)
+
+	-- Unlock all islands
+	server.setGameSetting("unlock_all_islands", true)
 	
 	d.print(("%s setup complete! took: %.3f%s"):format(SHORT_ADDON_NAME, millisecondsSince(world_setup_time)/1000, "s"), true, 0)
 
@@ -16834,12 +17632,17 @@ function onTick(game_ticks)
 	if g_savedata.debug.traceback.enabled then
 		ac.sendCommunication("DEBUG.TRACEBACK.ERROR_CHECKER", 0)
 	end
-
-	g_savedata.tick_counter = g_savedata.tick_counter + 1
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
 
 	VehiclePrefab.onTick(game_ticks)
+
+	-- If the addon is paused, skip.
+	if g_savedata.paused then
+		return
+	end
+
+	g_savedata.tick_counter = g_savedata.tick_counter + 1
 
 	VehicleSpeedTracker.onTick(game_ticks)
 

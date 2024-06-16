@@ -26,7 +26,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.18)"
+ADDON_VERSION = "(0.0.1.19)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -277,6 +277,24 @@ function setupMain(is_world_create)
 		end
 	end
 
+	-- Remove weather.
+	server.setGameSetting("override_weather", true)
+	server.setWeather(0, 0, 0)
+
+	-- Remove AI Damage
+	server.setGameSetting("npc_damage", false)
+
+	-- Remove Vehicle Damage
+	server.setGameSetting("vehicle_damage", false)
+
+	-- Remove Player Damage
+	server.setGameSetting("player_damage", false)
+
+	-- Clear FOW
+	server.setGameSetting("clear_fow", true)
+
+	-- Unlock all islands
+	server.setGameSetting("unlock_all_islands", true)
 	
 	d.print(("%s setup complete! took: %.3f%s"):format(SHORT_ADDON_NAME, millisecondsSince(world_setup_time)/1000, "s"), true, 0)
 
@@ -324,12 +342,17 @@ function onTick(game_ticks)
 	if g_savedata.debug.traceback.enabled then
 		ac.sendCommunication("DEBUG.TRACEBACK.ERROR_CHECKER", 0)
 	end
-
-	g_savedata.tick_counter = g_savedata.tick_counter + 1
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
 
 	VehiclePrefab.onTick(game_ticks)
+
+	-- If the addon is paused, skip.
+	if g_savedata.paused then
+		return
+	end
+
+	g_savedata.tick_counter = g_savedata.tick_counter + 1
 
 	VehicleSpeedTracker.onTick(game_ticks)
 
