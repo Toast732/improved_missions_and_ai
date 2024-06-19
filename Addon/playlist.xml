@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <playlist folder_path="data/missions/Improved_Missions_and_AI" file_store="4" name="Improved Missions and AI (0.0.1.dev)">
-	<locations location_id_counter="205" component_id_counter="4352">
+	<locations location_id_counter="207" component_id_counter="4361">
 		<locations>
 			<l id="1" tile="data/tiles/island_15.xml" name="CREATIVE BASE" is_env_mod="true" env_mod_spawn_num="1">
 				<components>
@@ -178,7 +178,7 @@
 						</graph_links>
 					</c>
 					<c component_type="11" id="2951" name="ocean_path,precision=0" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
-						<spawn_transform 30="367.445313" 31="0.5" 32="-407.613342"/>
+						<spawn_transform 30="367.445312" 31="0.5" 32="-407.613342"/>
 						<spawn_bounds>
 							<min x="-10" y="-10" z="-10"/>
 							<max x="10" y="10" z="10"/>
@@ -2997,7 +2997,7 @@
 							<l value="3086"/>
 						</graph_links>
 					</c>
-					<c component_type="10" id="4333" cargo_zone_import_cargo_type="imai,housing,town=Olsen Bay,houseNumber=101,max_occupancy=3" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+					<c component_type="10" id="4333" cargo_zone_import_cargo_type="imai,housing,town=Olsen Bay,houseNumber=101,max_occupancy=3,max_families=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
 						<spawn_transform 00="0.901188" 02="-0.433429" 20="0.433429" 22="0.901188" 30="374.542694" 31="7.147863" 32="-385.276306"/>
 						<spawn_bounds>
 							<min x="-2.980561" y="-2.026546" z="-5.552501"/>
@@ -3005,7 +3005,7 @@
 						</spawn_bounds>
 						<graph_links/>
 					</c>
-					<c component_type="10" id="4334" cargo_zone_import_cargo_type="imai,housing,town=Olsen Bay,houseNumber=102,max_occupancy=3" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+					<c component_type="10" id="4334" cargo_zone_import_cargo_type="imai,housing,town=Olsen Bay,houseNumber=102,max_occupancy=3,max_families=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
 						<spawn_transform 00="0.970338" 02="-0.241752" 20="0.241752" 22="0.970338" 30="364.732849" 31="7.156833" 32="-407.699768"/>
 						<spawn_bounds>
 							<min x="-2.980561" y="-2.026546" z="-5.552501"/>
@@ -3013,7 +3013,7 @@
 						</spawn_bounds>
 						<graph_links/>
 					</c>
-					<c component_type="10" id="4335" cargo_zone_import_cargo_type="imai,housing,town=Olsen Bay,houseNumber=103,max_occupancy=3" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+					<c component_type="10" id="4335" cargo_zone_import_cargo_type="imai,housing,town=Olsen Bay,houseNumber=103,max_occupancy=3,max_families=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
 						<spawn_transform 00="0.962063" 02="-0.272827" 20="0.272827" 22="0.962063" 30="361.081146" 31="6.939215" 32="-430.380249"/>
 						<spawn_bounds>
 							<min x="-2.980561" y="-2.026546" z="-5.552501"/>
@@ -3021,7 +3021,7 @@
 						</spawn_bounds>
 						<graph_links/>
 					</c>
-					<c component_type="10" id="4336" cargo_zone_import_cargo_type="imai,housing,town=Olsen Bay,houseNumber=104,max_occupancy=3" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+					<c component_type="10" id="4336" cargo_zone_import_cargo_type="imai,housing,town=Olsen Bay,houseNumber=104,max_occupancy=3,max_families=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
 						<spawn_transform 00="0.965032" 02="-0.262134" 20="0.262134" 22="0.965032" 30="356.279114" 31="7.232818" 32="-447.111328"/>
 						<spawn_bounds>
 							<min x="-2.980561" y="-2.026546" z="-5.552501"/>
@@ -25505,7 +25505,7 @@
 						</graph_links>
 					</c>
 					<c component_type="11" id="2309" name="land_path,precision=0,not_NSO" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
-						<spawn_transform 30="369.879425" 31="30.043585" 32="359.070313"/>
+						<spawn_transform 30="369.879425" 31="30.043585" 32="359.070312"/>
 						<spawn_bounds>
 							<min x="-10" y="-10" z="-10"/>
 							<max x="10" y="10" z="10"/>
@@ -36270,6 +36270,66 @@
 							<max x="4.125" y="10.625" z="28.125"/>
 						</spawn_bounds>
 						<spawn_local_offset y="-1.375" z="-0.75"/>
+						<graph_links/>
+					</c>
+				</components>
+			</l>
+			<l id="207" tile="data/tiles/arid_island_23_11.xml" name="ENZO KATS VILLAGE" is_env_mod="true" env_mod_spawn_num="1">
+				<components>
+					<c component_type="10" id="4353" cargo_zone_import_cargo_type="imai,building,town=Enzo Kats Village,buildingNumber=102,RESIDENTIAL" display_name="Enzo Kats Village Unit 102" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-74.032524" 31="22.255398" 32="266.238434"/>
+						<spawn_bounds>
+							<min x="-5" y="-2.236869" z="-6.166157"/>
+							<max x="5" y="2.236869" z="6.166157"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4355" cargo_zone_import_cargo_type="car_park,town=Enzo Kats Village,owner=102" display_name="Private Car Park" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-77.368423" 31="22.297783" 32="272.360901"/>
+						<spawn_bounds>
+							<min x="-2.318924" y="-2.324755" z="-4.789435"/>
+							<max x="2.318924" y="2.324755" z="4.789435"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4356" cargo_zone_import_cargo_type="town_centre_zone,town=Enzo Kats Village" display_name="Town Centre Zone" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-113.88192" 31="20.501282" 32="265.383911"/>
+						<spawn_bounds>
+							<min x="-0.516491" y="-0.514609" z="-0.521719"/>
+							<max x="0.516491" y="0.514609" z="0.521719"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4357" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.016081" 02="0.999871" 20="-0.999871" 22="-0.016081" 30="-70.376152" 31="20.508753" 32="261.16864"/>
+						<spawn_bounds>
+							<min x="-0.630635" y="-0.448327" z="-0.99025"/>
+							<max x="0.630635" y="0.448327" z="0.99025"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4358" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.015952" 02="0.999873" 20="-0.999873" 22="0.015952" 30="-70.417213" 31="20.535782" 32="264.18576"/>
+						<spawn_bounds>
+							<min x="-0.685078" y="-0.448327" z="-1.031107"/>
+							<max x="0.685078" y="0.448327" z="1.031107"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4360" cargo_zone_import_cargo_type="imai,building,town=Enzo Kats Village,buildingNumber=101,RESIDENTIAL" display_name="Enzo Kats Village Unit 101" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-54.150108" 31="22.263163" 32="257.455139"/>
+						<spawn_bounds>
+							<min x="-3.38012" y="-2.236869" z="-3.452041"/>
+							<max x="3.38012" y="2.236869" z="3.452041"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4361" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.017007" 02="-0.999855" 20="0.999855" 22="-0.017007" 30="-55.451309" 31="20.53743" 32="258.768188"/>
+						<spawn_bounds>
+							<min x="-0.63346" y="-0.448327" z="-1.234129"/>
+							<max x="0.63346" y="0.448327" z="1.234129"/>
+						</spawn_bounds>
 						<graph_links/>
 					</c>
 				</components>

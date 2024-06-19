@@ -66,7 +66,8 @@ ComponentSpawner = {
 ---@field addTag fun(self: ComponentFilter, tag: string, exclude: boolean?) adds a tag to the filter.
 ---@field addLocationName fun(self: ComponentFilter, location_name: string, exclude: boolean?) adds a location name to the filter.
 ---@field setEnvModHandling fun(self: ComponentFilter, env_mod_handling: ComponentFilterEnvModHandlingOptions) sets the env mod handling of the filter.
----@field getSpawningData fun(self: ComponentFilter, fallback: SpawningDataFallbackOptions?) gets the spawning data from the filter.
+---@field getSpawningData fun(self: ComponentFilter, fallback: SpawningDataFallbackOptions?): SpawningData, boolean gets the spawning data from the filter.
+---@field getAllSpawningData fun(self: ComponentFilter): table<int, SpawningData>, boolean gets all spawning data from the filter.
 
 --[[
 
@@ -163,15 +164,11 @@ function ComponentSpawner.createFilter()
 		self.env_mod_handling = env_mod_handling
 	end
 
-	--- Function for getting the spawning data from a filter
-	---@param self ComponentFilter the filter to get the spawning data from.
-	---@param fallback SpawningDataFallbackOptions? the fallback option to use if there is no spawning data found. If nil, defaults to SPAWNING_DATA_FALLBACK.FIRST
-	---@return SpawningData spawning_data the spawning data found.
-	---@return boolean is_success if the spawning data was found.
-	function filter:getSpawningData(fallback)
-		-- default fallback option to SPAWNING_DATA_FALLBACK.FIRST
-		fallback = fallback or SPAWNING_DATA_FALLBACK.FIRST
 
+	-- Internal function to get all matching spawning data.
+	---@param self ComponentFilter the filter to get the spawning data from.
+	---@return table<int, SpawningData> spawning_data the spawning data found.
+	local function getAllMatchingSpawningData(self)
 		--[[
 			Get the spawning data.
 
@@ -277,6 +274,36 @@ function ComponentSpawner.createFilter()
 				::discard_location::
 			end
 		end
+
+		return matching_spawning_data
+	end
+
+	--- Function for getting all spawning data from a filter, as in, each component that matches is returned.
+	---@param self ComponentFilter the filter to get the spawning data from.
+	---@return table<int, SpawningData> spawning_data the spawning data found.
+	---@return boolean is_success if we got any matches.
+	function filter:getAllSpawningData()
+		-- Get all matching spawning data
+		local matching_spawning_data = getAllMatchingSpawningData(self)
+
+		-- get the number of matches
+		local match_count = #matching_spawning_data
+
+		-- return the matches
+		return matching_spawning_data, match_count > 0
+	end
+
+	--- Function for getting the spawning data from a filter
+	---@param self ComponentFilter the filter to get the spawning data from.
+	---@param fallback SpawningDataFallbackOptions? the fallback option to use if there is no spawning data found. If nil, defaults to SPAWNING_DATA_FALLBACK.FIRST
+	---@return SpawningData spawning_data the spawning data found.
+	---@return boolean is_success if the spawning data was found.
+	function filter:getSpawningData(fallback)
+		-- default fallback option to SPAWNING_DATA_FALLBACK.FIRST
+		fallback = fallback or SPAWNING_DATA_FALLBACK.FIRST
+
+		-- Get all matching spawning data
+		local matching_spawning_data = getAllMatchingSpawningData(self)
 
 		-- get the number of matches
 		local match_count = #matching_spawning_data

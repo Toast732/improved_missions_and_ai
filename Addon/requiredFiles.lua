@@ -18,6 +18,20 @@ require("libraries.addon.commands.command.command") -- command handler, used to 
 
 require("libraries.imai.effects.effects")
 
+-- Require Towns.
+require("libraries.imai.towns.towns")
+require("libraries.imai.towns.town")
+
+-- Require Buildings.
+require("libraries.imai.buildings.buildings")
+require("libraries.imai.buildings.building")
+
+-- Require Usable Props
+require("libraries.addon.components.usableProps.usableProps")
+
+-- Require Game Master.
+require("libraries.imai.gameplay.gameMaster")
+
 require("libraries.imai.ai.citizens.citizens")
 
 require("libraries.imai.missions.missions")

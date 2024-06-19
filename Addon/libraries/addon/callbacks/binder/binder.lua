@@ -59,10 +59,14 @@ Binder = {
 -- onVehicleUnload
 ---@alias CallbackOnVehicleUnload fun(vehicle_id: integer)
 
+-- setupMain
+---@alias CallbackSetupMain fun(is_world_create: boolean)
+
 ---@alias Callback
 ---| CallbackOnGroupSpawn
 ---| CallbackOnVehicleLoad
 ---| CallbackOnVehicleUnload
+---| CallbackSetupMain
 
 ---@class BindedCallback
 ---@field callback Callback the callback to call
@@ -80,7 +84,8 @@ Binder = {
 binded_callbacks = {
 	onGroupSpawn = {},
 	onVehicleLoad = {},
-	onVehicleUnload = {}
+	onVehicleUnload = {},
+	setupMain = {}
 }
 
 --[[
@@ -276,6 +281,51 @@ end
 function Binder.bind.onVehicleUnload(callback, priority)
 	bindCallback(
 		"onVehicleUnload",
+		callback,
+		priority
+	)
+end
+
+--[[
+
+
+	setupMain
+
+
+]]
+
+---@private
+function bindedSetupMain(...)
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.setupMain
+
+	d.print("B")
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	d.print("C")
+
+	d.print(string.fromTable(binds))
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+end
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the setupMain callback.
+---@param callback CallbackOnVehicleLoad the callback to bind to the setupMain callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.setupMain(callback, priority)
+	bindCallback(
+		"setupMain",
 		callback,
 		priority
 	)

@@ -76,7 +76,7 @@ function Debugging.print(message, requires_debug, debug_type, peer_id) -- "glori
 	end
 
 	-- print a traceback if this is a debug error message, and if tracebacks are enabled
-	if debug_type == 1 and d.getDebug(8) then
+	if debug_type == 1 and d.getDebug(8) and addon_setup then
 		-- switch our env to the non modified environment, to avoid us calling ourselves over and over.
 		__ENV = _ENV_NORMAL
 		__ENV._ENV_MODIFIED = _ENV

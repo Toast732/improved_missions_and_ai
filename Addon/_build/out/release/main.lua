@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.19)"
+ADDON_VERSION = "(0.0.1.20)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -1662,7 +1662,7 @@ end
 ---@return number z_axis the z_axis rotation (pitch)
 function matrix.getMatrixRotation(rot_matrix) --returns radians for the functions: matrix.rotation X and Y and Z (credit to woe and quale)
 	local z = -math.atan(rot_matrix[5],rot_matrix[1])
-	rot_matrix = m.multiply(rot_matrix, m.rotationZ(-z))
+	rot_matrix = matrix.multiply(rot_matrix, matrix.rotationZ(-z))
 	return math.atan(rot_matrix[7],rot_matrix[6]), math.atan(rot_matrix[9],rot_matrix[11]), z
 end
 
@@ -1693,8 +1693,8 @@ end
 ---@param matrix3 SWMatrix the third most recent matrix
 ---@return number acceleration the acceleration in m/s
 function matrix.acceleration(matrix1, matrix2, matrix3, ticks_between)
-	local v1 = m.velocity(matrix1, matrix2, ticks_between) -- last change in velocity
-	local v2 = m.velocity(matrix2, matrix3, ticks_between) -- change in velocity from ticks_between ago
+	local v1 = matrix.velocity(matrix1, matrix2, ticks_between) -- last change in velocity
+	local v2 = matrix.velocity(matrix2, matrix3, ticks_between) -- change in velocity from ticks_between ago
 	-- returns the acceleration
 	return (v1-v2)/(ticks_between/60)
 end
@@ -1718,6 +1718,56 @@ function matrix.clone(matrix_to_clone)
 		matrix_to_clone[15],
 		matrix_to_clone[16]
 	}
+end
+
+--- Returns true if the two matrixes match on all params.
+---@param m1 SWMatrix the first matrix
+---@param m2 SWMatrix the second matrix
+---@return boolean is_equal true if the matrixes are equal
+function matrix.equals(m1, m2)
+	return
+		m1[1] == m2[1] and
+		m1[2] == m2[2] and
+		m1[3] == m2[3] and
+		m1[4] == m2[4] and
+		m1[5] == m2[5] and
+		m1[6] == m2[6] and
+		m1[7] == m2[7] and
+		m1[8] == m2[8] and
+		m1[9] == m2[9] and
+		m1[10] == m2[10] and
+		m1[11] == m2[11] and
+		m1[12] == m2[12] and
+		m1[13] == m2[13] and
+		m1[14] == m2[14] and
+		m1[15] == m2[15] and
+		m1[16] == m2[16]
+end
+
+--- Returns true if the two matrixes match on all params. Meant to be used when it's been stored in g_savedata, as this will remove to the last decimal point. on [13], [14], and [15]
+---@param m1 SWMatrix the first matrix
+---@param m2 SWMatrix the second matrix
+---@return boolean is_equal true if the matrixes are equal
+function matrix.g_equals(m1, m2)
+	-- Most params are just ==, but for 13, 14, and 15, we want to remove to the last decimal for comparison, due to the strange compression/randomisation on the location params.
+	return
+		m1[1] == m2[1] and
+		m1[2] == m2[2] and
+		m1[3] == m2[3] and
+		m1[4] == m2[4] and
+		m1[5] == m2[5] and
+		m1[6] == m2[6] and
+		m1[7] == m2[7] and
+		m1[8] == m2[8] and
+		m1[9] == m2[9] and
+		m1[10] == m2[10] and
+		m1[11] == m2[11] and
+		m1[12] == m2[12] and
+		math.round(m1[13], 1) == math.round(m2[13], 1) and
+		math.round(m1[14], 1) == math.round(m2[14], 1) and
+		math.round(m1[15], 1) == math.round(m2[15], 1) and
+		m1[16] == m2[16]
+		
 end
 
 
@@ -2728,7 +2778,7 @@ function Debugging.print(message, requires_debug, debug_type, peer_id) -- "glori
 	end
 
 	-- print a traceback if this is a debug error message, and if tracebacks are enabled
-	if debug_type == 1 and d.getDebug(8) then
+	if debug_type == 1 and d.getDebug(8) and addon_setup then
 		-- switch our env to the non modified environment, to avoid us calling ourselves over and over.
 		__ENV = _ENV_NORMAL
 		__ENV._ENV_MODIFIED = _ENV
@@ -4138,7 +4188,7 @@ function Object.addObject(object_id)
 
 	-- the object doesn't actually exist
 	if not object_data then
-		d.print(("4124: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
+		d.print(("4174: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
 		return false
 	end
 
@@ -4357,19 +4407,19 @@ function Effects.apply(name, object, duration, strength)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4343: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4393: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4349: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4399: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false
 	end
 
 	-- if the object cannot have this effect applied.
 	if not effect_applicable_objects[name] or not effect_applicable_objects[name][object.object_type] then
-		d.print(("4355: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
+		d.print(("4405: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4378,7 +4428,7 @@ function Effects.apply(name, object, duration, strength)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4364: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4414: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4421,7 +4471,7 @@ end
 function Effects.remove(object, name)
 	-- if the object was never given
 	if not object then
-		d.print(("4407: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
+		d.print(("4457: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
 		return false, false
 	end
 
@@ -4430,13 +4480,13 @@ function Effects.remove(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4416: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4466: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4422: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4472: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4445,7 +4495,7 @@ function Effects.remove(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4431: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4481: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4497,13 +4547,13 @@ end
 function Effects.removeAll(object)
 	-- if the object was never given
 	if not object then
-		d.print("4483: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
+		d.print("4533: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
 		return 0, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4489: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("4539: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return 0, false
 	end
 
@@ -4512,7 +4562,7 @@ function Effects.removeAll(object)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4498: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
+		d.print(("4548: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
 		return 0, false
 	end
 
@@ -4540,7 +4590,7 @@ function Effects.removeAll(object)
 		
 		-- if this effect does not exist.
 		if not effect_definition then
-			d.print(("4526: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
+			d.print(("4576: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4578,13 +4628,13 @@ function Effects.has(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4564: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4614: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4570: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4620: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4593,7 +4643,7 @@ function Effects.has(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4579: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4629: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4658,7 +4708,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4644: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4694: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -4674,7 +4724,7 @@ function Effects.onTick(game_ticks)
 
 		-- if this effect definition does not exist.
 		if not effect_definition then
-			d.print(("4660: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
+			d.print(("4710: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4685,7 +4735,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4671: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4721: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -4696,8 +4746,11 @@ function Effects.onTick(game_ticks)
 		::next_effect::
 	end
 end
---[[
 
+
+-- Require Towns.
+--[[
+	
 Copyright 2024 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -4713,6 +4766,590 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 ]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.2
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Allows a library to easily bind to a callback, so it doesn't have to inject itself into each callback.
+]]
+
+-- library name
+Binder = {
+	bind = {}
+}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+-- onGroupSpawn
+---@alias CallbackOnGroupSpawn fun(group_id: integer, peer_id: integer, x: number, y: number, z: number, group_cost: number)
+
+-- onVehicleLoad
+---@alias CallbackOnVehicleLoad fun(vehicle_id: integer)
+
+-- onVehicleUnload
+---@alias CallbackOnVehicleUnload fun(vehicle_id: integer)
+
+-- setupMain
+---@alias CallbackSetupMain fun(is_world_create: boolean)
+
+---@alias Callback
+---| CallbackOnGroupSpawn
+---| CallbackOnVehicleLoad
+---| CallbackOnVehicleUnload
+---| CallbackSetupMain
+
+---@class BindedCallback
+---@field callback Callback the callback to call
+---@field priority number the priority of the callback.
+
+--[[
+
+
+	Variables
+
+
+]]
+
+---@type table<string, table<integer, BindedCallback>>
+binded_callbacks = {
+	onGroupSpawn = {},
+	onVehicleLoad = {},
+	onVehicleUnload = {},
+	setupMain = {}
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+---@param callback_name string the name of the callback to bind to.
+---@param callback Callback the callback to bind to the callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first.
+local function bindCallback(callback_name, callback, priority)
+
+	-- default the priority to 0 if not specified.
+	priority = priority or 0
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks[callback_name]
+
+	-- check if the list exists
+	if not binds then
+		-- print an error
+		d.print(("The callback %s is not a valid callback."):format(callback_name), true, 1)
+		return
+	end
+
+	-- define the index to insert the callback at.
+	local insert_index = 1
+
+	-- find the index to insert the callback at (sorted by priority, goes to behind an existing callback if they share the same priority.)
+	for bind_index = 1, #binds do
+		-- if the priority is higher than the current bind's priority, break.
+		if binds[bind_index].priority > priority then
+			break
+		end
+
+		-- otherwise, set insert index to above this one.
+		insert_index = bind_index + 1
+	end
+
+	-- insert the callback at the insert index.
+	table.insert(binds, insert_index, 
+		{
+			callback = callback,
+			priority = priority
+		}
+	)
+end
+
+--[[
+
+	onGroupSpawn
+
+]]
+
+--[[
+	Inject.
+]]
+
+---@diagnostic disable-next-line: undefined-global
+old_onGroupSpawn = onGroupSpawn
+
+---@private
+function onGroupSpawn(...)
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.onGroupSpawn
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+
+	-- call old callback, if it exists
+	if old_onGroupSpawn then
+		old_onGroupSpawn(...)
+	end
+end
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the onGroupSpawn callback.
+---@param callback CallbackOnGroupSpawn the callback to bind to the onGroupSpawn callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.onGroupSpawn(callback, priority)
+	bindCallback(
+		"onGroupSpawn",
+		callback,
+		priority
+	)
+end
+
+--[[
+
+	onVehicleLoad
+
+]]
+
+--[[
+	Inject.
+]]
+
+old_onVehicleLoad = onVehicleLoad
+
+---@private
+function onVehicleLoad(...)
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.onVehicleLoad
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+
+	-- call old callback, if it exists
+	if old_onVehicleLoad then
+		old_onVehicleLoad(...)
+	end
+end
+
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the onVehicleLoad callback.
+---@param callback CallbackOnVehicleLoad the callback to bind to the onVehicleLoad callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.onVehicleLoad(callback, priority)
+	bindCallback(
+		"onVehicleLoad",
+		callback,
+		priority
+	)
+end
+
+--[[
+
+	onVehicleUnload
+
+]]
+
+--[[
+	Inject.
+]]
+
+old_onVehicleUnload = onVehicleUnload
+
+---@private
+function onVehicleUnload(...)
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.onVehicleUnload
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+
+	-- call old callback, if it exists
+	if old_onVehicleUnload then
+		old_onVehicleUnload(...)
+	end
+end
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the onVehicleUnload callback.
+---@param callback CallbackOnVehicleLoad the callback to bind to the onVehicleUnload callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.onVehicleUnload(callback, priority)
+	bindCallback(
+		"onVehicleUnload",
+		callback,
+		priority
+	)
+end
+
+--[[
+
+
+	setupMain
+
+
+]]
+
+---@private
+function bindedSetupMain(...)
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.setupMain
+
+	d.print("B")
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	d.print("C")
+
+	d.print(string.fromTable(binds))
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+end
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the setupMain callback.
+---@param callback CallbackOnVehicleLoad the callback to bind to the setupMain callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.setupMain(callback, priority)
+	bindCallback(
+		"setupMain",
+		callback,
+		priority
+	)
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Stores the data for the towns, handles setup of their components, and just generally manages them.
+]]
+
+-- library name
+Town = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias TownID integer
+
+---@class Town
+---@field id TownID The ID of the town.
+---@field name string The name of the town.
+---@field buildings table<index, BuildingID> The buildings in the town.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Creates a new town.
+---@param id TownID The ID of the town.
+---@param name string The name of the town.
+---@return Town town The new town.
+function Town.create(id, name)
+
+	-- Create the town.
+	local new_town = {
+		id = id,
+		name = name,
+		buildings = {}
+	}
+
+	-- Return the town.
+	return new_town
+end
+
+--- Adds a building to the town.
+---@param town Town The town to add the building to.
+---@param building Building the building to add to the town.
+function Town.addBuilding(town, building)
+	-- Add the building to the town.
+	table.insert(town.buildings, building.id)
+end
+
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Stores and handles the lists of all towns, and also handles the setup of them.
+]]
+
+-- library name
+Towns = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The priority of the setupMain callback.
+TOWNS_SETUP_MAIN_PRIORITY = 0
+
+-- The town centre zone tag, used to get the towns.
+TOWN_CENTRE_ZONE_TAG = "town_centre_zone"
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.towns = {
+	
+	-- The stored towns.
+	---@type table<TownID, Town>
+	stored_towns = {},
+
+	-- A hashmap to turn the town's name into the town's id.
+	---@type table<string, TownID>
+	town_name_to_id_hashmap = {},
+
+	-- The next town id.
+	---@type TownID
+	next_town_id = 1
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Called when setupMain is called.
+---@param is_world_create boolean if the world is being created.
+function Towns.setupMain(is_world_create)
+
+	-- Print that the towns are being setup.
+	d.print("Setting up towns...", true, 0)
+
+	-- Get the town centre zones.
+	town_centre_zones = server.getZones(TOWN_CENTRE_ZONE_TAG)
+
+	-- For each town centre zone, check if it's new.
+	for _, zone_data in ipairs(town_centre_zones) do
+		-- Store if it's new, default true, until found.
+		local is_town_new = true
+
+		-- Get the town's name.
+		local town_name = Tags.getValue(zone_data.tags, "town", true) --[[@as string]]
+
+		-- Iterate through the stored towns.
+		for _, town in ipairs(g_savedata.libraries.towns.stored_towns) do
+			-- If the town's name is the same as the zone's name, it's not new.
+			if town.name == town_name then
+				is_town_new = false
+				break
+			end
+		end
+
+		-- If it's new, create it.
+		if is_town_new then
+			-- Create the town.
+			local new_town = Town.create(g_savedata.libraries.towns.next_town_id, town_name)
+
+			-- Store the town.
+			g_savedata.libraries.towns.stored_towns[g_savedata.libraries.towns.next_town_id] = new_town
+
+			-- Save it in the hashmap.
+			g_savedata.libraries.towns.town_name_to_id_hashmap[town_name] = g_savedata.libraries.towns.next_town_id
+
+			-- Increment the next town id.
+			g_savedata.libraries.towns.next_town_id = g_savedata.libraries.towns.next_town_id + 1
+
+			-- Print that it was created
+			d.print(("Town %s was created."):format(town_name), true, 0)
+		end
+	end
+end
+
+-- Bind the setupMain callback.
+Binder.bind.setupMain(Towns.setupMain, TOWNS_SETUP_MAIN_PRIORITY)
+
+-- Require Buildings.
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
 
 --[[
 
@@ -4831,6 +5468,1626 @@ function Tags.getValue(tags, tag, as_string)
 	
 	return nil
 end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Defines the data for buildings.
+]]
+
+-- library name
+Building = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias BuildingID integer
+
+---@alias BuildingTypes table<BuildingType, boolean>
+
+---@class ExtraBuildingPrefabData
+
+---@class ResidentialBuildingData: ExtraBuildingPrefabData
+---@field max_residents integer The maximum number of residents that can live here.
+
+---@class Building
+---@field id BuildingID The ID of the building.
+---@field town_id TownID The ID of the town this building is in.
+---@field name string The name of the building.
+---@field transform SWMatrix The transform of the building.
+---@field size Vector3 The size of the building.
+---@field types BuildingTypes The types this building is.
+---@field extra_prefab_data table<BuildingType, ExtraBuildingPrefabData> The extra prefab data for this building.
+---@field usable_props UsablePropHashmap The props within this building.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+---@enum BuildingType
+BUILDING_TYPE = {
+	RESIDENTIAL = 1
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+-- Function to create a new building.
+---@param name string The name of the building.
+---@param building_id BuildingID The ID of the building.
+---@param zone_data SWZone The zone data for the building.
+---@return Building? building The new building, nil upon error.
+function Building.create(name, building_id, zone_data)
+
+	-- Get the town this building is in.
+	local town_name = Tags.getValue(zone_data.tags, "town", true) --[[@as string]]
+
+	-- Get the town id.
+	local town_id = g_savedata.libraries.towns.town_name_to_id_hashmap[town_name]
+
+	-- If the town id is nil, then return nil.
+	if not town_id then
+		
+		-- Print an error.
+		d.print(("The town %s does not exist."):format(town_name), true, 1)
+
+		return
+	end
+
+	---@type Building
+	local building = {
+		id = building_id,
+		town_id = town_id,
+		name = name,
+		transform = zone_data.transform,
+		size = Vector3.new(zone_data.size.x, zone_data.size.y, zone_data.size.z),
+		types = {},
+		extra_prefab_data = {},
+		usable_props = {}
+	}
+	
+	-- Update the building's data.
+	building = Building.update(building, zone_data)
+
+	-- Add the building to the town.
+	Town.addBuilding(g_savedata.libraries.towns.stored_towns[town_id], building)
+
+	return building
+end
+
+--- Updates the building's data.
+---@param building Building The building to update.
+---@param zone_data SWZone The zone data for the building.
+---@return Building building The updated building.
+function Building.update(building, zone_data)
+
+	-- Update the building's size.
+	building.size = Vector3.new(zone_data.size.x, zone_data.size.y, zone_data.size.z)
+
+	-- Update the building's transform.
+	building.transform = zone_data.transform
+
+	-- Add the props to the building
+	building = Building.addProps(building)
+
+	-- Function for getting the types this building is.
+	---@return BuildingTypes types The types this building is.
+	local function getBuildingTypes()
+
+		-- Create the list of types.
+		local building_types = {}
+
+		-- For each type, check if we have a tag for it.
+		for type_name, type_enum in pairs(BUILDING_TYPE) do
+			-- Set it to if we've got this tag.
+			building_types[type_enum] = Tags.has(zone_data.tags, type_name)
+		end
+
+		return building_types
+	end
+
+	-- Update the building's types.
+	building.types = getBuildingTypes()
+
+	-- Functions for creating the extra prefab data for the building.
+	local extra_prefab_data_builders = {
+		[BUILDING_TYPE.RESIDENTIAL] = function()
+
+			-- Get the number of beds this building has, and use that for the max residents.
+
+			-- Define the bed count.
+			local bed_count = 0
+
+			-- Iterate through all usable props in this building.
+			for _, usable_prop_id in ipairs(building.usable_props) do
+				-- Get the usable prop.
+				local usable_prop = g_savedata.libraries.usable_props.props[usable_prop_id]
+
+				-- If the usable prop is a bed, then add the prop's capacity to the bed count.
+				if usable_prop.type == USABLE_PROP_TYPE.BED then
+					bed_count = bed_count + usable_prop.capacity
+				end
+			end
+
+			return {
+				max_residents = bed_count
+			}
+		end
+	}
+
+	-- For each type this building is, create it's extra prefab data.
+	for type, is_type in pairs(building.types) do
+		-- If this building is this type, then create the extra prefab data.
+		if is_type then
+
+			-- Get the builder
+			local builder = extra_prefab_data_builders[type]
+
+			-- If we don't have a builder, then skip this type.
+			if not builder then
+				goto continue
+			end
+			
+			-- Add the data via the builder.
+			building.extra_prefab_data[type] = builder()
+		end
+
+		::continue::
+	end
+
+	-- Return the building.
+	return building
+end
+
+--- Sets the props within this building.
+---@param building Building The building to set the props for.
+---@return Building building The building with the props set.
+function Building.addProps(building)
+	
+	-- Reset the usable props property.
+	building.usable_props = {} --[[@as UsablePropHashmap]]
+
+	-- Iterate through all usable props.
+	for _, usable_prop_id in ipairs(g_savedata.libraries.usable_props.iterable_props) do
+		-- Get the usable prop.
+		local usable_prop = g_savedata.libraries.usable_props.props[usable_prop_id]
+
+		-- If the usable prop is within this building, then add it.
+		if server.isInTransformArea(
+			usable_prop.transform,
+			building.transform,
+			building.size.x,
+			building.size.y,
+			building.size.z
+		) then
+			table.insert(building.usable_props, usable_prop_id)
+		end
+	end
+
+	-- Return the building.
+	return building
+end
+
+--- Checks if this building is the specified type
+---@param building Building The building to check.
+---@param building_type BuildingType The type to check.
+---@return boolean is_type If the building is the specified type.
+function Building.isType(building, building_type)
+	return building.types[building_type]
+end
+
+-- Get the residential data for the building.
+---@param building Building The building to get the residential data for.
+---@return ResidentialBuildingData data The residential data, nil if the building is not residential.
+function Building.getResidentialData(building)
+	return building.extra_prefab_data[BUILDING_TYPE.RESIDENTIAL] --[[@as ResidentialBuildingData]]
+end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Stores the buildings and handles their setup.
+]]
+
+-- library name
+Buildings = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The priority of the setupMain callback.
+BUILDINGS_SETUP_MAIN_PRIORITY = TOWNS_SETUP_MAIN_PRIORITY + 1
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.buildings = {
+
+	-- The stored Buildings.
+	---@type table<BuildingID, Building>
+	stored_buildings = {},
+
+	-- The next ID to use for a building.
+	---@type BuildingID
+	next_id = 1
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Called when the main setup is called.
+---@param is_world_create boolean if the world is being created.
+function Buildings.setupMain(is_world_create)
+
+	-- Set the start time.
+	local start_time = server.getTimeMillisec()
+
+	-- Create a new list of buildings, will replace g_savedata.libraries.buildings.stored_buildings.
+	---@type table<BuildingID, Building>
+	local new_stored_buildings = {}
+
+	-- Define the number of new buildings made.
+	local new_buildings_made = 0
+
+	-- Define the number of buildings that were updated.
+	local buildings_updated = 0
+
+	-- Get all the building zones.
+	local building_zones = server.getZones("building")
+
+	-- Loop through all the buildings.
+	for _, building_zone in ipairs(building_zones) do
+
+		-- Store if this building already exists.
+		local building_exists = false
+
+		-- Check if the building already exists.
+		for _, building in pairs(g_savedata.libraries.buildings.stored_buildings) do
+			-- If the building's name is the same as the zone's name, it's not new.
+			if building.name == building_zone.name then
+				building_exists = true
+
+				building.extra_prefab_data = {}
+
+				-- Update the building's data.
+				building = Building.update(building, building_zone)
+
+				-- Store the updated building.
+				new_stored_buildings[building.id] = building
+
+				-- Increment the number of buildings updated.
+				buildings_updated = buildings_updated + 1
+
+				break
+			end
+		end
+
+		-- If the building doesn't yet exist, create it.
+		if not building_exists then
+			-- Update the building's data.
+			
+
+			-- Create a new building.
+			local new_building = Building.create(
+				building_zone.name,
+				g_savedata.libraries.buildings.next_id,
+				building_zone
+			)
+
+			-- If the building is nil, then skip it.
+			if new_building == nil then
+				goto continue
+			end
+
+			-- Store the building.
+			new_stored_buildings[g_savedata.libraries.buildings.next_id] = new_building
+
+			-- Increment the next ID.
+			g_savedata.libraries.buildings.next_id = g_savedata.libraries.buildings.next_id + 1
+
+			-- Print that the building was created.
+			d.print(("Building %s created."):format(new_building.name), true, 0)
+
+			-- Increment the number of new buildings made.
+			new_buildings_made = new_buildings_made + 1
+		end
+
+		::continue::
+	end
+
+	-- Set the new stored buildings.
+	g_savedata.libraries.buildings.stored_buildings = new_stored_buildings
+
+	d.print(("Buildings Setup! New Buildings Made: %d, Buildings Updated: %d, Time Taken: %dms"):format(
+		new_buildings_made,
+		buildings_updated,
+		Ticks.millisecondsSince(start_time)
+	), true, 0)
+end
+
+-- Bind the setupMain callback.
+Binder.bind.setupMain(Buildings.setupMain, BUILDINGS_SETUP_MAIN_PRIORITY)
+
+-- Require Usable Props
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Library to get spawning data for a component, and then spawn it from that data.
+]]
+
+-- library name
+ComponentSpawner = {
+	filter = {}
+}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class SpawningData
+---@field addon_index integer the addon index of the component.
+---@field location_index integer the location index of the component.
+---@field component_index integer the component index of the component.
+
+---@class ComponentFilterSegment
+---@field tags Tags the tags to match.
+---@field location_names table<int, string> the location names to match.
+
+---@class ComponentFilter
+---@field include ComponentFilterSegment the data that must match.
+---@field exclude ComponentFilterSegment the data that must not match.
+---@field env_mod_handling ComponentFilterEnvModHandlingOptions how to handle env mods. Defaults to COMPONENT_FILTER_ENV_MOD_HANDLING.EITHER
+---@field addTag fun(self: ComponentFilter, tag: string, exclude: boolean?) adds a tag to the filter.
+---@field addLocationName fun(self: ComponentFilter, location_name: string, exclude: boolean?) adds a location name to the filter.
+---@field setEnvModHandling fun(self: ComponentFilter, env_mod_handling: ComponentFilterEnvModHandlingOptions) sets the env mod handling of the filter.
+---@field getSpawningData fun(self: ComponentFilter, fallback: SpawningDataFallbackOptions?): SpawningData, boolean gets the spawning data from the filter.
+---@field getAllSpawningData fun(self: ComponentFilter): table<int, SpawningData>, boolean gets all spawning data from the filter.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+---@enum SpawningDataFallbackOptions
+SPAWNING_DATA_FALLBACK = {
+	FIRST = 0,
+	RANDOM = 1
+}
+
+---@enum ComponentFilterEnvModHandlingOptions
+COMPONENT_FILTER_ENV_MOD_HANDLING = {
+	EITHER = 0, -- can be either an env mod or not.
+	REQUIRED = 1, -- required to be an env mod.
+	NOT_ALLOWED = 2, -- not allowed to be an env mod.
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Creates a blank filter.
+---@return ComponentFilter filter Warning, cannot be stored and g_savedata and should not be.
+function ComponentSpawner.createFilter()
+	filter = {
+		include = {
+			tags = {},
+			location_names = {}
+		}, -- required data, all must match
+		exclude = {
+			tags = {},
+			location_names = {}
+		}, -- excluded data, none can match
+		env_mod_handling = COMPONENT_FILTER_ENV_MOD_HANDLING.EITHER
+	}
+
+	--[[
+		add the filter functions.
+	]]
+
+	--- Function for adding a tag to a filter.
+	---@param self ComponentFilter the filter to add the tag to.
+	---@param tag string the tag to add to the filter
+	---@param exclude boolean? whether or not to add the tag to the exclude tags. If false or nil, adds to include.
+	function filter:addTag(tag, exclude)
+		-- if this is an exclude tag
+		if exclude then
+			-- add it to the exclude list
+			table.insert(self.exclude.tags, tag)
+		-- otherwise, if this is an include tag
+		else
+			-- add it to the include list.
+			table.insert(self.include.tags, tag)
+		end
+	end
+
+	--- Function for adding a location name to a filter.
+	---@param self ComponentFilter the filter to add the location name to.
+	---@param location_name string the location name to add to the filter.
+	---@param exclude boolean? whether or not to add the location name to the exclude location names. If false or nil, adds to include.
+	function filter:addLocationName(location_name, exclude)
+		-- if this is an exclude location name
+		if exclude then
+			-- add it to the exclude list
+			table.insert(self.exclude.location_names, location_name)
+		-- otherwise, if this is an include location name
+		else
+			-- add it to the include list.
+			table.insert(self.include.location_names, location_name)
+		end
+	end
+
+	--- Function for setting the env mod handling of a filter.
+	---@param self ComponentFilter the filter to set the env mod handling of.
+	---@param env_mod_handling ComponentFilterEnvModHandlingOptions the env mod handling to set.
+	function filter:setEnvModHandling(env_mod_handling)
+		self.env_mod_handling = env_mod_handling
+	end
+
+
+	-- Internal function to get all matching spawning data.
+	---@param self ComponentFilter the filter to get the spawning data from.
+	---@return table<int, SpawningData> spawning_data the spawning data found.
+	local function getAllMatchingSpawningData(self)
+		--[[
+			Get the spawning data.
+
+			Operation:
+				1. Iterate through all addons.
+					1.1 Iterate through all locations in the addon.
+					1.2 Discard location if it matches any exclude location_names.
+					1.3 Discard location if it does not match all of the include location_names.
+						1.1.1 Iterate through all components in the location.
+						1.1.2 Discard component if any of the tags match any exclude tag.
+						1.1.3 Discard component if the tags do not match all of the include tags.
+		]]
+
+		---@type table<int, SpawningData> the spawning data found.
+		local matching_spawning_data = {}
+
+		-- get the number of addons
+		local addon_count = server.getAddonCount()
+
+		-- iterate through all addons
+		for addon_index = 0, addon_count - 1 do
+
+			-- get the addon's data
+			local addon_data = server.getAddonData(addon_index)
+
+			-- iterate through all locations in this addon
+			for location_index = 0, addon_data.location_count - 1 do
+
+				-- get the location's data
+				local location_data, location_is_success = server.getLocationData(addon_index, location_index)
+
+				-- discard if location_is_success is false.
+				if not location_is_success then
+					goto discard_location
+				end
+
+				-- if env mod handling is required.
+				if self.env_mod_handling == COMPONENT_FILTER_ENV_MOD_HANDLING.REQUIRED then
+					-- if this location is not an env mod, discard the location.
+					if not location_data.env_mod then
+						goto discard_location
+					end
+				elseif self.env_mod_handling == COMPONENT_FILTER_ENV_MOD_HANDLING.NOT_ALLOWED then
+					-- if this location is an env mod, discard the location.
+					if location_data.env_mod then
+						goto discard_location
+					end
+				end
+
+				-- go through all of the exclude location names
+				for _, exclude_location_name in ipairs(self.exclude.location_names) do
+					-- if this location name matches the exclude location name, discard the location.
+					if location_data.name:match(exclude_location_name) then
+						goto discard_location
+					end
+				end
+
+				-- go through all of the include location names
+				for _, include_location_name in ipairs(self.include.location_names) do
+					-- if this location name does not match the include location name, discard the location.
+					if not location_data.name:match(include_location_name) then
+						goto discard_location
+					end
+				end
+
+				-- go through all components in this location
+				for component_index = 0, location_data.component_count - 1 do
+
+					-- get the component's data
+					local component_data, component_is_success = server.getLocationComponentData(addon_index, location_index, component_index)
+				
+					-- discard if component_is_success is false.
+					if not component_is_success then
+						goto discard_component
+					end
+
+					-- go through all exclude tags
+					for _, exclude_tag in ipairs(self.exclude.tags) do
+						-- if this component has the exclude tag, discard the component.
+						if Tags.has(component_data.tags, exclude_tag) then
+							goto discard_component
+						end
+					end
+
+					-- go through all include tags
+					for _, include_tag in ipairs(self.include.tags) do
+						-- if this component does not have the include tag, then exclued the component.
+						if not Tags.has(component_data.tags, include_tag) then
+							goto discard_component
+						end
+					end
+
+					-- add this as matching spawning data.
+					table.insert(matching_spawning_data, 
+						{
+							addon_index = addon_index,
+							location_index = location_index,
+							component_index = component_index
+						}
+					)
+					::discard_component::
+				end
+				::discard_location::
+			end
+		end
+
+		return matching_spawning_data
+	end
+
+	--- Function for getting all spawning data from a filter, as in, each component that matches is returned.
+	---@param self ComponentFilter the filter to get the spawning data from.
+	---@return table<int, SpawningData> spawning_data the spawning data found.
+	---@return boolean is_success if we got any matches.
+	function filter:getAllSpawningData()
+		-- Get all matching spawning data
+		local matching_spawning_data = getAllMatchingSpawningData(self)
+
+		-- get the number of matches
+		local match_count = #matching_spawning_data
+
+		-- return the matches
+		return matching_spawning_data, match_count > 0
+	end
+
+	--- Function for getting the spawning data from a filter
+	---@param self ComponentFilter the filter to get the spawning data from.
+	---@param fallback SpawningDataFallbackOptions? the fallback option to use if there is no spawning data found. If nil, defaults to SPAWNING_DATA_FALLBACK.FIRST
+	---@return SpawningData spawning_data the spawning data found.
+	---@return boolean is_success if the spawning data was found.
+	function filter:getSpawningData(fallback)
+		-- default fallback option to SPAWNING_DATA_FALLBACK.FIRST
+		fallback = fallback or SPAWNING_DATA_FALLBACK.FIRST
+
+		-- Get all matching spawning data
+		local matching_spawning_data = getAllMatchingSpawningData(self)
+
+		-- get the number of matches
+		local match_count = #matching_spawning_data
+
+		-- if there are no matches, return that it failed
+		if match_count == 0 then
+			return {
+				addon_index = 0,
+				location_index = 0,
+				component_index = 0
+			}, false
+		end
+
+		-- if the fallback option is SPAWNING_DATA_FALLBACK.FIRST
+		if fallback == SPAWNING_DATA_FALLBACK.FIRST then
+			-- return the first match
+			return matching_spawning_data[1], true
+		-- otherwise, this is using the random fallback.
+		else
+			-- return a random match
+			return matching_spawning_data[math.random(1, match_count)], true
+		end
+	end
+
+	return filter
+end
+
+--- Spawns a component from the spawning data.
+---@param spawning_data SpawningData the spawning data to spawn the component from.
+---@param matrix SWMatrix the matrix to spawn the component at.
+---@param parent_vehicle_id integer? optional parent's vehicle_id to parent to.
+---@return SWAddonComponentSpawned component_data
+---@return boolean is_success
+function ComponentSpawner.spawn(spawning_data, matrix, parent_vehicle_id)
+
+	-- spawn the component
+	local component_data, is_success = server.spawnAddonComponent(
+		matrix,
+		spawning_data.addon_index,
+		spawning_data.location_index,
+		spawning_data.component_index,
+		parent_vehicle_id
+	)
+
+	-- return data
+	return component_data, is_success
+end
+ -- Doesn't spawn anything, just used for the filtering it has.
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Given the SWAddonComponentData, it will try to find the zone's data which is for the given data.
+]]
+
+-- library name
+ZoneLinker = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for getting the zone's data for the given SWAddonComponentData.
+---@param component_data SWAddonComponentData The data to get the zone's data for.
+---@param location_data SWLocationData The location data for the component.
+---@return SWZone? zone_data The zone's data for the given SpawningData.
+function ZoneLinker.getZoneData(component_data, location_data)
+
+	-- Find all zones with the matching tags of this object.
+	local zones = server.getZones(component_data.tags_full)
+
+	-- Find the tile's location, which this component is on.
+	local tile_transform_matrix, is_success = server.getTileTransform(matrix.identity(), location_data.tile)
+
+	-- If the tile's location was not found, return nil.
+	if not is_success then
+		d.print(("6343: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
+		return nil
+	end
+
+	-- Get the global coordinates of the component.
+	local global_component_matrix = matrix.multiply(tile_transform_matrix, component_data.transform)
+
+	-- Iterate through each zone.
+	for _, zone_data in ipairs(zones) do
+		-- If the zone's matrix is the same as the component's matrix, return it.
+		if matrix.equals(zone_data.transform, global_component_matrix) then
+			return zone_data
+		end
+	end
+
+	-- Print the zone matricies.
+	for _, zone_data in ipairs(zones) do
+		d.print("Zone Matrix: " .. string.fromTable(zone_data.transform))
+	end
+
+	-- Print the given component's matrix.
+	d.print("Component Matrix: " .. string.fromTable(global_component_matrix))
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Used for the individual handling of the usable props.
+]]
+
+-- library name
+UsableProp = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class DirtyUsableProp
+---@field id UsablePropID
+---@field type UsablePropType
+---@field transform SWMatrix
+---@field tags table<integer, string> The tags for the usable prop.
+---@field tags_full string The full tags for the usable prop.
+---@field size Vector3 The size of the usable prop.
+---@field parent_relative_transform SWMatrix
+---@field parent_vehicle_id integer
+---@field capacity integer The amount of entities that can use this prop at once.
+---@field entities table<integer, integer> The object_ids of the entities that are currently using this prop.
+
+---@class UsableProp: DirtyUsableProp
+---@field matches fun(usable_prop: UsableProp, addon_component_data: SWAddonComponentData, zone_data: SWZone): boolean The function for checking if the usable prop matches the given data.
+---@field addEntity fun(usable_prop: UsableProp, object_id: integer): boolean The function for adding an entity to the usable prop.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for turning the tags into the usable prop's type.
+---@param addon_component_data SWAddonComponentData The data for the prop.
+---@return UsablePropType? usable_prop_type The usable prop's type, nil if failed.
+function UsableProp.getUsablePropType(addon_component_data)
+	-- Find the value of the tag "prop".
+	local type_value = Tags.getValue(addon_component_data.tags, "prop", true)
+
+	-- If the value was not found, return nil.
+	if not type_value then
+		d.print(("6464: (UsableProps.setupMain) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
+			addon_component_data.tags_full
+		), true, 1)
+		return nil
+	end
+
+	-- Find it by indexing the enum
+	local usable_prop_type = USABLE_PROP_TYPE[type_value:upper()]
+
+	-- If it was not found, return nil.
+	if not usable_prop_type then
+		d.print(("6475: (UsableProps.setupMain) Failed to find the usable prop type for the value \"%s\""):format(
+			type_value
+		), true, 1)
+		return nil
+	end
+
+	return usable_prop_type
+end
+
+--- Function for creating a new usable prop.
+---@param addon_component_data SWAddonComponentData The data for the prop.
+---@param zone SWZone The zone that the prop is in.
+---@return UsableProp? usable_prop The created usable prop, nil if failed.
+function UsableProp.new(addon_component_data, zone)
+	-- Get the usable prop's type.
+	local usable_prop_type = UsableProp.getUsablePropType(addon_component_data)
+
+	-- If the usable prop's type was not found, return nil.
+	if not usable_prop_type then
+		return nil
+	end
+
+	-- Create the new usable prop, most of the data is temp junk data, is set properly in the update function.
+	---@type DirtyUsableProp
+	local dirty_usable_prop = {
+		id = g_savedata.libraries.usable_props.next_id,
+		type = usable_prop_type,
+		transform = zone.transform,
+		tags = addon_component_data.tags,
+		tags_full = addon_component_data.tags_full,
+		size = Vector3.new(0, 0, 0),
+		parent_relative_transform = zone.parent_relative_transform,
+		parent_vehicle_id = zone.parent_vehicle_id,
+		capacity = 1,
+		entities = {}
+	}
+
+	-- Increment the next ID.
+	g_savedata.libraries.usable_props.next_id = g_savedata.libraries.usable_props.next_id + 1
+
+	-- Setup the OOP functions for the usable prop.
+	local usable_prop = UsableProp.setupOOP(dirty_usable_prop)
+
+	-- Return the updated usable prop.
+	return UsableProp.update(usable_prop, addon_component_data, zone)
+end
+
+--- Function for updating a usable prop from the given component data and zone data.
+---@param usable_prop UsableProp The dirty usable prop to update.
+---@param props_addon_component_data SWAddonComponentData The data for the prop.
+---@param zone SWZone The zone that the prop is in.
+---@return UsableProp usable_prop The updated usable prop.
+function UsableProp.update(usable_prop, props_addon_component_data, zone)
+
+	-- Update the usable prop's transform
+	usable_prop.transform = zone.transform
+
+	-- Update the usable prop's tags
+	usable_prop.tags = props_addon_component_data.tags
+	usable_prop.tags_full = props_addon_component_data.tags_full
+
+	-- Update the usable prop's size
+	usable_prop.size = Vector3.new(
+		zone.size.x,
+		zone.size.y,
+		zone.size.z
+	)
+
+	-- Update the usable prop's parent relative transform
+	usable_prop.parent_relative_transform = zone.parent_relative_transform
+
+	-- Update the usable prop's parent vehicle id
+	usable_prop.parent_vehicle_id = zone.parent_vehicle_id
+
+	-- Update the usable prop's capacity
+	usable_prop.capacity = Tags.getValue(props_addon_component_data.tags, "capacity", false) --[[@as integer]] or 1
+
+	-- Return the updated usable prop.
+	return usable_prop
+end
+
+--- Sets up the OOP functions for the usable props.
+---@param dirty_usable_prop DirtyUsableProp|UsableProp The dirty usable prop to update, or the usable prop to update.
+---@return UsableProp usable_prop The updated usable prop.
+function UsableProp.setupOOP(dirty_usable_prop)
+	---@cast dirty_usable_prop UsableProp
+
+	--- Check if the usable prop matches the given data.
+	---@param self UsableProp The usable prop to check against.
+	---@param addon_component_data SWAddonComponentData The addon component data to check against.
+	---@param zone_data SWZone The zone data to check against.
+	---@return boolean matches If the usable prop matches the given data.
+	dirty_usable_prop.matches = function(self, addon_component_data, zone_data)
+
+		-- Print the given zone_data's matrix
+		d.print(("zone_data.transform: %s"):format(string.fromTable(zone_data.transform)), true, 0)
+
+		-- Print our matrix.
+		d.print(("self.transform: %s"):format(string.fromTable(self.transform)), true, 0)
+
+		-- If the usable prop's type is the same, and the transform is the same, then we found a match.
+		return (
+			self.type == UsableProp.getUsablePropType(addon_component_data) -- if the type is the same
+			and matrix.g_equals(self.transform, zone_data.transform) -- if the transform is the same.
+		)
+	end
+
+	--- Attempts to add a new entity to the usable prop, returns false if the prop is full.
+	---@param self UsableProp The usable prop to add the entity to.
+	---@param object_id integer The object_id of the entity to add.
+	---@return boolean success If the entity was successfully added.
+	dirty_usable_prop.addEntity = function(self, object_id)
+		-- If the usable prop is full, return false.
+		if #self.entities >= self.capacity then
+			return false
+		end
+
+		-- Add the entity to the usable prop.
+		table.insert(self.entities, object_id)
+
+		return true
+	end
+
+	-- Return the updated usable prop.
+	return dirty_usable_prop
+end
+
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[
+	Used to create and get all usable props, such as beds.
+]]
+
+-- library name
+UsableProps = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias UsablePropID integer
+
+---@alias UsableProps table<UsablePropID, UsableProp>
+
+---@alias UsablePropHashmap table<intger, UsablePropID>
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The priority of the setupMain callback.
+USABLE_PROPS_SETUP_MAIN_PRIORITY = BUILDINGS_SETUP_MAIN_PRIORITY - 1
+
+---@enum UsablePropType
+USABLE_PROP_TYPE = {
+	BED = 1
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.usable_props = {
+	---@type UsableProps the usable props.
+	props = {},
+
+	--- Stores the ids of the usable props, but is iterable via ipairs, for enhanced performance.
+	---@type table<int, UsablePropID>
+	iterable_props = {},
+
+	-- The next usable prop id.
+	---@type UsablePropID
+	next_id = 1
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Called when setupMain is called.
+---@param is_world_create boolean if the world is being created.
+function UsableProps.setupMain(is_world_create)
+
+	-- Get the current time so we can figure out how long setting up the props took.
+	local start_time = server.getTimeMillisec()
+
+	--[[
+		Setup the oop functions for each of the usable props.
+	]]
+
+	-- Iterate through each usable prop.
+	for _, usable_prop_id in ipairs(g_savedata.libraries.usable_props.iterable_props) do
+		-- Update the usable prop's oop functions.
+		g_savedata.libraries.usable_props.props[usable_prop_id] = UsableProp.setupOOP(g_savedata.libraries.usable_props.props[usable_prop_id])
+	end
+	
+	-- Create the filter for usable props.
+	local usable_prop_filter = ComponentSpawner.createFilter()
+
+	-- Filter it to only components with the tag "usable_prop".
+	usable_prop_filter:addTag("usable_prop")
+
+	-- Get all of the usable prop's spawning data.
+	local usable_props_spawning_data, got_spawning_data = usable_prop_filter:getAllSpawningData()
+
+	-- If we failed to find any, abort.
+	if not got_spawning_data then
+		d.print(("6702: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
+		return
+	end
+
+	-- Create a new list of usable props, will replace g_savedata.libraries.usable_props.props.
+	---@type UsableProps
+	local new_usable_props = {}
+
+	-- Define the number of new props made
+	local new_props_made = 0
+
+	-- Define the number of props updated
+	local props_updated = 0
+
+	-- Iterate through each usable prop that was found.
+	for _, spawning_data in pairs(usable_props_spawning_data) do
+
+		-- Get it's SWAddonComponentData.
+		local addon_component_data, is_success = server.getLocationComponentData(
+			spawning_data.addon_index,
+			spawning_data.location_index,
+			spawning_data.component_index
+		)
+
+		-- Get it's location data
+		local location_data = server.getLocationData(spawning_data.addon_index, spawning_data.location_index)
+
+		-- If the component data was not found, skip.
+		if not is_success then
+			d.print(("6731: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
+				spawning_data.addon_index,
+				spawning_data.location_index,
+				spawning_data.component_index
+			), true, 1)
+
+			goto continue
+		end
+
+		-- Get the zone data for the component data.
+		local zone_data = ZoneLinker.getZoneData(addon_component_data, location_data)
+
+		-- If the zone data was not found, skip.
+		if not zone_data then
+			d.print(("6745: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
+				spawning_data.addon_index,
+				spawning_data.location_index,
+				spawning_data.component_index
+			), true, 1)
+
+			goto continue
+		end
+
+		-- Store if we found a match.
+		local found_match = false
+
+		-- Iterate through each stored usable prop.
+		for _, usable_prop_id in ipairs(g_savedata.libraries.usable_props.iterable_props) do
+
+			-- Get the usable prop.
+			local usable_prop = g_savedata.libraries.usable_props.props[usable_prop_id]
+
+			-- If they match, set the match we found.
+			if usable_prop:matches(addon_component_data, zone_data) then
+				
+				-- Set that we found a match.
+				found_match = true
+
+				-- Update the usable prop's data, and store it.
+				new_usable_props[usable_prop.id] = UsableProp.update(usable_prop, addon_component_data, zone_data)
+
+				props_updated = props_updated + 1
+
+				break
+			end
+		end
+
+		-- If we didn't find a match, create a new usable prop.
+		if not found_match then
+			-- Create the new usable prop.
+			local new_usable_prop = UsableProp.new(addon_component_data, zone_data)
+
+			new_props_made = new_props_made + 1
+
+			-- If the new usable prop is nil, skip.
+			if new_usable_prop == nil then
+				goto continue
+			end
+
+			-- Store the new usable prop.
+			new_usable_props[new_usable_prop.id] = new_usable_prop
+		end
+
+		::continue::
+	end
+
+	-- Set the new usable props.
+	g_savedata.libraries.usable_props.props = new_usable_props
+
+	-- Create the iterable props.
+	g_savedata.libraries.usable_props.iterable_props = {}
+
+	-- Iterate through each usable prop.
+	for usable_prop_id, _ in pairs(g_savedata.libraries.usable_props.props) do
+		-- Store the usable prop id.
+		table.insert(g_savedata.libraries.usable_props.iterable_props, usable_prop_id)
+	end
+
+	-- Print that the usable props were setup.
+	d.print(("Usable Props setup! New Props Made: %d, Props Updated: %d, Time Taken: %dms"):format(
+		new_props_made,
+		props_updated,
+		Ticks.millisecondsSince(start_time)
+	), true, 0)
+end
+
+--- Selects a random number of props with the given type.
+---@param usablePropHashmap UsablePropHashmap The hashmap of usable props to select from.
+---@param type UsablePropType The type of prop to select.
+---@param amount integer The amount of props to select.
+---@param skip_at_capacity boolean If we should skip props that are at capacity.
+---@return UsablePropHashmap? usable_props The selected props, nil if failed.
+function UsableProps.selectRandomPropWithType(usablePropHashmap, type, amount, skip_at_capacity)
+	-- Create a list of props with the given type.
+	local props_with_type = {}
+
+	-- Iterate through each usable prop.
+	for _, usable_prop_id in ipairs(usablePropHashmap) do
+		-- Get the usable prop.
+		local usable_prop = g_savedata.libraries.usable_props.props[usable_prop_id]
+
+		-- If the usable prop's type is the same as the given type, add it to the list.
+		if usable_prop.type == type then
+
+			-- If we should skip at capacity, and the prop is at capacity, skip.
+			if not skip_at_capacity or #usable_prop.entities < usable_prop.capacity then
+				table.insert(props_with_type, usable_prop_id)
+			end
+		end
+	end
+
+	-- If we didn't find any, return nil.
+	if #props_with_type == 0 then
+		d.print(("6844: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
+		return nil
+	end
+
+	-- If we have less props than the amount, return nil.
+	if #props_with_type < amount then
+		d.print(("6850: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
+		return nil
+	end
+
+	-- Create a new hashmap of the props.
+	local selected_props = {}
+
+	-- Select the amount of props.
+	for i = 1, amount do
+		-- Generate a random number.
+		local random_prop_index = math.random(1, #props_with_type)
+
+		-- Get a random prop.
+		local random_prop_id = props_with_type[random_prop_index]
+
+		-- Store the prop.
+		table.insert(selected_props, random_prop_id)
+		
+		-- Remove the prop from the list.
+		props_with_type[random_prop_index] = nil
+	end
+
+	return selected_props
+end
+
+-- Bind the setupMain callback.
+Binder.bind.setupMain(UsableProps.setupMain, USABLE_PROPS_SETUP_MAIN_PRIORITY)
+
+
+-- Require Game Master.
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	The Game Master - Controls things like spawning citizens on creation, and other things.
+]]
+
+-- library name
+GameMaster = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The priority of the setupMain callback.
+GAMEMASTER_SETUP_MAIN_PRIORITY = USABLE_PROPS_SETUP_MAIN_PRIORITY + 1
+
+-- The minimum ratio of citizens to spawn in a house.
+CITIZEN_SPAWN_RATIO_MIN = 0.45
+
+-- The maximum ratio of citizens to spawn in a house.
+CITIZEN_SPAWN_RATIO_MAX = 1.00
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Called in the setupMain callback.
+function GameMaster.setupMain(is_world_create)
+
+	GameMaster.spawnCitizens()
+
+	-- If the world was created.
+	if is_world_create then
+		-- Spawn the citizens.
+		--GameMaster.spawnCitizens()
+	end
+end
+
+-- Bind the setupMain callback.
+Binder.bind.setupMain(GameMaster.setupMain, GAMEMASTER_SETUP_MAIN_PRIORITY)
+
+--- Spawns the citizens.
+function GameMaster.spawnCitizens()
+	-- Get all of the towns.
+	local towns = g_savedata.libraries.towns.stored_towns
+
+	-- Iterate through all of the towns.
+	for town_index, town in ipairs(towns) do
+		
+		-- In this town, iterate through each building.
+		for _, building_id in ipairs(town.buildings) do
+			
+			-- Get the building
+			local building = g_savedata.libraries.buildings.stored_buildings[building_id]
+
+			-- Check if the building is residential.
+			if Building.isType(building, BUILDING_TYPE.RESIDENTIAL) then
+
+				-- Get the residential data.
+				local residential_data = Building.getResidentialData(building)
+				
+				-- Get the number of citizens to spawn.
+				local num_citizens = math.random(
+					math.floor(residential_data.max_residents * CITIZEN_SPAWN_RATIO_MIN),
+					math.floor(residential_data.max_residents * CITIZEN_SPAWN_RATIO_MAX)
+				)
+
+				-- For each of the citizens to spawn, get a bed to spawn them in, and spawn them in it.
+				for _ = 1, num_citizens do
+					-- Find a bed to spawn the citizen in.
+					local bed_props = UsableProps.selectRandomPropWithType(
+						building.usable_props,
+						USABLE_PROP_TYPE.BED,
+						1,
+						true
+					)
+
+					-- If there are no bed props, then skip this citizen.
+					if bed_props == nil then
+						d.print(("7015: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
+						goto continue
+					end
+
+					d.print(("Found Prop: %d"):format(bed_props[1]), true, 0)
+
+					-- Get the bed prop.
+					local bed_prop = g_savedata.libraries.usable_props.props[bed_props[1]]
+
+					-- Create the citizen.
+					local new_citizen = Citizens.create(
+						bed_prop.transform,
+						0
+					)
+
+					-- Spawn the citizen.
+					Citizens.spawn(new_citizen)
+
+					is_success = bed_prop:addEntity(new_citizen.object_id)
+
+					d.print(("Is Success: %s"):format(tostring(is_success)), true, 0)
+
+					d.print(("Test: %s"):format(#g_savedata.libraries.usable_props.props[bed_props[1]].entities), true, 0)
+
+					::continue::
+				end
+			end
+		end
+	end
+end
+--[[
+
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
 --[[
 
 
@@ -5115,21 +7372,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("5101: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("7358: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("5108: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("7365: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("5115: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("7372: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -5167,14 +7424,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("5153: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("7410: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("5160: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("7417: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -5184,7 +7441,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("5170: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("7427: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -5218,7 +7475,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("5204: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("7461: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -5229,7 +7486,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("5215: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("7472: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -5285,7 +7542,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("5271: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("7528: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -5437,7 +7694,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("5423: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("7680: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -5446,7 +7703,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("5432: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("7689: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -5467,7 +7724,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("5453: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("7710: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -5476,7 +7733,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("5462: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("7719: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -5952,6 +8209,9 @@ function Citizens.updateStability(citizen)
 	end
 end
 
+---@param transform SWMatrix
+---@param outfit_type SWOutfitTypeEnum
+---@return Citizen citizen the new citizen
 function Citizens.create(transform, outfit_type)
 	local citizen = { ---@type Citizen
 		name = Citizens.generateName(),
@@ -5970,7 +8230,11 @@ function Citizens.create(transform, outfit_type)
 		inventory = Inventory.create(), -- READ ONLY (May change to only store the inventory id at some point)
 		suppress_next_health_change = false,
 		object_type = "citizen",
-		statuses = {}
+		statuses = {},
+		vehicle_data = {
+			linked_vehicles = {},
+			occupating_vehicle_id = -1
+		}
 	}
 
 	-- register the medical conditions.
@@ -6081,6 +8345,11 @@ function Citizens.onTick(game_ticks)
 	for citizen_index = 1, #g_savedata.libraries.citizens.citizen_list do
 		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
 
+		-- If the citizen is not spawned, then skip.
+		if not citizen.object_id then
+			goto next_citizen
+		end
+
 		--d.print("Test", false, 0)
 
 		-- update their transform
@@ -6118,7 +8387,7 @@ function Citizens.onTick(game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("6104: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("8373: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -6163,6 +8432,8 @@ function Citizens.onTick(game_ticks)
 
 		-- update their tooltip
 		Citizens.updateTooltip(citizen)
+
+		::next_citizen::
 	end
 end
 
@@ -6524,7 +8795,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("6510: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("8781: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -6560,7 +8831,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("6546: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("8817: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -6571,7 +8842,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("6557: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("8828: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -6583,7 +8854,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("6569: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("8840: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -6733,7 +9004,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("6719: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("8990: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -6842,7 +9113,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("6828: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("9099: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -7667,7 +9938,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("7653: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("9924: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -7687,7 +9958,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("7673: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("9944: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -7851,13 +10122,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("7837: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("10108: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("7843: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("10114: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -7878,17 +10149,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("7864: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("10135: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("7869: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("10140: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("7874: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("10145: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -8786,7 +11057,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8772: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("11043: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -8799,7 +11070,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("8785: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("11056: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -9228,613 +11499,6 @@ limitations under the License.
 ]]
 
 -- required libraries
-
----@diagnostic disable:duplicate-doc-field
----@diagnostic disable:duplicate-doc-alias
----@diagnostic disable:duplicate-set-field
-
---[[ 
-	Allows a library to easily bind to a callback, so it doesn't have to inject itself into each callback.
-]]
-
--- library name
-Binder = {
-	bind = {}
-}
-
---[[
-
-
-	Classes
-
-
-]]
-
--- onGroupSpawn
----@alias CallbackOnGroupSpawn fun(group_id: integer, peer_id: integer, x: number, y: number, z: number, group_cost: number)
-
--- onVehicleLoad
----@alias CallbackOnVehicleLoad fun(vehicle_id: integer)
-
--- onVehicleUnload
----@alias CallbackOnVehicleUnload fun(vehicle_id: integer)
-
----@alias Callback
----| CallbackOnGroupSpawn
----| CallbackOnVehicleLoad
----| CallbackOnVehicleUnload
-
----@class BindedCallback
----@field callback Callback the callback to call
----@field priority number the priority of the callback.
-
---[[
-
-
-	Variables
-
-
-]]
-
----@type table<string, table<integer, BindedCallback>>
-binded_callbacks = {
-	onGroupSpawn = {},
-	onVehicleLoad = {},
-	onVehicleUnload = {}
-}
-
---[[
-
-
-	Functions
-
-
-]]
-
----@param callback_name string the name of the callback to bind to.
----@param callback Callback the callback to bind to the callback.
----@param priority integer? the priority of the callback, higher priority callbacks are called first.
-local function bindCallback(callback_name, callback, priority)
-
-	-- default the priority to 0 if not specified.
-	priority = priority or 0
-
-	-- get the list of binds for this callback.
-	local binds = binded_callbacks[callback_name]
-
-	-- check if the list exists
-	if not binds then
-		-- print an error
-		d.print(("The callback %s is not a valid callback."):format(callback_name), true, 1)
-		return
-	end
-
-	-- define the index to insert the callback at.
-	local insert_index = 1
-
-	-- find the index to insert the callback at (sorted by priority, goes to behind an existing callback if they share the same priority.)
-	for bind_index = 1, #binds do
-		-- if the priority is higher than the current bind's priority, break.
-		if binds[bind_index].priority > priority then
-			break
-		end
-
-		-- otherwise, set insert index to above this one.
-		insert_index = bind_index + 1
-	end
-
-	-- insert the callback at the insert index.
-	table.insert(binds, insert_index, 
-		{
-			callback = callback,
-			priority = priority
-		}
-	)
-end
-
---[[
-
-	onGroupSpawn
-
-]]
-
---[[
-	Inject.
-]]
-
----@diagnostic disable-next-line: undefined-global
-old_onGroupSpawn = onGroupSpawn
-
----@private
-function onGroupSpawn(...)
-
-	-- get the list of binds for this callback.
-	local binds = binded_callbacks.onGroupSpawn
-
-	-- check if the list exists
-	if not binds then
-		return
-	end
-
-	-- call each callback in order
-	for bind_index = 1, #binds do
-		binds[bind_index].callback(...)
-	end
-
-	-- call old callback, if it exists
-	if old_onGroupSpawn then
-		old_onGroupSpawn(...)
-	end
-end
-
---[[
-	Create bind function
-]]
-
---- Function for binding to a the onGroupSpawn callback.
----@param callback CallbackOnGroupSpawn the callback to bind to the onGroupSpawn callback.
----@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
-function Binder.bind.onGroupSpawn(callback, priority)
-	bindCallback(
-		"onGroupSpawn",
-		callback,
-		priority
-	)
-end
-
---[[
-
-	onVehicleLoad
-
-]]
-
---[[
-	Inject.
-]]
-
-old_onVehicleLoad = onVehicleLoad
-
----@private
-function onVehicleLoad(...)
-
-	-- get the list of binds for this callback.
-	local binds = binded_callbacks.onVehicleLoad
-
-	-- check if the list exists
-	if not binds then
-		return
-	end
-
-	-- call each callback in order
-	for bind_index = 1, #binds do
-		binds[bind_index].callback(...)
-	end
-
-	-- call old callback, if it exists
-	if old_onVehicleLoad then
-		old_onVehicleLoad(...)
-	end
-end
-
-
---[[
-	Create bind function
-]]
-
---- Function for binding to a the onVehicleLoad callback.
----@param callback CallbackOnVehicleLoad the callback to bind to the onVehicleLoad callback.
----@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
-function Binder.bind.onVehicleLoad(callback, priority)
-	bindCallback(
-		"onVehicleLoad",
-		callback,
-		priority
-	)
-end
-
---[[
-
-	onVehicleUnload
-
-]]
-
---[[
-	Inject.
-]]
-
-old_onVehicleUnload = onVehicleUnload
-
----@private
-function onVehicleUnload(...)
-
-	-- get the list of binds for this callback.
-	local binds = binded_callbacks.onVehicleUnload
-
-	-- check if the list exists
-	if not binds then
-		return
-	end
-
-	-- call each callback in order
-	for bind_index = 1, #binds do
-		binds[bind_index].callback(...)
-	end
-
-	-- call old callback, if it exists
-	if old_onVehicleUnload then
-		old_onVehicleUnload(...)
-	end
-end
-
---[[
-	Create bind function
-]]
-
---- Function for binding to a the onVehicleUnload callback.
----@param callback CallbackOnVehicleLoad the callback to bind to the onVehicleUnload callback.
----@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
-function Binder.bind.onVehicleUnload(callback, priority)
-	bindCallback(
-		"onVehicleUnload",
-		callback,
-		priority
-	)
-end
---[[
-	
-Copyright 2024 Liam Matthews
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-]]
-
--- Library Version 0.0.2
-
---[[
-
-
-	Library Setup
-
-
-]]
-
--- required libraries
---[[
-	
-Copyright 2024 Liam Matthews
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-]]
-
--- Library Version 0.0.1
-
---[[
-
-
-	Library Setup
-
-
-]]
-
--- required libraries
-
----@diagnostic disable:duplicate-doc-field
----@diagnostic disable:duplicate-doc-alias
----@diagnostic disable:duplicate-set-field
-
---[[ 
-	Library to get spawning data for a component, and then spawn it from that data.
-]]
-
--- library name
-ComponentSpawner = {
-	filter = {}
-}
-
---[[
-
-
-	Classes
-
-
-]]
-
----@class SpawningData
----@field addon_index integer the addon index of the component.
----@field location_index integer the location index of the component.
----@field component_index integer the component index of the component.
-
----@class ComponentFilterSegment
----@field tags Tags the tags to match.
----@field location_names table<int, string> the location names to match.
-
----@class ComponentFilter
----@field include ComponentFilterSegment the data that must match.
----@field exclude ComponentFilterSegment the data that must not match.
----@field env_mod_handling ComponentFilterEnvModHandlingOptions how to handle env mods. Defaults to COMPONENT_FILTER_ENV_MOD_HANDLING.EITHER
----@field addTag fun(self: ComponentFilter, tag: string, exclude: boolean?) adds a tag to the filter.
----@field addLocationName fun(self: ComponentFilter, location_name: string, exclude: boolean?) adds a location name to the filter.
----@field setEnvModHandling fun(self: ComponentFilter, env_mod_handling: ComponentFilterEnvModHandlingOptions) sets the env mod handling of the filter.
----@field getSpawningData fun(self: ComponentFilter, fallback: SpawningDataFallbackOptions?) gets the spawning data from the filter.
-
---[[
-
-
-	Constants
-
-
-]]
-
----@enum SpawningDataFallbackOptions
-SPAWNING_DATA_FALLBACK = {
-	FIRST = 0,
-	RANDOM = 1
-}
-
----@enum ComponentFilterEnvModHandlingOptions
-COMPONENT_FILTER_ENV_MOD_HANDLING = {
-	EITHER = 0, -- can be either an env mod or not.
-	REQUIRED = 1, -- required to be an env mod.
-	NOT_ALLOWED = 2, -- not allowed to be an env mod.
-}
-
---[[
-
-
-	Variables
-
-
-]]
-
---[[
-
-
-	Functions
-
-
-]]
-
---- Creates a blank filter.
----@return ComponentFilter filter Warning, cannot be stored and g_savedata and should not be.
-function ComponentSpawner.createFilter()
-	filter = {
-		include = {
-			tags = {},
-			location_names = {}
-		}, -- required data, all must match
-		exclude = {
-			tags = {},
-			location_names = {}
-		}, -- excluded data, none can match
-		env_mod_handling = COMPONENT_FILTER_ENV_MOD_HANDLING.EITHER
-	}
-
-	--[[
-		add the filter functions.
-	]]
-
-	--- Function for adding a tag to a filter.
-	---@param self ComponentFilter the filter to add the tag to.
-	---@param tag string the tag to add to the filter
-	---@param exclude boolean? whether or not to add the tag to the exclude tags. If false or nil, adds to include.
-	function filter:addTag(tag, exclude)
-		-- if this is an exclude tag
-		if exclude then
-			-- add it to the exclude list
-			table.insert(self.exclude.tags, tag)
-		-- otherwise, if this is an include tag
-		else
-			-- add it to the include list.
-			table.insert(self.include.tags, tag)
-		end
-	end
-
-	--- Function for adding a location name to a filter.
-	---@param self ComponentFilter the filter to add the location name to.
-	---@param location_name string the location name to add to the filter.
-	---@param exclude boolean? whether or not to add the location name to the exclude location names. If false or nil, adds to include.
-	function filter:addLocationName(location_name, exclude)
-		-- if this is an exclude location name
-		if exclude then
-			-- add it to the exclude list
-			table.insert(self.exclude.location_names, location_name)
-		-- otherwise, if this is an include location name
-		else
-			-- add it to the include list.
-			table.insert(self.include.location_names, location_name)
-		end
-	end
-
-	--- Function for setting the env mod handling of a filter.
-	---@param self ComponentFilter the filter to set the env mod handling of.
-	---@param env_mod_handling ComponentFilterEnvModHandlingOptions the env mod handling to set.
-	function filter:setEnvModHandling(env_mod_handling)
-		self.env_mod_handling = env_mod_handling
-	end
-
-	--- Function for getting the spawning data from a filter
-	---@param self ComponentFilter the filter to get the spawning data from.
-	---@param fallback SpawningDataFallbackOptions? the fallback option to use if there is no spawning data found. If nil, defaults to SPAWNING_DATA_FALLBACK.FIRST
-	---@return SpawningData spawning_data the spawning data found.
-	---@return boolean is_success if the spawning data was found.
-	function filter:getSpawningData(fallback)
-		-- default fallback option to SPAWNING_DATA_FALLBACK.FIRST
-		fallback = fallback or SPAWNING_DATA_FALLBACK.FIRST
-
-		--[[
-			Get the spawning data.
-
-			Operation:
-				1. Iterate through all addons.
-					1.1 Iterate through all locations in the addon.
-					1.2 Discard location if it matches any exclude location_names.
-					1.3 Discard location if it does not match all of the include location_names.
-						1.1.1 Iterate through all components in the location.
-						1.1.2 Discard component if any of the tags match any exclude tag.
-						1.1.3 Discard component if the tags do not match all of the include tags.
-		]]
-
-		---@type table<int, SpawningData> the spawning data found.
-		local matching_spawning_data = {}
-
-		-- get the number of addons
-		local addon_count = server.getAddonCount()
-
-		-- iterate through all addons
-		for addon_index = 0, addon_count - 1 do
-
-			-- get the addon's data
-			local addon_data = server.getAddonData(addon_index)
-
-			-- iterate through all locations in this addon
-			for location_index = 0, addon_data.location_count - 1 do
-
-				-- get the location's data
-				local location_data, location_is_success = server.getLocationData(addon_index, location_index)
-
-				-- discard if location_is_success is false.
-				if not location_is_success then
-					goto discard_location
-				end
-
-				-- if env mod handling is required.
-				if self.env_mod_handling == COMPONENT_FILTER_ENV_MOD_HANDLING.REQUIRED then
-					-- if this location is not an env mod, discard the location.
-					if not location_data.env_mod then
-						goto discard_location
-					end
-				elseif self.env_mod_handling == COMPONENT_FILTER_ENV_MOD_HANDLING.NOT_ALLOWED then
-					-- if this location is an env mod, discard the location.
-					if location_data.env_mod then
-						goto discard_location
-					end
-				end
-
-				-- go through all of the exclude location names
-				for _, exclude_location_name in ipairs(self.exclude.location_names) do
-					-- if this location name matches the exclude location name, discard the location.
-					if location_data.name:match(exclude_location_name) then
-						goto discard_location
-					end
-				end
-
-				-- go through all of the include location names
-				for _, include_location_name in ipairs(self.include.location_names) do
-					-- if this location name does not match the include location name, discard the location.
-					if not location_data.name:match(include_location_name) then
-						goto discard_location
-					end
-				end
-
-				-- go through all components in this location
-				for component_index = 0, location_data.component_count - 1 do
-
-					-- get the component's data
-					local component_data, component_is_success = server.getLocationComponentData(addon_index, location_index, component_index)
-				
-					-- discard if component_is_success is false.
-					if not component_is_success then
-						goto discard_component
-					end
-
-					-- go through all exclude tags
-					for _, exclude_tag in ipairs(self.exclude.tags) do
-						-- if this component has the exclude tag, discard the component.
-						if Tags.has(component_data.tags, exclude_tag) then
-							goto discard_component
-						end
-					end
-
-					-- go through all include tags
-					for _, include_tag in ipairs(self.include.tags) do
-						-- if this component does not have the include tag, then exclued the component.
-						if not Tags.has(component_data.tags, include_tag) then
-							goto discard_component
-						end
-					end
-
-					-- add this as matching spawning data.
-					table.insert(matching_spawning_data, 
-						{
-							addon_index = addon_index,
-							location_index = location_index,
-							component_index = component_index
-						}
-					)
-					::discard_component::
-				end
-				::discard_location::
-			end
-		end
-
-		-- get the number of matches
-		local match_count = #matching_spawning_data
-
-		-- if there are no matches, return that it failed
-		if match_count == 0 then
-			return {
-				addon_index = 0,
-				location_index = 0,
-				component_index = 0
-			}, false
-		end
-
-		-- if the fallback option is SPAWNING_DATA_FALLBACK.FIRST
-		if fallback == SPAWNING_DATA_FALLBACK.FIRST then
-			-- return the first match
-			return matching_spawning_data[1], true
-		-- otherwise, this is using the random fallback.
-		else
-			-- return a random match
-			return matching_spawning_data[math.random(1, match_count)], true
-		end
-	end
-
-	return filter
-end
-
---- Spawns a component from the spawning data.
----@param spawning_data SpawningData the spawning data to spawn the component from.
----@param matrix SWMatrix the matrix to spawn the component at.
----@param parent_vehicle_id integer? optional parent's vehicle_id to parent to.
----@return SWAddonComponentSpawned component_data
----@return boolean is_success
-function ComponentSpawner.spawn(spawning_data, matrix, parent_vehicle_id)
-
-	-- spawn the component
-	local component_data, is_success = server.spawnAddonComponent(
-		matrix,
-		spawning_data.addon_index,
-		spawning_data.location_index,
-		spawning_data.component_index,
-		parent_vehicle_id
-	)
-
-	-- return data
-	return component_data, is_success
-end
-
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -13355,7 +15019,7 @@ function pathNodeFromSWNode(sw_node, base_consume_distance)
 	-- If the node is missing the y and/or cdm fields, then print an error.
 	---@diagnostic disable-next-line: undefined-field
 	if not sw_node.y or not sw_node.cdm then
-		d.print(("13341: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+		d.print(("15005: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
 	end
 
 	return {
@@ -15655,7 +17319,7 @@ land_normal_driving_state:defineCondition(
 
 		-- If the speed difference ratio says that the vehicle needs to decrease in speed by at least 30%, set the up/down (brakes) input depending upon the difference.
 		if speed_difference_ratio < -0.3 then
-			seat_input.axis_up = math.min(speed_difference_ratio * -0.5, 1)
+			seat_input.axis_up = math.min(speed_difference_ratio * -0.25, 1)
 		end
 
 		-- If the brakes have been applied at all, set the w/s input to 0.
@@ -17487,8 +19151,8 @@ function onCreate(is_world_create)
 	-- setup settings
 	if not g_savedata.settings then
 		g_savedata.settings = {
-			MAX_FAMILIES_PER_TOWN = property.slider("Maximum Families Per Town", 0, 20, 1, 7),
-			MAX_OCCUPIED_HOUSES_PERCENTAGE = property.slider("Maximum percentage of houses with residents per town", 0, 100, 5, 75) * 0.01
+			-- MAX_FAMILIES_PER_TOWN = property.slider("Maximum Families Per Town", 0, 20, 1, 7),
+			-- MAX_OCCUPIED_HOUSES_PERCENTAGE = property.slider("Maximum percentage of houses with residents per town", 0, 100, 5, 75) * 0.01
 		}
 	end
 
@@ -17540,6 +19204,8 @@ function onCreate(is_world_create)
 	)
 
 	ac.sendCommunication("onCreate()", 0)
+
+	d.print("Whar?")
 end
 
 --- Called 1 tick after the world has been created, to prevent issues with the addon indexes getting mixed up
@@ -17548,6 +19214,11 @@ function setupMain(is_world_create)
 
 	-- start the timer for when the world has started to be setup
 	local world_setup_time = server.getTimeMillisec()
+
+	d.print("A", false)
+
+	-- Call the binded setup main.
+	bindedSetupMain(is_world_create)
 
 	-- Setup the prefabs
 	VehiclePrefab.generatePrefabs()
@@ -17630,7 +19301,7 @@ end
 function onTick(game_ticks)
 
 	if g_savedata.debug.traceback.enabled then
-		ac.sendCommunication("DEBUG.TRACEBACK.ERROR_CHECKER", 0)
+		--ac.sendCommunication("DEBUG.TRACEBACK.ERROR_CHECKER", 0)
 	end
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)

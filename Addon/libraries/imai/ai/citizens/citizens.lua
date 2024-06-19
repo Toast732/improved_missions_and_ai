@@ -16,6 +16,8 @@ limitations under the License.
 
 ]]
 
+-- Library Version 0.0.1
+
 --[[
 
 
@@ -500,6 +502,9 @@ function Citizens.updateStability(citizen)
 	end
 end
 
+---@param transform SWMatrix
+---@param outfit_type SWOutfitTypeEnum
+---@return Citizen citizen the new citizen
 function Citizens.create(transform, outfit_type)
 	local citizen = { ---@type Citizen
 		name = Citizens.generateName(),
@@ -518,7 +523,11 @@ function Citizens.create(transform, outfit_type)
 		inventory = Inventory.create(), -- READ ONLY (May change to only store the inventory id at some point)
 		suppress_next_health_change = false,
 		object_type = "citizen",
-		statuses = {}
+		statuses = {},
+		vehicle_data = {
+			linked_vehicles = {},
+			occupating_vehicle_id = -1
+		}
 	}
 
 	-- register the medical conditions.
@@ -629,6 +638,11 @@ function Citizens.onTick(game_ticks)
 	for citizen_index = 1, #g_savedata.libraries.citizens.citizen_list do
 		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
 
+		-- If the citizen is not spawned, then skip.
+		if not citizen.object_id then
+			goto next_citizen
+		end
+
 		--d.print("Test", false, 0)
 
 		-- update their transform
@@ -711,6 +725,8 @@ function Citizens.onTick(game_ticks)
 
 		-- update their tooltip
 		Citizens.updateTooltip(citizen)
+
+		::next_citizen::
 	end
 end
 

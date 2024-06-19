@@ -26,7 +26,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.19)"
+ADDON_VERSION = "(0.0.1.20)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -197,8 +197,8 @@ function onCreate(is_world_create)
 	-- setup settings
 	if not g_savedata.settings then
 		g_savedata.settings = {
-			MAX_FAMILIES_PER_TOWN = property.slider("Maximum Families Per Town", 0, 20, 1, 7),
-			MAX_OCCUPIED_HOUSES_PERCENTAGE = property.slider("Maximum percentage of houses with residents per town", 0, 100, 5, 75) * 0.01
+			-- MAX_FAMILIES_PER_TOWN = property.slider("Maximum Families Per Town", 0, 20, 1, 7),
+			-- MAX_OCCUPIED_HOUSES_PERCENTAGE = property.slider("Maximum percentage of houses with residents per town", 0, 100, 5, 75) * 0.01
 		}
 	end
 
@@ -258,6 +258,11 @@ function setupMain(is_world_create)
 
 	-- start the timer for when the world has started to be setup
 	local world_setup_time = server.getTimeMillisec()
+
+	d.print("A", false)
+
+	-- Call the binded setup main.
+	bindedSetupMain(is_world_create)
 
 	-- Setup the prefabs
 	VehiclePrefab.generatePrefabs()
@@ -340,7 +345,7 @@ end
 function onTick(game_ticks)
 
 	if g_savedata.debug.traceback.enabled then
-		ac.sendCommunication("DEBUG.TRACEBACK.ERROR_CHECKER", 0)
+		--ac.sendCommunication("DEBUG.TRACEBACK.ERROR_CHECKER", 0)
 	end
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
