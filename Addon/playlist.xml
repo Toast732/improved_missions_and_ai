@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <playlist folder_path="data/missions/Improved_Missions_and_AI" file_store="4" name="Improved Missions and AI (0.0.1.dev)">
-	<locations location_id_counter="207" component_id_counter="4361">
+	<locations location_id_counter="208" component_id_counter="4371">
 		<locations>
 			<l id="1" tile="data/tiles/island_15.xml" name="CREATIVE BASE" is_env_mod="true" env_mod_spawn_num="1">
 				<components>
@@ -36329,6 +36329,66 @@
 						<spawn_bounds>
 							<min x="-0.63346" y="-0.448327" z="-1.234129"/>
 							<max x="0.63346" y="0.448327" z="1.234129"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+				</components>
+			</l>
+			<l id="208" tile="data/tiles/arid_island_27_10.xml" name="ZIZOS GAS STATION" is_env_mod="true" env_mod_spawn_num="1">
+				<components>
+					<c component_type="10" id="4362" cargo_zone_import_cargo_type="imai,building,town=Independent,building_number=101,WORKPLACE,GAS_STATION,AUTO_REPAIR" display_name="Zizo's Gas Station" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.73718" 02="-0.675696" 20="0.675696" 22="-0.73718" 30="-291.547058" 31="22.194853" 32="202.725723"/>
+						<spawn_bounds>
+							<min x="-9.138989" y="-2.479544" z="-11.25998"/>
+							<max x="9.138989" y="2.479544" z="11.25998"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4363" cargo_zone_import_cargo_type="usable_prop,prop=ai_job,capacity=1,positions=3,paygrade=2,job_category=sales,promotion=Manager" display_name="Cashier" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.759045" 02="-0.651039" 20="0.651039" 22="-0.759045" 30="-302.585785" 31="20.687031" 32="204.360474"/>
+						<spawn_bounds>
+							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
+							<max x="0.25112" y="0.701258" z="0.353634"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4366" cargo_zone_import_cargo_type="usable_prop,prop=ai_job,capacity=1,positions=2,paygrade=3,job_category=trades,promotion=Senior Mechanic" display_name="Mechanic" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.997544" 02="-0.070041" 20="0.070041" 22="-0.997544" 30="-289.21167" 31="20.514034" 32="211.399002"/>
+						<spawn_bounds>
+							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
+							<max x="0.25112" y="0.701258" z="0.353634"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4367" cargo_zone_import_cargo_type="usable_prop,prop=job,capacity=1,positions=2,paygrade=4,job_category=trades" display_name="Mechanic" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-2027.572266" 31="5" 32="4564.659668"/>
+						<spawn_bounds>
+							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
+							<max x="0.25112" y="0.701258" z="0.353634"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4368" cargo_zone_import_cargo_type="usable_prop,prop=ai_job,capacity=1,positions=2,paygrade=4,job_category=trades" display_name="Senior Mechanic" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.264342" 02="-0.964429" 20="0.964429" 22="0.264342" 30="-293.980682" 31="20.546425" 32="204.75058"/>
+						<spawn_bounds>
+							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
+							<max x="0.25112" y="0.701258" z="0.353634"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4370" cargo_zone_import_cargo_type="usable_prop,prop=job,capacity=1,positions=3,paygrade=2,job_category=sales" display_name="Cashier" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="87.470619" 31="5" 32="-536.73877"/>
+						<spawn_bounds>
+							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
+							<max x="0.25112" y="0.701258" z="0.353634"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4371" cargo_zone_import_cargo_type="usable_prop,prop=ai_job,capacity=1,positions=1,paygrade=4,job_category=management" display_name="Manager" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999963" 02="0.008572" 20="-0.008572" 22="-0.999963" 30="-300.387604" 31="20.5742" 32="208.586517"/>
+						<spawn_bounds>
+							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
+							<max x="0.25112" y="0.701258" z="0.353634"/>
 						</spawn_bounds>
 						<graph_links/>
 					</c>

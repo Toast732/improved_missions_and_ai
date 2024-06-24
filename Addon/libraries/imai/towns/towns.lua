@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -138,6 +138,24 @@ function Towns.setupMain(is_world_create)
 			-- Print that it was created
 			d.print(("Town %s was created."):format(town_name), true, 0)
 		end
+	end
+
+	-- Check if we have a town called Independent, if not, create it.
+	if g_savedata.libraries.towns.town_name_to_id_hashmap["Independent"] == nil then
+		-- Create the town.
+		local new_town = Town.create(g_savedata.libraries.towns.next_town_id, "Independent")
+
+		-- Store the town.
+		g_savedata.libraries.towns.stored_towns[g_savedata.libraries.towns.next_town_id] = new_town
+
+		-- Save it in the hashmap.
+		g_savedata.libraries.towns.town_name_to_id_hashmap["Independent"] = g_savedata.libraries.towns.next_town_id
+
+		-- Increment the next town id.
+		g_savedata.libraries.towns.next_town_id = g_savedata.libraries.towns.next_town_id + 1
+
+		-- Print that it was created
+		d.print("Town Independent was created.", true, 0)
 	end
 end
 

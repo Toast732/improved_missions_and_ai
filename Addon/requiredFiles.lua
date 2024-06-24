@@ -28,6 +28,11 @@ require("libraries.imai.buildings.building")
 
 -- Require Usable Props
 require("libraries.addon.components.usableProps.usableProps")
+require("libraries.addon.components.usableProps.usableProp")
+
+-- Require AI Jobs.
+require("libraries.imai.ai.jobs.aiJobs")
+require("libraries.imai.ai.jobs.aiJob")
 
 -- Require Game Master.
 require("libraries.imai.gameplay.gameMaster")

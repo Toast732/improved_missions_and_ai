@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -86,12 +86,13 @@ CITIZEN_SPAWN_RATIO_MAX = 1.00
 --- Called in the setupMain callback.
 function GameMaster.setupMain(is_world_create)
 
-	GameMaster.spawnCitizens()
+	--TODO: Remove later, for debug, put as todo so it's marked.
+	is_world_create = true
 
 	-- If the world was created.
 	if is_world_create then
 		-- Spawn the citizens.
-		--GameMaster.spawnCitizens()
+		GameMaster.spawnCitizens()
 	end
 end
 
@@ -116,7 +117,7 @@ function GameMaster.spawnCitizens()
 			if Building.isType(building, BUILDING_TYPE.RESIDENTIAL) then
 
 				-- Get the residential data.
-				local residential_data = Building.getResidentialData(building)
+				local residential_data = Building.getResidentialPrefabData(building)
 				
 				-- Get the number of citizens to spawn.
 				local num_citizens = math.random(

@@ -299,14 +299,10 @@ function bindedSetupMain(...)
 	-- get the list of binds for this callback.
 	local binds = binded_callbacks.setupMain
 
-	d.print("B")
-
 	-- check if the list exists
 	if not binds then
 		return
 	end
-
-	d.print("C")
 
 	d.print(string.fromTable(binds))
 

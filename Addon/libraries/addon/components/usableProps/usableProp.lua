@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -51,6 +51,7 @@ UsableProp = {}
 ---@field id UsablePropID
 ---@field type UsablePropType
 ---@field transform SWMatrix
+---@field name string The name of the usable prop, via the display name of the zone.
 ---@field tags table<integer, string> The tags for the usable prop.
 ---@field tags_full string The full tags for the usable prop.
 ---@field size Vector3 The size of the usable prop.
@@ -70,6 +71,12 @@ UsableProp = {}
 
 
 ]]
+
+---@enum UsablePropType
+USABLE_PROP_TYPE = {
+	BED = 1,
+	AI_JOB = 2
+}
 
 --[[
 
@@ -96,7 +103,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If the value was not found, return nil.
 	if not type_value then
-		d.print(("<line>: (UsableProps.setupMain) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
+		d.print(("<line>: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
 			addon_component_data.tags_full
 		), true, 1)
 		return nil
@@ -107,7 +114,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If it was not found, return nil.
 	if not usable_prop_type then
-		d.print(("<line>: (UsableProps.setupMain) Failed to find the usable prop type for the value \"%s\""):format(
+		d.print(("<line>: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
 			type_value
 		), true, 1)
 		return nil
@@ -134,6 +141,7 @@ function UsableProp.new(addon_component_data, zone)
 	local dirty_usable_prop = {
 		id = g_savedata.libraries.usable_props.next_id,
 		type = usable_prop_type,
+		name = zone.name,
 		transform = zone.transform,
 		tags = addon_component_data.tags,
 		tags_full = addon_component_data.tags_full,
@@ -160,6 +168,9 @@ end
 ---@param zone SWZone The zone that the prop is in.
 ---@return UsableProp usable_prop The updated usable prop.
 function UsableProp.update(usable_prop, props_addon_component_data, zone)
+
+	-- Update the usable prop's name
+	usable_prop.name = zone.name
 
 	-- Update the usable prop's transform
 	usable_prop.transform = zone.transform

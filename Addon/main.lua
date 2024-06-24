@@ -26,7 +26,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.20)"
+ADDON_VERSION = "(0.0.1.21)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -258,8 +258,6 @@ function setupMain(is_world_create)
 
 	-- start the timer for when the world has started to be setup
 	local world_setup_time = server.getTimeMillisec()
-
-	d.print("A", false)
 
 	-- Call the binded setup main.
 	bindedSetupMain(is_world_create)

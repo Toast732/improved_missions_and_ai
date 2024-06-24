@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -54,10 +54,32 @@ Building = {}
 
 ---@alias BuildingTypes table<BuildingType, boolean>
 
+--[[
+
+	Prefab Data
+
+]]
+
 ---@class ExtraBuildingPrefabData
 
----@class ResidentialBuildingData: ExtraBuildingPrefabData
+--- RESIDENTIAL
+---@class ResidentialBuildingPrefabData: ExtraBuildingPrefabData
 ---@field max_residents integer The maximum number of residents that can live here.
+
+--- WORKPLACE
+---@class WorkplaceBuildingPrefabData: ExtraBuildingPrefabData
+---@field max_workers integer The maximum number of workers that can work here.
+---@field jobs integer The number of ai jobs here.
+
+--[[
+	DATA
+]]
+
+---@class ExtraBuildingData
+
+--- WORKPLACE
+---@class WorkplaceBuildingData: ExtraBuildingData
+---@field ai_jobs table<AIJobID> The AI jobs within this workplace, set by aiJob.lua.
 
 ---@class Building
 ---@field id BuildingID The ID of the building.
@@ -67,6 +89,7 @@ Building = {}
 ---@field size Vector3 The size of the building.
 ---@field types BuildingTypes The types this building is.
 ---@field extra_prefab_data table<BuildingType, ExtraBuildingPrefabData> The extra prefab data for this building.
+---@field extra_data table<BuildingType, ExtraBuildingData> The extra data for this building.
 ---@field usable_props UsablePropHashmap The props within this building.
 
 --[[
@@ -79,7 +102,8 @@ Building = {}
 
 ---@enum BuildingType
 BUILDING_TYPE = {
-	RESIDENTIAL = 1
+	RESIDENTIAL = 1,
+	WORKPLACE = 2
 }
 
 --[[
@@ -129,6 +153,7 @@ function Building.create(name, building_id, zone_data)
 		size = Vector3.new(zone_data.size.x, zone_data.size.y, zone_data.size.z),
 		types = {},
 		extra_prefab_data = {},
+		extra_data = {},
 		usable_props = {}
 	}
 	
@@ -175,6 +200,23 @@ function Building.update(building, zone_data)
 	-- Update the building's types.
 	building.types = getBuildingTypes()
 
+	--[[
+		NORMAL DATA
+	]]
+
+	-- Functions for creating the extra data for the building.
+	local extra_data_builders = {
+		[BUILDING_TYPE.WORKPLACE] = function()
+			return {
+				ai_jobs = {}
+			}
+		end
+	}
+
+	--[[
+		PREFAB DATA
+	]]
+
 	-- Functions for creating the extra prefab data for the building.
 	local extra_prefab_data_builders = {
 		[BUILDING_TYPE.RESIDENTIAL] = function()
@@ -198,24 +240,62 @@ function Building.update(building, zone_data)
 			return {
 				max_residents = bed_count
 			}
+		end,
+		[BUILDING_TYPE.WORKPLACE] = function()
+
+			-- Get the number of job props this building has, and use that for the max workers.
+
+			-- Define the job prop count.
+			local job_prop_count = 0
+
+			local position_count = 0
+
+			-- Iterate through all usable props in this building.
+			for _, usable_prop_id in ipairs(building.usable_props) do
+				-- Get the usable prop.
+				local usable_prop = g_savedata.libraries.usable_props.props[usable_prop_id]
+
+				-- If the usable prop is a job prop, then add the prop's positions to the job prop count.
+				if usable_prop.type == USABLE_PROP_TYPE.AI_JOB then
+					job_prop_count = job_prop_count + usable_prop.capacity
+
+					-- Add the positions to the position count.
+					position_count = position_count + (Tags.getValue(usable_prop.tags, "positions", false) --[[@as number]] or 1)
+				end
+			end
+
+			return {
+				max_workers = job_prop_count,
+				jobs = job_prop_count
+			}
+			
 		end
 	}
 
-	-- For each type this building is, create it's extra prefab data.
+	-- For each type this building is, create it's extra prefab, and extra data.
 	for type, is_type in pairs(building.types) do
 		-- If this building is this type, then create the extra prefab data.
 		if is_type then
 
-			-- Get the builder
-			local builder = extra_prefab_data_builders[type]
+			-- Get the extra data builder
+			local extra_data_builder = extra_data_builders[type]
+
+			-- Ensure we got this type
+			if extra_data_builder then
+				-- Add the data via the builder.
+				building.extra_prefab_data[type] = extra_data_builder()
+			end
+
+			-- Get the prefab builder
+			local extra_prefab_data_builder = extra_prefab_data_builders[type]
 
 			-- If we don't have a builder, then skip this type.
-			if not builder then
+			if not extra_prefab_data_builder then
 				goto continue
 			end
 			
 			-- Add the data via the builder.
-			building.extra_prefab_data[type] = builder()
+			building.extra_prefab_data[type] = extra_prefab_data_builder()
 		end
 
 		::continue::
@@ -254,6 +334,27 @@ function Building.addProps(building)
 	return building
 end
 
+--- Checks if this building has a prop by the prop's ID.
+---@param building Building The building to check.
+---@param prop_id UsablePropID The ID of the prop to check.
+---@return boolean has_prop If the building has the prop.
+function Building.hasProp(building, prop_id)
+
+	-- Iterate through each prop.
+	for _, usable_prop_id in ipairs(building.usable_props) do
+
+		-- Check if the IDs match.
+		if usable_prop_id == prop_id then
+
+			-- If they do, return true.
+			return true
+		end
+	end
+
+	-- If we've exhuasted the list, then we don't have it, so return false.
+	return false
+end
+
 --- Checks if this building is the specified type
 ---@param building Building The building to check.
 ---@param building_type BuildingType The type to check.
@@ -262,9 +363,23 @@ function Building.isType(building, building_type)
 	return building.types[building_type]
 end
 
--- Get the residential data for the building.
+--- Get the workplace data for the building.
+---@param building Building The building to get the workplace data for.
+---@return WorkplaceBuildingData data The workplace data, nil if the building is not a workplace.
+function Building.getWorkplaceData(building)
+	return building.extra_data[BUILDING_TYPE.WORKPLACE] --[[@as WorkplaceBuildingData]]
+end
+
+-- Get the residential prefab data for the building.
 ---@param building Building The building to get the residential data for.
----@return ResidentialBuildingData data The residential data, nil if the building is not residential.
-function Building.getResidentialData(building)
-	return building.extra_prefab_data[BUILDING_TYPE.RESIDENTIAL] --[[@as ResidentialBuildingData]]
+---@return ResidentialBuildingPrefabData data The residential data, nil if the building is not residential.
+function Building.getResidentialPrefabData(building)
+	return building.extra_prefab_data[BUILDING_TYPE.RESIDENTIAL] --[[@as ResidentialBuildingPrefabData]]
+end
+
+-- Get the workplace prefab data for the building.
+---@param building Building The building to get the workplace data for.
+---@return WorkplaceBuildingPrefabData data The workplace data, nil if the building is not a workplace.
+function Building.getWorkplacePrefabData(building)
+	return building.extra_prefab_data[BUILDING_TYPE.WORKPLACE] --[[@as WorkplaceBuildingPrefabData]]
 end

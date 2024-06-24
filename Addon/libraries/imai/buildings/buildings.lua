@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -137,9 +137,6 @@ function Buildings.setupMain(is_world_create)
 
 		-- If the building doesn't yet exist, create it.
 		if not building_exists then
-			-- Update the building's data.
-			
-
 			-- Create a new building.
 			local new_building = Building.create(
 				building_zone.name,

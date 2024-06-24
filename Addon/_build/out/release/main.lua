@@ -4767,7 +4767,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -5325,6 +5325,24 @@ function Towns.setupMain(is_world_create)
 			d.print(("Town %s was created."):format(town_name), true, 0)
 		end
 	end
+
+	-- Check if we have a town called Independent, if not, create it.
+	if g_savedata.libraries.towns.town_name_to_id_hashmap["Independent"] == nil then
+		-- Create the town.
+		local new_town = Town.create(g_savedata.libraries.towns.next_town_id, "Independent")
+
+		-- Store the town.
+		g_savedata.libraries.towns.stored_towns[g_savedata.libraries.towns.next_town_id] = new_town
+
+		-- Save it in the hashmap.
+		g_savedata.libraries.towns.town_name_to_id_hashmap["Independent"] = g_savedata.libraries.towns.next_town_id
+
+		-- Increment the next town id.
+		g_savedata.libraries.towns.next_town_id = g_savedata.libraries.towns.next_town_id + 1
+
+		-- Print that it was created
+		d.print("Town Independent was created.", true, 0)
+	end
 end
 
 -- Bind the setupMain callback.
@@ -5349,7 +5367,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -5486,7 +5504,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -5521,10 +5539,32 @@ Building = {}
 
 ---@alias BuildingTypes table<BuildingType, boolean>
 
+--[[
+
+	Prefab Data
+
+]]
+
 ---@class ExtraBuildingPrefabData
 
----@class ResidentialBuildingData: ExtraBuildingPrefabData
+--- RESIDENTIAL
+---@class ResidentialBuildingPrefabData: ExtraBuildingPrefabData
 ---@field max_residents integer The maximum number of residents that can live here.
+
+--- WORKPLACE
+---@class WorkplaceBuildingPrefabData: ExtraBuildingPrefabData
+---@field max_workers integer The maximum number of workers that can work here.
+---@field jobs integer The number of ai jobs here.
+
+--[[
+	DATA
+]]
+
+---@class ExtraBuildingData
+
+--- WORKPLACE
+---@class WorkplaceBuildingData: ExtraBuildingData
+---@field ai_jobs table<AIJobID> The AI jobs within this workplace, set by aiJob.lua.
 
 ---@class Building
 ---@field id BuildingID The ID of the building.
@@ -5534,6 +5574,7 @@ Building = {}
 ---@field size Vector3 The size of the building.
 ---@field types BuildingTypes The types this building is.
 ---@field extra_prefab_data table<BuildingType, ExtraBuildingPrefabData> The extra prefab data for this building.
+---@field extra_data table<BuildingType, ExtraBuildingData> The extra data for this building.
 ---@field usable_props UsablePropHashmap The props within this building.
 
 --[[
@@ -5546,7 +5587,8 @@ Building = {}
 
 ---@enum BuildingType
 BUILDING_TYPE = {
-	RESIDENTIAL = 1
+	RESIDENTIAL = 1,
+	WORKPLACE = 2
 }
 
 --[[
@@ -5596,6 +5638,7 @@ function Building.create(name, building_id, zone_data)
 		size = Vector3.new(zone_data.size.x, zone_data.size.y, zone_data.size.z),
 		types = {},
 		extra_prefab_data = {},
+		extra_data = {},
 		usable_props = {}
 	}
 	
@@ -5642,6 +5685,23 @@ function Building.update(building, zone_data)
 	-- Update the building's types.
 	building.types = getBuildingTypes()
 
+	--[[
+		NORMAL DATA
+	]]
+
+	-- Functions for creating the extra data for the building.
+	local extra_data_builders = {
+		[BUILDING_TYPE.WORKPLACE] = function()
+			return {
+				ai_jobs = {}
+			}
+		end
+	}
+
+	--[[
+		PREFAB DATA
+	]]
+
 	-- Functions for creating the extra prefab data for the building.
 	local extra_prefab_data_builders = {
 		[BUILDING_TYPE.RESIDENTIAL] = function()
@@ -5665,24 +5725,62 @@ function Building.update(building, zone_data)
 			return {
 				max_residents = bed_count
 			}
+		end,
+		[BUILDING_TYPE.WORKPLACE] = function()
+
+			-- Get the number of job props this building has, and use that for the max workers.
+
+			-- Define the job prop count.
+			local job_prop_count = 0
+
+			local position_count = 0
+
+			-- Iterate through all usable props in this building.
+			for _, usable_prop_id in ipairs(building.usable_props) do
+				-- Get the usable prop.
+				local usable_prop = g_savedata.libraries.usable_props.props[usable_prop_id]
+
+				-- If the usable prop is a job prop, then add the prop's positions to the job prop count.
+				if usable_prop.type == USABLE_PROP_TYPE.AI_JOB then
+					job_prop_count = job_prop_count + usable_prop.capacity
+
+					-- Add the positions to the position count.
+					position_count = position_count + (Tags.getValue(usable_prop.tags, "positions", false) --[[@as number]] or 1)
+				end
+			end
+
+			return {
+				max_workers = job_prop_count,
+				jobs = job_prop_count
+			}
+			
 		end
 	}
 
-	-- For each type this building is, create it's extra prefab data.
+	-- For each type this building is, create it's extra prefab, and extra data.
 	for type, is_type in pairs(building.types) do
 		-- If this building is this type, then create the extra prefab data.
 		if is_type then
 
-			-- Get the builder
-			local builder = extra_prefab_data_builders[type]
+			-- Get the extra data builder
+			local extra_data_builder = extra_data_builders[type]
+
+			-- Ensure we got this type
+			if extra_data_builder then
+				-- Add the data via the builder.
+				building.extra_prefab_data[type] = extra_data_builder()
+			end
+
+			-- Get the prefab builder
+			local extra_prefab_data_builder = extra_prefab_data_builders[type]
 
 			-- If we don't have a builder, then skip this type.
-			if not builder then
+			if not extra_prefab_data_builder then
 				goto continue
 			end
 			
 			-- Add the data via the builder.
-			building.extra_prefab_data[type] = builder()
+			building.extra_prefab_data[type] = extra_prefab_data_builder()
 		end
 
 		::continue::
@@ -5721,6 +5819,27 @@ function Building.addProps(building)
 	return building
 end
 
+--- Checks if this building has a prop by the prop's ID.
+---@param building Building The building to check.
+---@param prop_id UsablePropID The ID of the prop to check.
+---@return boolean has_prop If the building has the prop.
+function Building.hasProp(building, prop_id)
+
+	-- Iterate through each prop.
+	for _, usable_prop_id in ipairs(building.usable_props) do
+
+		-- Check if the IDs match.
+		if usable_prop_id == prop_id then
+
+			-- If they do, return true.
+			return true
+		end
+	end
+
+	-- If we've exhuasted the list, then we don't have it, so return false.
+	return false
+end
+
 --- Checks if this building is the specified type
 ---@param building Building The building to check.
 ---@param building_type BuildingType The type to check.
@@ -5729,11 +5848,25 @@ function Building.isType(building, building_type)
 	return building.types[building_type]
 end
 
--- Get the residential data for the building.
+--- Get the workplace data for the building.
+---@param building Building The building to get the workplace data for.
+---@return WorkplaceBuildingData data The workplace data, nil if the building is not a workplace.
+function Building.getWorkplaceData(building)
+	return building.extra_data[BUILDING_TYPE.WORKPLACE] --[[@as WorkplaceBuildingData]]
+end
+
+-- Get the residential prefab data for the building.
 ---@param building Building The building to get the residential data for.
----@return ResidentialBuildingData data The residential data, nil if the building is not residential.
-function Building.getResidentialData(building)
-	return building.extra_prefab_data[BUILDING_TYPE.RESIDENTIAL] --[[@as ResidentialBuildingData]]
+---@return ResidentialBuildingPrefabData data The residential data, nil if the building is not residential.
+function Building.getResidentialPrefabData(building)
+	return building.extra_prefab_data[BUILDING_TYPE.RESIDENTIAL] --[[@as ResidentialBuildingPrefabData]]
+end
+
+-- Get the workplace prefab data for the building.
+---@param building Building The building to get the workplace data for.
+---@return WorkplaceBuildingPrefabData data The workplace data, nil if the building is not a workplace.
+function Building.getWorkplacePrefabData(building)
+	return building.extra_prefab_data[BUILDING_TYPE.WORKPLACE] --[[@as WorkplaceBuildingPrefabData]]
 end
 
 
@@ -5843,9 +5976,6 @@ function Buildings.setupMain(is_world_create)
 
 		-- If the building doesn't yet exist, create it.
 		if not building_exists then
-			-- Update the building's data.
-			
-
 			-- Create a new building.
 			local new_building = Building.create(
 				building_zone.name,
@@ -5906,7 +6036,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -6357,7 +6487,7 @@ function ZoneLinker.getZoneData(component_data, location_data)
 
 	-- If the tile's location was not found, return nil.
 	if not is_success then
-		d.print(("6343: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
+		d.print(("6473: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
 		return nil
 	end
 
@@ -6398,7 +6528,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -6433,6 +6563,7 @@ UsableProp = {}
 ---@field id UsablePropID
 ---@field type UsablePropType
 ---@field transform SWMatrix
+---@field name string The name of the usable prop, via the display name of the zone.
 ---@field tags table<integer, string> The tags for the usable prop.
 ---@field tags_full string The full tags for the usable prop.
 ---@field size Vector3 The size of the usable prop.
@@ -6452,6 +6583,12 @@ UsableProp = {}
 
 
 ]]
+
+---@enum UsablePropType
+USABLE_PROP_TYPE = {
+	BED = 1,
+	AI_JOB = 2
+}
 
 --[[
 
@@ -6478,7 +6615,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If the value was not found, return nil.
 	if not type_value then
-		d.print(("6464: (UsableProps.setupMain) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
+		d.print(("6601: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
 			addon_component_data.tags_full
 		), true, 1)
 		return nil
@@ -6489,7 +6626,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If it was not found, return nil.
 	if not usable_prop_type then
-		d.print(("6475: (UsableProps.setupMain) Failed to find the usable prop type for the value \"%s\""):format(
+		d.print(("6612: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
 			type_value
 		), true, 1)
 		return nil
@@ -6516,6 +6653,7 @@ function UsableProp.new(addon_component_data, zone)
 	local dirty_usable_prop = {
 		id = g_savedata.libraries.usable_props.next_id,
 		type = usable_prop_type,
+		name = zone.name,
 		transform = zone.transform,
 		tags = addon_component_data.tags,
 		tags_full = addon_component_data.tags_full,
@@ -6542,6 +6680,9 @@ end
 ---@param zone SWZone The zone that the prop is in.
 ---@return UsableProp usable_prop The updated usable prop.
 function UsableProp.update(usable_prop, props_addon_component_data, zone)
+
+	-- Update the usable prop's name
+	usable_prop.name = zone.name
 
 	-- Update the usable prop's transform
 	usable_prop.transform = zone.transform
@@ -6654,11 +6795,6 @@ UsableProps = {}
 -- The priority of the setupMain callback.
 USABLE_PROPS_SETUP_MAIN_PRIORITY = BUILDINGS_SETUP_MAIN_PRIORITY - 1
 
----@enum UsablePropType
-USABLE_PROP_TYPE = {
-	BED = 1
-}
-
 --[[
 
 
@@ -6716,7 +6852,7 @@ function UsableProps.setupMain(is_world_create)
 
 	-- If we failed to find any, abort.
 	if not got_spawning_data then
-		d.print(("6702: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
+		d.print(("6838: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
 		return
 	end
 
@@ -6745,7 +6881,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the component data was not found, skip.
 		if not is_success then
-			d.print(("6731: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("6867: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -6759,7 +6895,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the zone data was not found, skip.
 		if not zone_data then
-			d.print(("6745: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("6881: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -6858,13 +6994,13 @@ function UsableProps.selectRandomPropWithType(usablePropHashmap, type, amount, s
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("6844: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
+		d.print(("6980: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
 	-- If we have less props than the amount, return nil.
 	if #props_with_type < amount then
-		d.print(("6850: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
+		d.print(("6986: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
@@ -6889,9 +7025,444 @@ function UsableProps.selectRandomPropWithType(usablePropHashmap, type, amount, s
 	return selected_props
 end
 
+--- Returns the hashmap of all usable props with the type.
+---@param prop_type UsablePropType The type of prop to get.
+---@return UsablePropHashmap? usable_props The hashmap of usable props, nil if failed.
+function UsableProps.getPropsWithType(prop_type)
+	-- Create a new hashmap of the props.
+	---@type UsablePropHashmap
+	local props_with_type = {}
+
+	-- Iterate through each usable prop.
+	for _, usable_prop_id in ipairs(g_savedata.libraries.usable_props.iterable_props) do
+		-- Get the usable prop.
+		local usable_prop = g_savedata.libraries.usable_props.props[usable_prop_id]
+
+		-- If the usable prop's type is the same as the given type, add it to the list.
+		if usable_prop.type == prop_type then
+			table.insert(props_with_type, usable_prop_id)
+		end
+	end
+
+	-- If we didn't find any, return nil.
+	if #props_with_type == 0 then
+		d.print(("7032: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
+		return nil
+	end
+
+	return props_with_type
+end
+
 -- Bind the setupMain callback.
 Binder.bind.setupMain(UsableProps.setupMain, USABLE_PROPS_SETUP_MAIN_PRIORITY)
 
+-- Require AI Jobs.
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Handles AI Jobs individually.
+
+	An AI Job can be duplicated, for example, if a building has 2 office positions, the jobs are the same,
+		But the objects for the job are seperate, that way it can be handled specifically for that citizen,
+		that way it's easy to control things like their individual performance, for wage and such.
+]]
+
+-- library name
+AIJob = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias AIJobID integer
+
+---@class DirtyAIJob
+---@field id AIJobID The ID of the job.
+---@field usable_prop_id UsablePropID The ID of the usable prop for the job.
+---@field title string The name of the job.
+---@field paygrade AIJobPaygrade The paygrade of the job.
+---@field worker CitizenID? The worker in the job, if there is one.
+---@field building BuildingID The building the job is in.
+---@field performance AIJobPerformance The performance of the worker in the job.
+---@field company CompanyID The company the job is for.
+
+---@class AIJob: DirtyAIJob
+---@field getPay fun(self: AIJob, hours_worked: number): number The function for getting the pay for the worker.
+
+--- How an individual employee is performing in their job, used for things like wage increases, and promotions.
+---@class AIJobPerformance
+---@field raise_performance number Their performance in the job which counts towards a raise, requires to be 1 or more to get the raise, after, it's reset.
+---@field promotion_performance number Their performance in the job which counts towards a promotion, does not reset.
+---@field repremands number The number of repremands the worker has had, if they have too many, they will be fired.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--- Paygrades, converts an integer number to their wage. Wages are in Pound Sterling.
+---@enum AIJobPaygrade
+AI_JOB_PAYGRADES = {
+	--[[
+		Minimum wage for those under 18: https://www.gov.uk/national-minimum-wage-rates
+
+		For those above 18, it will automatically be bumped up to their minimum wage.
+	]]
+	[1] = 6.4, -- Absolute Minimum, Shouldn't be used frequently.
+	[2] = 10.4, -- Around average for Sales and Customer Service Occupations
+	[3] = 14, -- Around average for Skilled Trades
+	[4] = 17, -- Inbetween.
+	[5] = 21, -- Around average for managers, directors, etc.
+	[6] = 25, -- Extra.
+	[7] = 30, -- Extra.
+	[8] = 35 -- Extra.
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+-- Function for creating a new job from the usable prop's data
+---@param usable_prop UsableProp The usable prop for the job.
+function AIJob.create(usable_prop)
+
+	-- Get the ID to use.
+	local id = g_savedata.libraries.ai_jobs.next_id
+
+	-- Find the building this prop is in.
+	---@type BuildingID|nil
+	local job_building_id = nil
+
+	-- Iterate through the buildings to find the building.
+	for _, building_data in pairs(g_savedata.libraries.buildings.stored_buildings) do
+
+		-- If the building has the prop, set it.
+		if Building.hasProp(building_data, usable_prop.id) then
+			job_building_id = building_data.id
+			break
+		end
+	end
+
+	-- If the building was not found, print an error and return.
+	if not job_building_id then
+		d.print(("7211: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
+			usable_prop.id
+		), true, 1)
+		return
+	end
+
+	-- Create the new job.
+	---@type DirtyAIJob
+	local new_job = {
+		id = id,
+		usable_prop_id = usable_prop.id,
+		title = usable_prop.name,
+		paygrade = AI_JOB_PAYGRADES[1],
+		worker = nil,
+		building = job_building_id,
+		performance = {
+			raise_performance = 0,
+			promotion_performance = 0,
+			repremands = 0
+		},
+		---@diagnostic disable-next-line: assign-type-mismatch
+		company = 0
+	}
+
+	-- Increment the next ID.
+	g_savedata.libraries.ai_jobs.next_id = g_savedata.libraries.ai_jobs.next_id + 1
+
+	-- Get the job's workplace data.
+	local workplace_data = Building.getWorkplaceData(g_savedata.libraries.buildings.stored_buildings[job_building_id])
+
+	-- Make sure we got the data.
+	if workplace_data then
+		-- Set the job in the workplace data.
+		table.insert(workplace_data.ai_jobs, new_job.id)
+	end
+
+	-- Return the new job after updating it.
+	return AIJob.clean(new_job)
+end
+
+-- Function for updating a job's data, used upon reload.
+---@param job DirtyAIJob|AIJob The job to update.
+---@return AIJob job The updated job.
+function AIJob.clean(job)
+
+	-- Get the job's prop.
+	local prop = g_savedata.libraries.usable_props.props[job.usable_prop_id]
+
+	-- Update the job's title.
+	job.title = prop.name
+
+	-- Update the job's paygrade.
+
+	-- Get the job's paygrade.
+	local paygrade = Tags.getValue(prop.tags, "paygrade", false) --[[@as number]] or 1
+
+	job.paygrade = AI_JOB_PAYGRADES[paygrade]
+
+	-- Return the updated job.
+	return AIJob.setupOOP(job)
+end
+
+--- Function for setting up OOP functions for the job.
+---@param job DirtyAIJob|AIJob The job to setup OOP for.
+---@return AIJob job The job with OOP functions.
+function AIJob.setupOOP(job)
+
+	-- Create the function for getting the worker's pay.
+	---@param self AIJob
+	---@param hours_worked number The number of hours the worker worked.
+	---@return number pay amount the worker should be paid.
+	job.getPay = function(self, hours_worked)
+		--TODO: Account for age based minimum wage, skipping it for now, as ages are not implemented.
+		return self.paygrade * hours_worked
+	end
+
+	-- Return the job.
+	return job --[[@as AIJob]]
+end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Stores and handles the list of AI jobs.
+]]
+
+-- library name
+AIJobs = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The priority of the setupMain callback, put after buildings, as it requires buildings to be setup.
+AI_JOBS_SETUP_MAIN_PRIORITY = BUILDINGS_SETUP_MAIN_PRIORITY + 1
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.ai_jobs = {
+
+	--- Stores the AI Jobs.
+	---@type table<AIJobID, AIJob>
+	jobs = {},
+
+	--- The next ID for an AI Job.
+	---@type AIJobID
+	next_id = 1
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Called when the main setup is called.
+---@param is_world_create boolean if the world is being created.
+function AIJobs.setupMain(is_world_create)
+
+	-- Set the start time.
+	local start_time = server.getTimeMillisec()
+
+	-- Create a new list of ai jobs, will replace g_savedata.libraries.ai_jobs.jobs.
+	---@type table<AIJobID, AIJob>
+	local new_ai_jobs = {}
+
+	-- Define the number of new ai jobs made.
+	local new_ai_jobs_made = 0
+
+	-- Define the number of ai jobs that were updated.
+	local ai_jobs_updated = 0
+
+	-- Get all ai job usable props.
+	local ai_job_props = UsableProps.getPropsWithType(USABLE_PROP_TYPE.AI_JOB)
+
+	-- If it failed, print an error and return.
+	if not ai_job_props then
+		d.print(("7371 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
+		return
+	end
+
+	-- Loop through all the ai jobs.
+	for _, prop_id in pairs(ai_job_props) do
+
+		-- Get the prop.
+		local ai_job_prop = g_savedata.libraries.usable_props.props[prop_id]
+
+		-- Store if the number of ai jobs to create, set it to how many positions are offered by this job.
+		local ai_jobs_to_create = Tags.getValue(ai_job_prop.tags, "positions", false) --[[@as number]] or 1
+
+		-- Check if the ai job already exists.
+		for _, ai_job in pairs(g_savedata.libraries.ai_jobs.jobs) do
+			-- If the ai job's name is the same as the zone's name, it's not new.
+			if ai_job.usable_prop_id == prop_id then
+				ai_job_exists = true
+
+				-- Update the ai_job's data.
+				ai_job = AIJob.clean(ai_job)
+
+				-- Print that the ai_job was updated.
+				d.print(("(AIJobs.setupMain) AI Job: \"%s\" updated."):format(ai_job.title), true, 0)
+
+				-- Store the updated ai_job.
+				new_ai_jobs[ai_job.id] = ai_job
+
+				-- Increment the number of ai_jobs updated.
+				ai_jobs_updated = ai_jobs_updated + 1
+
+				-- Decrement the number of ai jobs to create.
+				ai_jobs_to_create = ai_jobs_to_create - 1
+
+				-- If there are no more ai jobs to create, break.
+				if ai_jobs_to_create == 0 then
+					break
+				end
+			end
+		end
+
+		-- Create as many ai jobs as required.
+		for _ = 1, ai_jobs_to_create do
+			-- Create a new ai_job.
+			local new_ai_job = AIJob.create(
+				ai_job_prop
+			)
+
+			-- If the ai_job is nil, then skip it.
+			if new_ai_job == nil then
+				goto continue
+			end
+
+			-- Store the ai_job.
+			new_ai_jobs[new_ai_job.id] = new_ai_job
+
+			-- Print that the ai_job was created.
+			d.print(("(AIJobs.setupMain) AI Job \"%s\" created."):format(new_ai_job.title), true, 0)
+
+			-- Increment the number of new ai_jobs made.
+			new_ai_jobs_made = new_ai_jobs_made + 1
+
+			::continue::
+		end
+	end
+
+	-- Set the new stored ai_jobs.
+	g_savedata.libraries.ai_jobs.jobs = new_ai_jobs
+
+	d.print(("AI Jobs Setup! New AI Jobs Made: %d, AI Jobs Updated: %d, Time Taken: %dms"):format(
+		new_ai_jobs_made,
+		ai_jobs_updated,
+		Ticks.millisecondsSince(start_time)
+	), true, 0)
+end
+
+-- Bind the setupMain callback.
+Binder.bind.setupMain(AIJobs.setupMain, AI_JOBS_SETUP_MAIN_PRIORITY)
 
 -- Require Game Master.
 --[[
@@ -6912,7 +7483,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -6979,12 +7550,13 @@ CITIZEN_SPAWN_RATIO_MAX = 1.00
 --- Called in the setupMain callback.
 function GameMaster.setupMain(is_world_create)
 
-	GameMaster.spawnCitizens()
+	--TODO: Remove later, for debug, put as todo so it's marked.
+	is_world_create = true
 
 	-- If the world was created.
 	if is_world_create then
 		-- Spawn the citizens.
-		--GameMaster.spawnCitizens()
+		GameMaster.spawnCitizens()
 	end
 end
 
@@ -7009,7 +7581,7 @@ function GameMaster.spawnCitizens()
 			if Building.isType(building, BUILDING_TYPE.RESIDENTIAL) then
 
 				-- Get the residential data.
-				local residential_data = Building.getResidentialData(building)
+				local residential_data = Building.getResidentialPrefabData(building)
 				
 				-- Get the number of citizens to spawn.
 				local num_citizens = math.random(
@@ -7029,7 +7601,7 @@ function GameMaster.spawnCitizens()
 
 					-- If there are no bed props, then skip this citizen.
 					if bed_props == nil then
-						d.print(("7015: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
+						d.print(("7587: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
 						goto continue
 					end
 
@@ -7372,21 +7944,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("7358: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("7930: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("7365: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("7937: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("7372: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("7944: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -7424,14 +7996,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("7410: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("7982: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("7417: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("7989: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -7441,7 +8013,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("7427: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("7999: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -7475,7 +8047,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("7461: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("8033: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -7486,7 +8058,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("7472: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("8044: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -7542,7 +8114,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("7528: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("8100: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -7694,7 +8266,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("7680: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("8252: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -7703,7 +8275,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("7689: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("8261: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -7724,7 +8296,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("7710: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("8282: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -7733,7 +8305,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("7719: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("8291: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -8387,7 +8959,7 @@ function Citizens.onTick(game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("8373: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("8945: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -8795,7 +9367,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("8781: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("9353: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -8831,7 +9403,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("8817: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("9389: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -8842,7 +9414,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("8828: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("9400: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -8854,7 +9426,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("8840: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("9412: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -9004,7 +9576,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("8990: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("9562: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -9113,7 +9685,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("9099: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("9671: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -9938,7 +10510,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("9924: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("10496: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -9958,7 +10530,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("9944: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("10516: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -10122,13 +10694,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("10108: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("10680: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("10114: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("10686: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -10149,17 +10721,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("10135: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("10707: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("10140: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("10712: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("10145: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("10717: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -11057,7 +11629,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("11043: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("11615: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -11070,7 +11642,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("11056: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("11628: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -15019,7 +15591,7 @@ function pathNodeFromSWNode(sw_node, base_consume_distance)
 	-- If the node is missing the y and/or cdm fields, then print an error.
 	---@diagnostic disable-next-line: undefined-field
 	if not sw_node.y or not sw_node.cdm then
-		d.print(("15005: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+		d.print(("15577: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
 	end
 
 	return {
@@ -19204,8 +19776,6 @@ function onCreate(is_world_create)
 	)
 
 	ac.sendCommunication("onCreate()", 0)
-
-	d.print("Whar?")
 end
 
 --- Called 1 tick after the world has been created, to prevent issues with the addon indexes getting mixed up

@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -68,11 +68,6 @@ UsableProps = {}
 
 -- The priority of the setupMain callback.
 USABLE_PROPS_SETUP_MAIN_PRIORITY = BUILDINGS_SETUP_MAIN_PRIORITY - 1
-
----@enum UsablePropType
-USABLE_PROP_TYPE = {
-	BED = 1
-}
 
 --[[
 
@@ -302,6 +297,34 @@ function UsableProps.selectRandomPropWithType(usablePropHashmap, type, amount, s
 	end
 
 	return selected_props
+end
+
+--- Returns the hashmap of all usable props with the type.
+---@param prop_type UsablePropType The type of prop to get.
+---@return UsablePropHashmap? usable_props The hashmap of usable props, nil if failed.
+function UsableProps.getPropsWithType(prop_type)
+	-- Create a new hashmap of the props.
+	---@type UsablePropHashmap
+	local props_with_type = {}
+
+	-- Iterate through each usable prop.
+	for _, usable_prop_id in ipairs(g_savedata.libraries.usable_props.iterable_props) do
+		-- Get the usable prop.
+		local usable_prop = g_savedata.libraries.usable_props.props[usable_prop_id]
+
+		-- If the usable prop's type is the same as the given type, add it to the list.
+		if usable_prop.type == prop_type then
+			table.insert(props_with_type, usable_prop_id)
+		end
+	end
+
+	-- If we didn't find any, return nil.
+	if #props_with_type == 0 then
+		d.print(("<line>: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
+		return nil
+	end
+
+	return props_with_type
 end
 
 -- Bind the setupMain callback.
