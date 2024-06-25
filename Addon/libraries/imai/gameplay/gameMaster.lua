@@ -30,6 +30,8 @@ limitations under the License.
 require("libraries.addon.callbacks.binder.binder")
 require("libraries.imai.buildings.buildings")
 require("libraries.addon.components.usableProps.usableProps")
+require("libraries.imai.ai.citizens.citizens")
+require("libraries.imai.ai.jobs.pool.aiJobPool")
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -59,7 +61,7 @@ GameMaster = {}
 ]]
 
 -- The priority of the setupMain callback.
-GAMEMASTER_SETUP_MAIN_PRIORITY = USABLE_PROPS_SETUP_MAIN_PRIORITY + 1
+GAMEMASTER_SETUP_MAIN_PRIORITY = AI_JOBS_SETUP_MAIN_PRIORITY + 1
 
 -- The minimum ratio of citizens to spawn in a house.
 CITIZEN_SPAWN_RATIO_MIN = 0.45
@@ -98,6 +100,9 @@ function GameMaster.setupMain(is_world_create)
 	if is_world_create then
 		-- Spawn the citizens.
 		GameMaster.spawnCitizens()
+
+		-- Assign the citizens to jobs.
+		GameMaster.assignAIJobs()
 	end
 end
 
@@ -170,4 +175,26 @@ function GameMaster.spawnCitizens()
 			end
 		end
 	end
+end
+
+--- Assigns citizens to jobs.
+function GameMaster.assignAIJobs()
+	-- Create a new job pool.
+	local job_pool = AIJobPool.create()
+
+	-- Add each of the citizens to the job pool.
+	for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+
+		-- If the citizen is already assigned to a job, then skip this citizen.
+		if #citizen.jobs ~= 0 then
+			goto continue
+		end
+		
+		job_pool:addCitizen(citizen.id)
+
+		::continue::
+	end
+
+	-- Compute the job pool.
+	job_pool:compute()
 end

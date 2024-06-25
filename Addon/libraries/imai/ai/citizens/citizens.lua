@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -43,8 +43,6 @@ require("libraries.imai.ai.citizens.citizen")
 
 -- library name
 Citizens = {}
-
----@alias CitizenID integer
 
 --[[
 
@@ -413,10 +411,24 @@ Citizens.Status = {
 	end
 }
 
+---# Removes the citizen.
+---@param citizen Citizen the citizen to remove
 function Citizens.remove(citizen)
 
 	-- remove all effects from this citizen
 	Effects.removeAll(citizen)
+
+	-- Remove this citizen from their jobs.
+	for _, job_id in pairs(citizen.jobs) do
+		-- get the job data
+		local job = g_savedata.libraries.ai_jobs.jobs[job_id]
+
+		-- if the job exists
+		if job then
+			-- remove this citizen from the job
+			job:unassignCitizen()
+		end
+	end
 
 	-- if this citzen has been spawned
 	if citizen.object_id then
@@ -449,12 +461,12 @@ function Citizens.getData(citizen_id)
 
 		-- if the id of this citizen matches the one we want.
 		if citizen.id == citizen_id then
-			d.print(("Found citizen for id: %s"):format(citizen_id))
+			--d.print(("Found citizen for id: %s"):format(citizen_id))
 			-- return it's data
 			return citizen
 		end
 
-		d.print(("Citizen ID %s does not match target %s"):format(citizen.id, citizen_id))
+		--d.print(("Citizen ID %s does not match target %s"):format(citizen.id, citizen_id))
 	end
 
 	d.print(("Failed to find citizen with id: %s"):format(citizen_id))

@@ -34,6 +34,9 @@ require("libraries.addon.components.usableProps.usableProp")
 require("libraries.imai.ai.jobs.aiJobs")
 require("libraries.imai.ai.jobs.aiJob")
 
+-- Require AI Job Pool.
+require("libraries.imai.ai.jobs.pool.aiJobPool")
+
 -- Require Game Master.
 require("libraries.imai.gameplay.gameMaster")
 

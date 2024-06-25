@@ -47,6 +47,8 @@ Citizen = {}
 
 ]]
 
+---@alias CitizenID integer
+
 ---@class CitizenName
 ---@field first string their first name
 ---@field last string their last name
@@ -76,10 +78,12 @@ Citizen = {}
 ---@field statuses table<integer, Status> stores the statuses of the citizen.
 ---@field vehicle_data CitizenVehicleData
 ---@field home_building_id BuildingID the building_id of the citizen's home.
+---@field jobs table<JobID> the jobs the citizen has.
 
 ---@class Citizen: DirtyCitizen a citizen with the OOP functions added.
 ---@field updateTooltip fun(self: Citizen) Updates the citizen's tooltip.
 ---@field updateStability fun(self: Citizen) Updates the citizen's stability.
+---@field getJobDesire fun(self: Citizen, job: AIJob): number Gets how much the citizen wants the job.
 
 --[[
 
@@ -138,7 +142,8 @@ function Citizen.create(transform, outfit_type)
 			linked_vehicles = {},
 			occupating_vehicle_id = -1
 		},
-		home_building_id = -1
+		home_building_id = -1,
+		jobs = {}
 	}
 
 	-- register the medical conditions.
@@ -219,6 +224,42 @@ function Citizen.setup(citizen)
 				medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
 			end
 		end
+	end
+
+	--[[
+	
+		Setup the Job Related Functions
+		
+	]]
+
+	---# Gets how much the citizen wants the job.
+	---@param self Citizen
+	---@param job AIJob the job to get the desire for
+	---@return number desire the desire for the job.
+	citizen.getJobDesire = function(self, job)
+
+		-- Get the usable prop for the job.
+		local prop = g_savedata.libraries.usable_props.props[job.usable_prop_id]
+
+		-- Get the citizen's home.
+		local home_building = g_savedata.libraries.buildings.stored_buildings[self.home_building_id]
+
+		-- get the distance to the job.
+		local distance = matrix.xzDistance(home_building.transform, prop.transform)
+
+		-- Set the base desire to 1.
+		local desire = 1
+
+		-- If the citizen is already working, then multiply the desire by 0.5, for each job they have.
+		for _ in pairs(self.jobs) do
+			desire = desire * 0.5
+		end
+
+		-- Make the desire multiplier affected by the citizen's distance. (from *1 at 0m away, to *0.5 at 25,000m away)
+		desire = desire * math.linearScale(distance, 0, 25000, 1, 0.5)
+
+		-- Return the desire.
+		return desire
 	end
 
 	return citizen

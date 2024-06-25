@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.22)"
+ADDON_VERSION = "(0.0.1.23)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -7144,6 +7144,7 @@ AIJob = {}
 ---@class AIJob: DirtyAIJob
 ---@field getPay fun(self: AIJob, hours_worked: number): number The function for getting the pay for the worker.
 ---@field assignCitizen fun(self: AIJob, citizen_id: CitizenID): boolean The function for assigning a citizen to the job, returns false if the job is already filled.
+---@field unassignCitizen fun(self: AIJob): boolean The function for unassigning a worker from the job, returns false if the job is not filled.
 ---@field getFit fun(self: AIJob, citizen_id: CitizenID): number Gets how well the citizen fits for the job, returns a number from 0-1. (0 being the worst, 1 being the best.
 
 --- How an individual employee is performing in their job, used for things like wage increases, and promotions.
@@ -7217,7 +7218,7 @@ function AIJob.create(usable_prop)
 
 	-- If the building was not found, print an error and return.
 	if not job_building_id then
-		d.print(("7203: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
+		d.print(("7204: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
 			usable_prop.id
 		), true, 1)
 		return
@@ -7305,6 +7306,28 @@ function AIJob.setupOOP(job)
 
 		-- Set the worker.
 		self.worker = citizen_id
+
+		-- Reset the performance
+		self.performance = {
+			raise_performance = 0,
+			promotion_performance = 0,
+			repremands = 0
+		}
+
+		-- Return true.
+		return true
+	end
+
+	--- Create the function for unassigning a worker from a job.
+	---@param self AIJob
+	job.unassignCitizen = function(self)
+		-- If the job is not filled, return false.
+		if not self.worker then
+			return false
+		end
+
+		-- Unassign the worker.
+		self.worker = nil
 
 		-- Return true.
 		return true
@@ -7403,7 +7426,7 @@ function AIJobs.setupMain(is_world_create)
 
 	-- If it failed, print an error and return.
 	if not ai_job_props then
-		d.print(("7389 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
+		d.print(("7412 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
 		return
 	end
 
@@ -7482,6 +7505,362 @@ end
 -- Bind the setupMain callback.
 Binder.bind.setupMain(AIJobs.setupMain, AI_JOBS_SETUP_MAIN_PRIORITY)
 
+-- Require AI Job Pool.
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Used for job hiring cycles, to choose the best candidates for the job, and to let the citizens decide their job.
+]]
+
+-- library name
+AIJobPool = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class AIJobPool
+---@field citizens table<integer, CitizenID>
+---@field jobs table<integer, AIJobID>
+---@field addCitizen fun(self: AIJobPool, citizen_id: CitizenID) adds a citizen to the AIJobPool.
+---@field compute fun(self: AIJobPool) computes the jobs, and assigns the jobs.
+
+---@class AIJobOptionForCitizen
+---@field job_id JobID the job id.
+---@field want number how much the citizen weighs the job for how much they want it.
+
+---@class AIJobOptionForJob
+---@field citizen_id CitizenID the citizen id.
+---@field fit number how much the job feels the citizen fits the job.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+
+--- Creates a new AIJobPool.
+---@return AIJobPool
+function AIJobPool.create()
+
+	d.print("(AIJobPool.create) Creating a new job pool...", true, 0)
+
+	--- Create the AIJobPool.
+	---@type AIJobPool
+	local aiJobPool = {
+		citizens = {},
+		jobs = {},
+		-- Add a citizen to the AIJobPool.
+		---@param self AIJobPool
+		---@param citizen_id CitizenID
+		addCitizen = function(self, citizen_id)
+			table.insert(self.citizens, citizen_id)
+		end,
+		-- Compute the jobs, and assign the jobs.
+		---@param self AIJobPool
+		compute = function(self)
+			d.print("(AIJobPool.compute) Starting the hiring cycle...", true, 0)
+
+			-- Set the number of citizens hired.
+			local citizens_hired = 0
+
+			-- Store the jobs that the citizens want to apply to.
+			---@type table<JobID, table<integer, CitizenID>>
+			local jobs = {}
+
+			-- Store the citizen's statuses
+			---@type table<CitizenID, boolean> true if the citizen was assigned to a job, false otherwise.
+			local citizen_assigned_statuses = {}
+
+			---@param job_id JobID the job id.
+			local function removeJob(job_id)
+				for i = #self.jobs, 1, -1 do
+					if self.jobs[i] == job_id then
+						table.remove(self.jobs, i)
+					end
+				end
+			end
+
+			---@param citizen_id CitizenID the citizen id.
+			local function removeCitizen(citizen_id)
+				for i = #self.citizens, 1, -1 do
+					if self.citizens[i] == citizen_id then
+						table.remove(self.citizens, i)
+					end
+				end
+			end
+
+			--- Initialize the jobs table.
+			for _, job_id in ipairs(self.jobs) do
+				jobs[job_id] = {}
+			end
+
+			-- For each citizen, set the citizen's status to false.
+			for _, citizen_id in ipairs(self.citizens) do
+				citizen_assigned_statuses[citizen_id] = false
+			end
+
+			-- For each citizen, get the jobs they want to apply to.
+			--[[for _, citizen_id in ipairs(self.citizens) do
+
+				---@class table<integer, AIJobOption>
+				local citizen_job_options = {}
+
+				-- Get the citizen.
+				local citizen = Citizens.getData(citizen_id)
+
+				-- Ensure the citizen exists.
+				if not citizen then
+					d.print(("7652 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
+					goto continue
+				end
+
+				-- For each job, add the citizen to the job's list of applicants.
+				for job_id, _ in ipairs(jobs) do
+					local job = g_savedata.libraries.ai_jobs.jobs[job_id]
+					
+					-- Get the citizen's want for the job.
+					local want = citizen:getJobDesire(job)
+
+					-- Add the job to the citizen's job options.
+					table.insert(citizen_job_options, {
+						job_id = job_id,
+						want = want
+					})
+				end
+
+				-- Sort the citizen's job options by want.
+				table.sort(citizen_job_options, function(a, b)
+					return a.want > b.want
+				end)
+
+				-- Add the citizen to the jobs they want to apply to.
+				for i = 1, #citizen_job_options do
+					local job_option = citizen_job_options[i]
+
+					-- Add the citizen to the job's list of applicants.
+					table.insert(jobs[job_option.job_id], citizen_id)
+				end
+
+				::continue::
+			end]]
+
+			-- Create a list that stores the job's top picks for each cycle.
+			---@type table<JobID, table<integer, AIJobOptionForJob>>
+			local job_top_picks = {}
+
+			-- For each job, assign the job to the best citizen.
+			for job_id, _ in pairs(self.jobs) do
+
+				-- Get the job
+				---@type AIJob
+				local job = g_savedata.libraries.ai_jobs.jobs[job_id]
+
+				-- Create a list of applicants and how the job weighs the citizen.
+				---@class table<integer, AIJobOption>
+				local job_applicants = {}
+
+				-- For each citizen, add the citizen to the job's list of applicants.
+				for _, citizen_id in ipairs(self.citizens) do
+
+					-- Get the job's fit for the citizen.
+					local fit = job:getFit(citizen_id)
+
+					-- Add the citizen to the job's list of applicants.
+					table.insert(job_applicants, {
+						citizen_id = citizen_id,
+						fit = fit
+					})
+				end
+
+				-- Sort the job's applicants by fit.
+				table.sort(job_applicants, function(a, b)
+					return a.fit > b.fit
+				end)
+
+				-- Add the job's top pick to the job_top_picks.
+				job_top_picks[job_id] = job_applicants
+			end
+			
+			--[[
+			
+				Start the hiring cycle, starting off at each job's top pick, and then let the citizen choose from the jobs which selected them for that cycle.
+
+				So for the first cycle, it gets the citizen each job's top selection, and then adds that option to the citizen's options
+				Then the citizen chooses from the options.
+				Then the cycle repeats until all citizens are assigned to a job, or we run out of jobs.
+			
+			]]
+
+			for _ = 1, #self.citizens do
+
+				-- Store the citizen's options
+				---@type table<CitizenID, table<JobID>>
+				local citizen_options = {}
+
+				for job_id, job_top_picks in pairs(job_top_picks) do
+					-- Get the top pick for the job.
+					local top_pick = job_top_picks[1].citizen_id
+
+					if citizen_options[top_pick] then
+						table.insert(citizen_options[top_pick], job_id)
+					else
+						citizen_options[top_pick] = {job_id}
+					end
+
+					-- Remove the top pick from the job's top picks. (Citizen will either pick this one, or another one. We need not re-offer.)
+					table.remove(job_top_picks, 1)
+				end
+
+				-- Iterate through the citizens, and let them choose from the options.
+				for citizen_id, options in pairs(citizen_options) do
+
+					-- Get the citizen.
+					local citizen = Citizens.getData(citizen_id)
+
+					-- Ensure the citizen exists.
+					if not citizen then
+						d.print(("7761 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
+						goto continue
+					end
+
+					-- Go through the citizen's options, and if the job is already assigned to somebody else, remove it from their options.
+					for i = #options, 1, -1 do
+						if g_savedata.libraries.ai_jobs.jobs[options[i]].worker then
+							table.remove(options, i)
+						end
+					end
+
+					-- Get the citizen's choice by letting the citizen choose from the one they desire the most.
+
+					-- Store the citizen's choice.
+					---@type JobID|nil
+					local choice = nil
+
+					-- Store the highest desire
+					local highest_desire = math.mininteger
+
+					-- For each option, get the citizen's desire for the job.
+					for _, option in ipairs(options) do
+						local desire = citizen:getJobDesire(g_savedata.libraries.ai_jobs.jobs[option])
+
+						-- If the desire is higher than the highest desire, set the choice to this option.
+						if desire > highest_desire then
+							choice = option
+							highest_desire = desire
+						end
+					end
+
+					-- If the citizen chose a job, assign the citizen to the job.
+					if choice then
+
+						-- Get the job.
+						---@type AIJob
+						local job = g_savedata.libraries.ai_jobs.jobs[choice]
+
+						-- Assign the citizen to the job.
+						job:assignCitizen(citizen_id)
+
+						table.insert(citizen.jobs, job.id)
+
+						-- Find all instances of this citizen in the job_top_picks, and remove them.
+						for _, job_top_picks in pairs(job_top_picks) do
+							for i = #job_top_picks, 1, -1 do
+								if job_top_picks[i].citizen_id == citizen_id then
+									table.remove(job_top_picks, i)
+								end
+							end
+						end
+
+						-- Increment the number of citizens hired.
+						citizens_hired = citizens_hired + 1
+
+						-- Remove this citizen from the citizens in this object.
+						removeCitizen(citizen_id)
+
+						-- Remove this job from the jobs in this object.
+						removeJob(choice)
+
+						-- Print that the citizen was hired.
+						d.print(("(AIJobPool.compute) Citizen %s was hired for job %s!"):format(citizen.name.full, job.title), true, 0)
+					end
+
+					::continue::
+				end
+			end
+
+			-- Print the number of citizens hired, and not hired.
+			d.print(("7831 (AIJobPool.compute) Hiring cycle complete! %d citizens were hired, and %d citizens were not hired."):format(citizens_hired, #self.citizens), true, 0)
+		end
+	}
+
+	-- add each job with no worker to the job pool.
+	for _, job in pairs(g_savedata.libraries.ai_jobs.jobs) do
+		if not job.worker then
+			table.insert(aiJobPool.jobs, job.id)
+		end
+	end
+
+	-- Return the AIJobPool.
+	return aiJobPool
+end
+
+
 -- Require Game Master.
 --[[
 	
@@ -7512,147 +7891,6 @@ limitations under the License.
 ]]
 
 -- required libraries
-
----@diagnostic disable:duplicate-doc-field
----@diagnostic disable:duplicate-doc-alias
----@diagnostic disable:duplicate-set-field
-
---[[ 
-	The Game Master - Controls things like spawning citizens on creation, and other things.
-]]
-
--- library name
-GameMaster = {}
-
---[[
-
-
-	Classes
-
-
-]]
-
---[[
-
-
-	Constants
-
-
-]]
-
--- The priority of the setupMain callback.
-GAMEMASTER_SETUP_MAIN_PRIORITY = USABLE_PROPS_SETUP_MAIN_PRIORITY + 1
-
--- The minimum ratio of citizens to spawn in a house.
-CITIZEN_SPAWN_RATIO_MIN = 0.45
-
--- The maximum ratio of citizens to spawn in a house.
-CITIZEN_SPAWN_RATIO_MAX = 1.00
-
---[[
-
-
-	Variables
-
-
-]]
-
---[[
-
-
-	Functions
-
-
-]]
-
---- Called in the setupMain callback.
-function GameMaster.setupMain(is_world_create)
-
-	--TODO: Remove later, for debug, put as todo so it's marked.
-	is_world_create = true
-
-	-- Setup the citizens
-	for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
-		Citizen.setup(citizen)
-	end
-
-	-- If the world was created.
-	if is_world_create then
-		-- Spawn the citizens.
-		GameMaster.spawnCitizens()
-	end
-end
-
--- Bind the setupMain callback.
-Binder.bind.setupMain(GameMaster.setupMain, GAMEMASTER_SETUP_MAIN_PRIORITY)
-
---- Spawns the citizens.
-function GameMaster.spawnCitizens()
-	-- Get all of the towns.
-	local towns = g_savedata.libraries.towns.stored_towns
-
-	-- Iterate through all of the towns.
-	for town_index, town in ipairs(towns) do
-		
-		-- In this town, iterate through each building.
-		for _, building_id in ipairs(town.buildings) do
-			
-			-- Get the building
-			local building = g_savedata.libraries.buildings.stored_buildings[building_id]
-
-			-- Check if the building is residential.
-			if Building.isType(building, BUILDING_TYPE.RESIDENTIAL) then
-
-				-- Get the residential data.
-				local residential_data = Building.getResidentialPrefabData(building)
-				
-				-- Get the number of citizens to spawn.
-				local num_citizens = math.random(
-					math.floor(residential_data.max_residents * CITIZEN_SPAWN_RATIO_MIN),
-					math.floor(residential_data.max_residents * CITIZEN_SPAWN_RATIO_MAX)
-				)
-
-				-- For each of the citizens to spawn, get a bed to spawn them in, and spawn them in it.
-				for _ = 1, num_citizens do
-					-- Find a bed to spawn the citizen in.
-					local bed_props = UsableProps.selectRandomPropWithType(
-						building.usable_props,
-						USABLE_PROP_TYPE.BED,
-						1,
-						true
-					)
-
-					-- If there are no bed props, then skip this citizen.
-					if bed_props == nil then
-						d.print(("7610: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
-						goto continue
-					end
-
-					d.print(("Found Prop: %d"):format(bed_props[1]), true, 0)
-
-					-- Get the bed prop.
-					local bed_prop = g_savedata.libraries.usable_props.props[bed_props[1]]
-
-					-- Create the citizen.
-					local new_citizen = Citizen.create(
-						bed_prop.transform,
-						0
-					)
-
-					-- Assign the citizen's home.
-					new_citizen.home_building_id = building_id
-
-					-- Spawn the citizen.
-					Citizen.spawn(new_citizen)
-
-					is_success = bed_prop:addEntity(new_citizen.object_id)
-
-					::continue::
-				end
-			end
-		end
-	end
-end
 --[[
 
 Copyright 2024 Liam Matthews
@@ -7671,7 +7909,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -7966,21 +8204,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("7952: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8190: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("7959: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("8197: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("7966: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("8204: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -8018,14 +8256,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("8004: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8242: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("8011: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8249: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -8035,7 +8273,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("8021: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("8259: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -8069,7 +8307,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("8055: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("8293: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -8080,7 +8318,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("8066: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("8304: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -8136,7 +8374,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("8122: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("8360: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -8288,7 +8526,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("8274: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("8512: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -8297,7 +8535,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("8283: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("8521: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -8318,7 +8556,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("8304: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("8542: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -8327,7 +8565,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("8313: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("8551: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -8385,6 +8623,8 @@ Citizen = {}
 
 ]]
 
+---@alias CitizenID integer
+
 ---@class CitizenName
 ---@field first string their first name
 ---@field last string their last name
@@ -8414,10 +8654,12 @@ Citizen = {}
 ---@field statuses table<integer, Status> stores the statuses of the citizen.
 ---@field vehicle_data CitizenVehicleData
 ---@field home_building_id BuildingID the building_id of the citizen's home.
+---@field jobs table<JobID> the jobs the citizen has.
 
 ---@class Citizen: DirtyCitizen a citizen with the OOP functions added.
 ---@field updateTooltip fun(self: Citizen) Updates the citizen's tooltip.
 ---@field updateStability fun(self: Citizen) Updates the citizen's stability.
+---@field getJobDesire fun(self: Citizen, job: AIJob): number Gets how much the citizen wants the job.
 
 --[[
 
@@ -8476,7 +8718,8 @@ function Citizen.create(transform, outfit_type)
 			linked_vehicles = {},
 			occupating_vehicle_id = -1
 		},
-		home_building_id = -1
+		home_building_id = -1,
+		jobs = {}
 	}
 
 	-- register the medical conditions.
@@ -8559,6 +8802,42 @@ function Citizen.setup(citizen)
 		end
 	end
 
+	--[[
+	
+		Setup the Job Related Functions
+		
+	]]
+
+	---# Gets how much the citizen wants the job.
+	---@param self Citizen
+	---@param job AIJob the job to get the desire for
+	---@return number desire the desire for the job.
+	citizen.getJobDesire = function(self, job)
+
+		-- Get the usable prop for the job.
+		local prop = g_savedata.libraries.usable_props.props[job.usable_prop_id]
+
+		-- Get the citizen's home.
+		local home_building = g_savedata.libraries.buildings.stored_buildings[self.home_building_id]
+
+		-- get the distance to the job.
+		local distance = matrix.xzDistance(home_building.transform, prop.transform)
+
+		-- Set the base desire to 1.
+		local desire = 1
+
+		-- If the citizen is already working, then multiply the desire by 0.5, for each job they have.
+		for _ in pairs(self.jobs) do
+			desire = desire * 0.5
+		end
+
+		-- Make the desire multiplier affected by the citizen's distance. (from *1 at 0m away, to *0.5 at 25,000m away)
+		desire = desire * math.linearScale(distance, 0, 25000, 1, 0.5)
+
+		-- Return the desire.
+		return desire
+	end
+
 	return citizen
 end
 
@@ -8635,7 +8914,7 @@ function Citizen.tick(citizen, game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("8621: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("8900: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -8678,8 +8957,6 @@ end
 
 -- library name
 Citizens = {}
-
----@alias CitizenID integer
 
 --[[
 
@@ -9048,10 +9325,24 @@ Citizens.Status = {
 	end
 }
 
+---# Removes the citizen.
+---@param citizen Citizen the citizen to remove
 function Citizens.remove(citizen)
 
 	-- remove all effects from this citizen
 	Effects.removeAll(citizen)
+
+	-- Remove this citizen from their jobs.
+	for _, job_id in pairs(citizen.jobs) do
+		-- get the job data
+		local job = g_savedata.libraries.ai_jobs.jobs[job_id]
+
+		-- if the job exists
+		if job then
+			-- remove this citizen from the job
+			job:unassignCitizen()
+		end
+	end
 
 	-- if this citzen has been spawned
 	if citizen.object_id then
@@ -9084,12 +9375,12 @@ function Citizens.getData(citizen_id)
 
 		-- if the id of this citizen matches the one we want.
 		if citizen.id == citizen_id then
-			d.print(("Found citizen for id: %s"):format(citizen_id))
+			--d.print(("Found citizen for id: %s"):format(citizen_id))
 			-- return it's data
 			return citizen
 		end
 
-		d.print(("Citizen ID %s does not match target %s"):format(citizen.id, citizen_id))
+		--d.print(("Citizen ID %s does not match target %s"):format(citizen.id, citizen_id))
 	end
 
 	d.print(("Failed to find citizen with id: %s"):format(citizen_id))
@@ -9482,7 +9773,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("9468: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("9759: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -9518,7 +9809,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("9504: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("9795: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -9529,7 +9820,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("9515: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("9806: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -9541,7 +9832,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("9527: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("9818: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -9691,7 +9982,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("9677: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("9968: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -9800,7 +10091,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("9786: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("10077: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -10625,7 +10916,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("10611: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("10902: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -10645,7 +10936,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("10631: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("10922: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -10809,13 +11100,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("10795: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("11086: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("10801: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("11092: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -10836,17 +11127,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("10822: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("11113: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("10827: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("11118: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("10832: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("11123: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -11211,6 +11502,172 @@ Command.registerCommand(
 	"Spawns a citizen",
 	{""}
 )
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	The Game Master - Controls things like spawning citizens on creation, and other things.
+]]
+
+-- library name
+GameMaster = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+-- The priority of the setupMain callback.
+GAMEMASTER_SETUP_MAIN_PRIORITY = AI_JOBS_SETUP_MAIN_PRIORITY + 1
+
+-- The minimum ratio of citizens to spawn in a house.
+CITIZEN_SPAWN_RATIO_MIN = 0.45
+
+-- The maximum ratio of citizens to spawn in a house.
+CITIZEN_SPAWN_RATIO_MAX = 1.00
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Called in the setupMain callback.
+function GameMaster.setupMain(is_world_create)
+
+	--TODO: Remove later, for debug, put as todo so it's marked.
+	is_world_create = true
+
+	-- Setup the citizens
+	for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+		Citizen.setup(citizen)
+	end
+
+	-- If the world was created.
+	if is_world_create then
+		-- Spawn the citizens.
+		GameMaster.spawnCitizens()
+
+		-- Assign the citizens to jobs.
+		GameMaster.assignAIJobs()
+	end
+end
+
+-- Bind the setupMain callback.
+Binder.bind.setupMain(GameMaster.setupMain, GAMEMASTER_SETUP_MAIN_PRIORITY)
+
+--- Spawns the citizens.
+function GameMaster.spawnCitizens()
+	-- Get all of the towns.
+	local towns = g_savedata.libraries.towns.stored_towns
+
+	-- Iterate through all of the towns.
+	for town_index, town in ipairs(towns) do
+		
+		-- In this town, iterate through each building.
+		for _, building_id in ipairs(town.buildings) do
+			
+			-- Get the building
+			local building = g_savedata.libraries.buildings.stored_buildings[building_id]
+
+			-- Check if the building is residential.
+			if Building.isType(building, BUILDING_TYPE.RESIDENTIAL) then
+
+				-- Get the residential data.
+				local residential_data = Building.getResidentialPrefabData(building)
+				
+				-- Get the number of citizens to spawn.
+				local num_citizens = math.random(
+					math.floor(residential_data.max_residents * CITIZEN_SPAWN_RATIO_MIN),
+					math.floor(residential_data.max_residents * CITIZEN_SPAWN_RATIO_MAX)
+				)
+
+				-- For each of the citizens to spawn, get a bed to spawn them in, and spawn them in it.
+				for _ = 1, num_citizens do
+					-- Find a bed to spawn the citizen in.
+					local bed_props = UsableProps.selectRandomPropWithType(
+						building.usable_props,
+						USABLE_PROP_TYPE.BED,
+						1,
+						true
+					)
+
+					-- If there are no bed props, then skip this citizen.
+					if bed_props == nil then
+						d.print(("11603: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
+						goto continue
+					end
+
+					d.print(("Found Prop: %d"):format(bed_props[1]), true, 0)
+
+					-- Get the bed prop.
+					local bed_prop = g_savedata.libraries.usable_props.props[bed_props[1]]
+
+					-- Create the citizen.
+					local new_citizen = Citizen.create(
+						bed_prop.transform,
+						0
+					)
+
+					-- Assign the citizen's home.
+					new_citizen.home_building_id = building_id
+
+					-- Spawn the citizen.
+					Citizen.spawn(new_citizen)
+
+					is_success = bed_prop:addEntity(new_citizen.object_id)
+
+					::continue::
+				end
+			end
+		end
+	end
+end
+
+--- Assigns citizens to jobs.
+function GameMaster.assignAIJobs()
+	-- Create a new job pool.
+	local job_pool = AIJobPool.create()
+
+	-- Add each of the citizens to the job pool.
+	for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+
+		-- If the citizen is already assigned to a job, then skip this citizen.
+		if #citizen.jobs ~= 0 then
+			goto continue
+		end
+		
+		job_pool:addCitizen(citizen.id)
+
+		::continue::
+	end
+
+	-- Compute the job pool.
+	job_pool:compute()
+end
 --[[
 
 Copyright 2024 Liam Matthews
@@ -11744,7 +12201,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("11730: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("12187: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -11757,7 +12214,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("11743: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("12200: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -15706,7 +16163,7 @@ function pathNodeFromSWNode(sw_node, base_consume_distance)
 	-- If the node is missing the y and/or cdm fields, then print an error.
 	---@diagnostic disable-next-line: undefined-field
 	if not sw_node.y or not sw_node.cdm then
-		d.print(("15692: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+		d.print(("16149: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
 	end
 
 	return {

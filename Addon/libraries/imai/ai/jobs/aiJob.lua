@@ -66,6 +66,7 @@ AIJob = {}
 ---@class AIJob: DirtyAIJob
 ---@field getPay fun(self: AIJob, hours_worked: number): number The function for getting the pay for the worker.
 ---@field assignCitizen fun(self: AIJob, citizen_id: CitizenID): boolean The function for assigning a citizen to the job, returns false if the job is already filled.
+---@field unassignCitizen fun(self: AIJob): boolean The function for unassigning a worker from the job, returns false if the job is not filled.
 ---@field getFit fun(self: AIJob, citizen_id: CitizenID): number Gets how well the citizen fits for the job, returns a number from 0-1. (0 being the worst, 1 being the best.
 
 --- How an individual employee is performing in their job, used for things like wage increases, and promotions.
@@ -227,6 +228,28 @@ function AIJob.setupOOP(job)
 
 		-- Set the worker.
 		self.worker = citizen_id
+
+		-- Reset the performance
+		self.performance = {
+			raise_performance = 0,
+			promotion_performance = 0,
+			repremands = 0
+		}
+
+		-- Return true.
+		return true
+	end
+
+	--- Create the function for unassigning a worker from a job.
+	---@param self AIJob
+	job.unassignCitizen = function(self)
+		-- If the job is not filled, return false.
+		if not self.worker then
+			return false
+		end
+
+		-- Unassign the worker.
+		self.worker = nil
 
 		-- Return true.
 		return true

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <playlist folder_path="data/missions/Improved_Missions_and_AI" file_store="4" name="Improved Missions and AI (0.0.1.dev)">
-	<locations location_id_counter="208" component_id_counter="4371">
+	<locations location_id_counter="214" component_id_counter="4439">
 		<locations>
 			<l id="1" tile="data/tiles/island_15.xml" name="CREATIVE BASE" is_env_mod="true" env_mod_spawn_num="1">
 				<components>
@@ -36332,6 +36332,54 @@
 						</spawn_bounds>
 						<graph_links/>
 					</c>
+					<c component_type="10" id="4373" cargo_zone_import_cargo_type="imai,building,town=Enzo Kats Village,buildingNumber=103,RESIDENTIAL" display_name="Enzo Kats Village Unit 103" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-105.321556" 31="22.309954" 32="266.21524"/>
+						<spawn_bounds>
+							<min x="-4.090581" y="-2.236869" z="-11.567816"/>
+							<max x="4.090581" y="2.236869" z="11.567816"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4374" cargo_zone_import_cargo_type="imai,building,town=Enzo Kats Village,buildingNumber=104,RESIDENTIAL" display_name="Enzo Kats Village Unit 104" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-131.264481" 31="22.620987" 32="272.857361"/>
+						<spawn_bounds>
+							<min x="-4.288381" y="-2.236869" z="-6.261559"/>
+							<max x="4.288381" y="2.236869" z="6.261559"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4375" cargo_zone_import_cargo_type="imai,building,town=Enzo Kats Village,buildingNumber=105,RESIDENTIAL" display_name="Enzo Kats Village Unit 105" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-153.051651" 31="22.372725" 32="255.886566"/>
+						<spawn_bounds>
+							<min x="-3.410196" y="-2.236869" z="-5.148508"/>
+							<max x="3.410196" y="2.236869" z="5.148508"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4376" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.002759" 02="0.999996" 20="-0.999996" 22="0.002759" 30="-154.196762" 31="20.904715" 32="259.663635"/>
+						<spawn_bounds>
+							<min x="-0.63346" y="-0.448327" z="-1.069463"/>
+							<max x="0.63346" y="0.448327" z="1.069463"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4377" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999999" 02="-0.001096" 20="0.001096" 22="-0.999999" 30="-129.43544" 31="20.478676" 32="277.362671"/>
+						<spawn_bounds>
+							<min x="-0.63346" y="-0.448327" z="-1.069463"/>
+							<max x="0.63346" y="0.448327" z="1.069463"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4382" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.00391" 02="-0.999992" 20="0.999992" 22="-0.00391" 30="-106.983795" 31="20.618889" 32="276.399048"/>
+						<spawn_bounds>
+							<min x="-0.63346" y="-0.448327" z="-1.069463"/>
+							<max x="0.63346" y="0.448327" z="1.069463"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
 				</components>
 			</l>
 			<l id="208" tile="data/tiles/arid_island_27_10.xml" name="ZIZOS GAS STATION" is_env_mod="true" env_mod_spawn_num="1">
@@ -36360,24 +36408,8 @@
 						</spawn_bounds>
 						<graph_links/>
 					</c>
-					<c component_type="10" id="4367" cargo_zone_import_cargo_type="usable_prop,prop=job,capacity=1,positions=2,paygrade=4,job_category=trades" display_name="Mechanic" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
-						<spawn_transform 30="-2027.572266" 31="5" 32="4564.659668"/>
-						<spawn_bounds>
-							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
-							<max x="0.25112" y="0.701258" z="0.353634"/>
-						</spawn_bounds>
-						<graph_links/>
-					</c>
 					<c component_type="10" id="4368" cargo_zone_import_cargo_type="usable_prop,prop=ai_job,capacity=1,positions=2,paygrade=4,job_category=trades" display_name="Senior Mechanic" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
 						<spawn_transform 00="0.264342" 02="-0.964429" 20="0.964429" 22="0.264342" 30="-293.980682" 31="20.546425" 32="204.75058"/>
-						<spawn_bounds>
-							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
-							<max x="0.25112" y="0.701258" z="0.353634"/>
-						</spawn_bounds>
-						<graph_links/>
-					</c>
-					<c component_type="10" id="4370" cargo_zone_import_cargo_type="usable_prop,prop=job,capacity=1,positions=3,paygrade=2,job_category=sales" display_name="Cashier" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
-						<spawn_transform 30="87.470619" 31="5" 32="-536.73877"/>
 						<spawn_bounds>
 							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
 							<max x="0.25112" y="0.701258" z="0.353634"/>
@@ -36389,6 +36421,442 @@
 						<spawn_bounds>
 							<min x="-0.25112" y="-0.701258" z="-0.353634"/>
 							<max x="0.25112" y="0.701258" z="0.353634"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+				</components>
+			</l>
+			<l id="209" tile="data/tiles/arid_island_17_9.xml" name="PERSONAGGIO FARM" is_env_mod="true" env_mod_spawn_num="1">
+				<components>
+					<c component_type="10" id="4384" cargo_zone_import_cargo_type="town_centre_zone,town=Personaggio Farm" display_name="Town Centre Zone" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 11="0.999349" 12="-0.036065" 21="0.036065" 22="0.999349" 30="-71.747124" 31="16.411283" 32="80.433731"/>
+						<spawn_bounds>
+							<min x="-0.516491" y="-0.514609" z="-0.521719"/>
+							<max x="0.516491" y="0.514609" z="0.521719"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4385" cargo_zone_import_cargo_type="imai,building,town=Personaggio Farm,buildingNumber=101,RESIDENTIAL" display_name="Personaggio Farm Unit 101" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.821359" 02="-0.570411" 20="0.570411" 22="0.821359" 30="-78.261826" 31="18.817352" 32="71.628532"/>
+						<spawn_bounds>
+							<min x="-5.710313" y="-2.236869" z="-5.182539"/>
+							<max x="5.710313" y="2.236869" z="5.182539"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4386" cargo_zone_import_cargo_type="imai,building,town=Personaggio Farm,buildingNumber=102,RESIDENTIAL" display_name="Personaggio Farm Unit 102" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.823419" 02="0.567433" 20="-0.567433" 22="-0.823419" 30="-49.888451" 31="18.837753" 32="93.518158"/>
+						<spawn_bounds>
+							<min x="-5.050197" y="-2.236869" z="-3.269579"/>
+							<max x="5.050197" y="2.236869" z="3.269579"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4387" cargo_zone_import_cargo_type="imai,building,town=Personaggio Farm,buildingNumber=103,RESIDENTIAL" display_name="Personaggio Farm Unit 103" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.583277" 02="-0.812273" 20="0.812273" 22="-0.583277" 30="-70.992943" 31="18.789398" 32="112.355453"/>
+						<spawn_bounds>
+							<min x="-6.579048" y="-2.236869" z="-5.182539"/>
+							<max x="6.579048" y="2.236869" z="5.182539"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4388" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.813143" 02="-0.582064" 20="0.582064" 22="0.813143" 30="-46.01054" 31="16.931808" 32="92.588295"/>
+						<spawn_bounds>
+							<min x="-0.417538" y="-0.493385" z="-1.022314"/>
+							<max x="0.417538" y="0.493385" z="1.022314"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4389" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.800295" 02="0.599606" 20="-0.599606" 22="-0.800295" 30="-67.248306" 31="17.089092" 32="115.754448"/>
+						<spawn_bounds>
+							<min x="-0.417538" y="-0.493385" z="-1.022314"/>
+							<max x="0.417538" y="0.493385" z="1.022314"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4390" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=2" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.819249" 02="-0.573438" 20="0.573438" 22="0.819249" 30="-81.949821" 31="17.025896" 32="70.129555"/>
+						<spawn_bounds>
+							<min x="-0.836254" y="-0.493385" z="-1.022314"/>
+							<max x="0.836254" y="0.493385" z="1.022314"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+				</components>
+			</l>
+			<l id="210" tile="data/tiles/arid_island_4_12.xml" name="QWOP TOWN" is_env_mod="true" env_mod_spawn_num="1">
+				<components>
+					<c component_type="10" id="4391" cargo_zone_import_cargo_type="imai,building,town=Qwop Town,buildingNumber=102,RESIDENTIAL" display_name="Qwop Town Unit 102" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.627602" 02="0.778534" 20="-0.778534" 22="0.627602" 30="160.348206" 31="18.538321" 32="277.487579"/>
+						<spawn_bounds>
+							<min x="-5.514151" y="-2.236869" z="-5.117459"/>
+							<max x="5.514151" y="2.236869" z="5.117459"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4392" cargo_zone_import_cargo_type="imai,building,town=Qwop Town,buildingNumber=101,RESIDENTIAL" display_name="Qwop Town Unit 101" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.632677" 02="0.774416" 20="-0.774416" 22="0.632677" 30="178.00853" 31="18.331518" 32="285.132904"/>
+						<spawn_bounds>
+							<min x="-6.661822" y="-2.236869" z="-5.117459"/>
+							<max x="6.661822" y="2.236869" z="5.117459"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4393" cargo_zone_import_cargo_type="town_centre_zone,town=Qwop Town" display_name="Town Centre Zone" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="165.980103" 31="15.921046" 32="295.336914"/>
+						<spawn_bounds>
+							<min x="-0.516491" y="-0.514609" z="-0.521719"/>
+							<max x="0.516491" y="0.514609" z="0.521719"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4394" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=2" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.626709" 02="0.779253" 20="-0.779253" 22="0.626709" 30="161.496063" 31="16.303894" 32="273.513214"/>
+						<spawn_bounds>
+							<min x="-0.836254" y="-0.493385" z="-1.022314"/>
+							<max x="0.836254" y="0.493385" z="1.022314"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4395" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.646317" 02="0.763069" 20="-0.763069" 22="0.646317" 30="177.336441" 31="16.334322" 32="279.41391"/>
+						<spawn_bounds>
+							<min x="-0.458302" y="-0.493385" z="-0.795609"/>
+							<max x="0.458302" y="0.493385" z="0.795609"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4396" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.650931" 02="0.759137" 20="-0.759137" 22="0.650931" 30="179.156418" 31="16.571304" 32="281.791809"/>
+						<spawn_bounds>
+							<min x="-0.458302" y="-0.493385" z="-0.795609"/>
+							<max x="0.458302" y="0.493385" z="0.795609"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+				</components>
+			</l>
+			<l id="211" tile="data/tiles/arid_island_5_4.xml" name="NOAH VILLAGE" is_env_mod="true" env_mod_spawn_num="1">
+				<components>
+					<c component_type="10" id="4398" cargo_zone_import_cargo_type="town_centre_zone,town=Noah Village" display_name="Town Centre Zone" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="220.556488" 31="106.035957" 32="-332.741974"/>
+						<spawn_bounds>
+							<min x="-0.516491" y="-0.514609" z="-0.521719"/>
+							<max x="0.516491" y="0.514609" z="0.521719"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4399" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=110,RESIDENTIAL" display_name="Noah Village Unit 110" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999892" 02="0.014687" 20="-0.014687" 22="-0.999892" 30="119.974503" 31="107.271706" 32="-309.351959"/>
+						<spawn_bounds>
+							<min x="-4.48999" y="-2.236869" z="-6.738587"/>
+							<max x="4.48999" y="2.236869" z="6.738587"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4400" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=101,RESIDENTIAL" display_name="Noah Village Unit 101" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="263.718079" 31="108.272018" 32="-348.311829"/>
+						<spawn_bounds>
+							<min x="-3.291287" y="-2.236869" z="-3.826207"/>
+							<max x="3.291287" y="2.236869" z="3.826207"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4401" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=102,RESIDENTIAL" display_name="Noah Village Unit 102" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999988" 02="-0.00496" 20="0.00496" 22="-0.999988" 30="241.187469" 31="107.994919" 32="-315.951324"/>
+						<spawn_bounds>
+							<min x="-3.291287" y="-2.236869" z="-5.139638"/>
+							<max x="3.291287" y="2.236869" z="5.139638"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4402" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=103,RESIDENTIAL" display_name="Noah Village Unit 103" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.005299" 02="-0.999986" 20="0.999986" 22="-0.005299" 30="226.146332" 31="108.352249" 32="-347.896881"/>
+						<spawn_bounds>
+							<min x="-3.291287" y="-2.236869" z="-4.858443"/>
+							<max x="3.291287" y="2.236869" z="4.858443"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4403" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=104,RESIDENTIAL" display_name="Noah Village Unit 104" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999999" 02="0.00156" 20="-0.00156" 22="-0.999999" 30="204.466629" 31="107.64949" 32="-318.006989"/>
+						<spawn_bounds>
+							<min x="-5.150043" y="-2.236869" z="-5.953391"/>
+							<max x="5.150043" y="2.236869" z="5.953391"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4404" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=105,RESIDENTIAL" display_name="Noah Village Unit 105" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-1" 02="0.00006" 20="-0.00006" 22="-1" 30="200.811218" 31="107.973946" 32="-299.038422"/>
+						<spawn_bounds>
+							<min x="-3.291287" y="-2.236869" z="-3.826207"/>
+							<max x="3.291287" y="2.236869" z="3.826207"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4405" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=106,RESIDENTIAL" display_name="Noah Village Unit 106" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 11="0.999953" 12="-0.009684" 21="0.009684" 22="0.999953" 30="177.637894" 31="108.27037" 32="-316.219391"/>
+						<spawn_bounds>
+							<min x="-5.150043" y="-2.236869" z="-6.643789"/>
+							<max x="5.150043" y="2.236869" z="6.643789"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4406" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=107,RESIDENTIAL" display_name="Noah Village Unit 107" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999753" 02="0.022218" 20="-0.022218" 22="-0.999753" 30="180.616684" 31="108.196556" 32="-339.366547"/>
+						<spawn_bounds>
+							<min x="-3.291287" y="-2.236869" z="-3.826207"/>
+							<max x="3.291287" y="2.236869" z="3.826207"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4407" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=108,RESIDENTIAL" display_name="Noah Village Unit 108" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.00794" 02="0.999969" 20="-0.999969" 22="0.00794" 30="155.662445" 31="107.899231" 32="-347.561798"/>
+						<spawn_bounds>
+							<min x="-5.150043" y="-2.236869" z="-6.643789"/>
+							<max x="5.150043" y="2.236869" z="6.643789"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4408" cargo_zone_import_cargo_type="imai,building,town=Noah Village,buildingNumber=109,RESIDENTIAL" display_name="Noah Village Unit 109" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999917" 02="0.012877" 20="-0.012877" 22="-0.999917" 30="145.580627" 31="108.372139" 32="-307.260468"/>
+						<spawn_bounds>
+							<min x="-3.291287" y="-2.236869" z="-3.826207"/>
+							<max x="3.291287" y="2.236869" z="3.826207"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4411" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.012525" 02="0.999922" 20="-0.999922" 22="0.012525" 30="264.938049" 31="106.385826" 32="-349.809998"/>
+						<spawn_bounds>
+							<min x="-0.460046" y="-0.493385" z="-1.032538"/>
+							<max x="0.460046" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4412" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.000784" 02="1" 20="-1" 22="-0.000784" 30="239.985306" 31="106.40979" 32="-312.182251"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4413" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="229.852936" 31="106.511528" 32="-346.869141"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4415" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=2" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.026876" 02="-0.999639" 20="0.999639" 22="-0.026876" 30="201.267944" 31="106.455032" 32="-315.354797"/>
+						<spawn_bounds>
+							<min x="-0.836254" y="-0.493385" z="-1.022314"/>
+							<max x="0.836254" y="0.493385" z="1.022314"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4416" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.011215" 02="-0.999937" 20="0.999937" 22="-0.011215" 30="199.822784" 31="106.185379" 32="-297.872833"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4417" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.014052" 02="0.999901" 20="-0.999901" 22="-0.014052" 30="181.156311" 31="106.719696" 32="-321.031952"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4418" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.022697" 02="0.999742" 20="-0.999742" 22="0.022697" 30="181.204208" 31="106.663887" 32="-318.251526"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4419" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.012684" 02="-0.99992" 20="0.99992" 22="-0.012684" 30="179.67514" 31="106.407188" 32="-337.721466"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4420" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.037183" 02="0.999309" 20="-0.999309" 22="0.037183" 30="160.267746" 31="106.2658" 32="-349.364868"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4421" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.02501" 02="-0.999687" 20="0.999687" 22="-0.02501" 30="144.371216" 31="106.698425" 32="-305.909058"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4422" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999626" 02="0.02734" 20="-0.02734" 22="-0.999626" 30="122.121742" 31="106.651169" 32="-304.890594"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+				</components>
+			</l>
+			<l id="213" tile="data/tiles/arid_island_12_13.xml" name="EXPO VILLAGE" is_env_mod="true" env_mod_spawn_num="1">
+				<components>
+					<c component_type="10" id="4423" cargo_zone_import_cargo_type="town_centre_zone,town=Expo Village" display_name="Town Centre Zone" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="153.019852" 31="28.717333" 32="115.231453"/>
+						<spawn_bounds>
+							<min x="-0.516491" y="-0.514609" z="-0.521719"/>
+							<max x="0.516491" y="0.514609" z="0.521719"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4424" cargo_zone_import_cargo_type="imai,building,town=Expo Village,buildingNumber=101,RESIDENTIAL" display_name="Expo Village Unit 101" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.99972" 01="0.02129" 02="-0.010293" 10="0.021289" 11="0.999773" 12="0.000219" 20="0.010295" 21="0" 22="-0.999947" 30="165.732513" 31="30.476254" 32="103.79097"/>
+						<spawn_bounds>
+							<min x="-5.150043" y="-2.236869" z="-6.643789"/>
+							<max x="5.150043" y="2.236869" z="6.643789"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4425" cargo_zone_import_cargo_type="imai,building,town=Expo Village,buildingNumber=102,RESIDENTIAL" display_name="Expo Village Unit 102" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999925" 02="-0.01224" 20="0.01224" 22="-0.999925" 30="132.460907" 31="31.051533" 32="92.848579"/>
+						<spawn_bounds>
+							<min x="-3.291287" y="-2.236869" z="-5.139638"/>
+							<max x="3.291287" y="2.236869" z="5.139638"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4426" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.013579" 02="0.999908" 20="-0.999908" 22="-0.013579" 30="131.448257" 31="29.584024" 32="96.781097"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4427" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=2" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.008586" 02="-0.999963" 20="0.999963" 22="0.008586" 30="162.613449" 31="29.17857" 32="106.697495"/>
+						<spawn_bounds>
+							<min x="-0.775209" y="-0.493385" z="-1.032538"/>
+							<max x="0.775209" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+				</components>
+			</l>
+			<l id="214" tile="data/tiles/arid_island_9_9.xml" name="CHAYKOVSKY TOWN" is_env_mod="true" env_mod_spawn_num="1">
+				<components>
+					<c component_type="10" id="4428" cargo_zone_import_cargo_type="town_centre_zone,town=Chaykovsky Town" display_name="Town Centre Zone" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-342.828796" 31="53.176498" 32="9.874115"/>
+						<spawn_bounds>
+							<min x="-0.516491" y="-0.514609" z="-0.521719"/>
+							<max x="0.516491" y="0.514609" z="0.521719"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4429" cargo_zone_import_cargo_type="imai,building,town=Chaykovsky Town,buildingNumber=101,RESIDENTIAL" display_name="Chaykovsky Town Unit 101" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-337.76123" 31="55.448956" 32="-24.751396"/>
+						<spawn_bounds>
+							<min x="-5.274331" y="-2.236869" z="-6.705917"/>
+							<max x="5.274331" y="2.236869" z="6.705917"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4430" cargo_zone_import_cargo_type="imai,building,town=Chaykovsky Town,buildingNumber=102,RESIDENTIAL" display_name="Chaykovsky Town Unit 102" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-369.84964" 31="55.377876" 32="-15.572865"/>
+						<spawn_bounds>
+							<min x="-3.050797" y="-2.236869" z="-3.817005"/>
+							<max x="3.050797" y="2.236869" z="3.817005"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4431" cargo_zone_import_cargo_type="imai,building,town=Chaykovsky Town,buildingNumber=103,RESIDENTIAL" display_name="Chaykovsky Town Unit 103" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 30="-395.222656" 31="55.400017" 32="-17.861277"/>
+						<spawn_bounds>
+							<min x="-5.274331" y="-2.236869" z="-6.705917"/>
+							<max x="5.274331" y="2.236869" z="6.705917"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4432" cargo_zone_import_cargo_type="imai,building,town=Chaykovsky Town,buildingNumber=104,RESIDENTIAL" display_name="Chaykovsky Town Unit 104" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999994" 02="0.003444" 20="-0.003444" 22="-0.999994" 30="-393.079224" 31="55.42067" 32="23.153431"/>
+						<spawn_bounds>
+							<min x="-5.274331" y="-2.236869" z="-6.705917"/>
+							<max x="5.274331" y="2.236869" z="6.705917"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4433" cargo_zone_import_cargo_type="imai,building,town=Chaykovsky Town,buildingNumber=105,RESIDENTIAL" display_name="Chaykovsky Town Unit 105" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999999" 02="-0.001284" 20="0.001284" 22="-0.999999" 30="-356.18869" 31="55.406197" 32="24.803581"/>
+						<spawn_bounds>
+							<min x="-3.050797" y="-2.236869" z="-5.046737"/>
+							<max x="3.050797" y="2.236869" z="5.046737"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4434" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.002897" 02="0.999996" 20="-0.999996" 22="0.002897" 30="-334.453064" 31="53.816448" 32="-26.566828"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4435" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.004656" 02="0.999989" 20="-0.999989" 22="-0.004656" 30="-334.492401" 31="53.655357" 32="-29.414328"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4436" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.002744" 02="-0.999996" 20="0.999996" 22="0.002744" 30="-371.161682" 31="53.774574" 32="-14.355383"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4437" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.999999" 02="0.001734" 20="-0.001734" 22="-0.999999" 30="-393.550262" 31="53.926826" 32="-13.210979"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4438" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=1" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="0.009535" 02="0.999955" 20="-0.999955" 22="0.009535" 30="-357.511047" 31="53.88369" 32="28.470928"/>
+						<spawn_bounds>
+							<min x="-0.34868" y="-0.493385" z="-1.032538"/>
+							<max x="0.34868" y="0.493385" z="1.032538"/>
+						</spawn_bounds>
+						<graph_links/>
+					</c>
+					<c component_type="10" id="4439" cargo_zone_import_cargo_type="usable_prop,prop=bed,capacity=2" dynamic_object_type="2" character_outfit_category="11" character_type="1" vehicle_file_store="1">
+						<spawn_transform 00="-0.000833" 02="-1" 20="1" 22="-0.000833" 30="-396.420227" 31="54.10437" 32="25.201468"/>
+						<spawn_bounds>
+							<min x="-0.861769" y="-0.493385" z="-1.032538"/>
+							<max x="0.861769" y="0.493385" z="1.032538"/>
 						</spawn_bounds>
 						<graph_links/>
 					</c>
