@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -66,6 +66,7 @@ AIJob = {}
 ---@class AIJob: DirtyAIJob
 ---@field getPay fun(self: AIJob, hours_worked: number): number The function for getting the pay for the worker.
 ---@field assignCitizen fun(self: AIJob, citizen_id: CitizenID): boolean The function for assigning a citizen to the job, returns false if the job is already filled.
+---@field getFit fun(self: AIJob, citizen_id: CitizenID): number Gets how well the citizen fits for the job, returns a number from 0-1. (0 being the worst, 1 being the best.
 
 --- How an individual employee is performing in their job, used for things like wage increases, and promotions.
 ---@class AIJobPerformance
@@ -229,6 +230,15 @@ function AIJob.setupOOP(job)
 
 		-- Return true.
 		return true
+	end
+
+	--- Create the function for getting how well a citizen fits for the job.
+	---@param self AIJob
+	---@param citizen_id CitizenID The citizen to check against.
+	---@return number fit The fit of the citizen for the job, from 0-1.
+	job.getFit = function(self, citizen_id)
+		--TODO: Implement this function properly.
+		return 1
 	end
 
 	-- Return the job.

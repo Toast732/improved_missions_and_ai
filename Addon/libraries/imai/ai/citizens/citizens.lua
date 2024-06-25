@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -35,6 +35,7 @@ require("libraries.addon.script.modifiables")
 require("libraries.addon.utils.objects.characters.inventory.inventory")
 require("libraries.addon.script.references")
 require("libraries.imai.effects.effects")
+require("libraries.imai.ai.citizens.citizen")
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -43,7 +44,7 @@ require("libraries.imai.effects.effects")
 -- library name
 Citizens = {}
 
----@alias citizenID integer
+---@alias CitizenID integer
 
 --[[
 
@@ -59,14 +60,8 @@ Citizens = {}
 ]]
 g_savedata.libraries.citizens = {
 	citizen_list = {}, ---@type table<integer, Citizen>
-	next_citizen_id = 1 ---@type citizenID The next citizen ID to assign.
+	next_citizen_id = 1 ---@type CitizenID The next citizen ID to assign.
 }
-
---g_savedata.libraries.citizens = g_savedata.libraries.citizens
-
--- based off from 2021 employment rates in scotland
--- https://www.gov.scot/publications/scotlands-labour-market-people-places-regions-protected-characteristics-statistics-annual-population-survey-2021/pages/4/
-local employment_rate = 73.2
 
 --[[
 	list of first names
@@ -182,11 +177,7 @@ local last_names = {
 	"Tory"
 }
 
--- minimum and maximum sleep duration
-local sleep_duration_parametres = {
-	min = 5,
-	max = 11
-}
+--g_savedata.libraries.citizens = g_savedata.libraries.citizens
 
 -- if the distance from this task to the next task is less or equal to this distance (m), then they can just walk.
 local walking_distance = 500
@@ -221,35 +212,6 @@ local npc_job_list = {
 
 
 ]]
-
----@class CitizenName
----@field first string their first name
----@field last string their last name
----@field full string their first + last name
-
----@class Status
----@field name string the internal name for the status
----@field tooltip string the tooltip for the status
----@field priority number the priority for this status. Highest priority will be shown.
-
----@class CitizenVehicleData
----@field linked_vehicles table<integer, nil> the vehicles linked to this citizen.
----@field occupating_vehicle_id integer the vehicle_id the citizen is an occupant of. -1 for none.
-
----@class Citizen
----@field name CitizenName the citizen's name
----@field transform SWMatrix the citizen's matrix
----@field schedule table the citizen's schedule
----@field outfit_type SWOutfitTypeEnum the citizen's outfit type
----@field object_id integer|nil the citizen's object_id, nil if the citizen has not yet been spawned.
----@field id citizenID the citizen's ID.
----@field medical_data citizenMedicalData the medical data for the citizen
----@field health number the amount of health the citizen has.
----@field inventory Inventory the inventory of the citizen, use only for reading, use the functions directly when writing to avoid issues with the table not referencing the original.
----@field suppress_next_health_change boolean if the next health change should be suppressed, used to avoid false positives from the addon's health overrides.
----@field object_type "citizen"
----@field statuses table<integer, Status> stores the statuses of the citizen.
----@field vehicle_data CitizenVehicleData
 
 --[[
 
@@ -451,131 +413,6 @@ Citizens.Status = {
 	end
 }
 
----# Update a citizen's tooltip.
----@param citizen Citizen the citizen who's tooltip to update
-function Citizens.updateTooltip(citizen)
-	local tooltip = "\n"
-
-	-- get the highest status for this citizen.
-	local highest_status = Citizens.Status.getHighest(citizen)
-	if highest_status.tooltip ~= "" then
-		-- add the status at the top of the tooltip
-		tooltip = ("%s%s\n"):format(tooltip, highest_status.tooltip)
-	end
-
-	-- add the citizen's name to the tooltip
-	tooltip = tooltip..citizen.name.full
-
-	-- add their stability bar
-	--tooltip = ("%s\n\nStability\n|%s|"):format(tooltip, string.toBar(math.min(100, math.max(0, Modifiables.get(citizen.medical_data.stability)/100)), 16, "=", "  "))
-	
-	-- add their medical conditions to the tooltip
-	tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(citizen))
-
-	--[[local object_data = server.getObjectData(citizen.object_id)
-
-	tooltip = ("%s\n\nDebug Data\nINCAP O: %s C: %s"):format(tooltip, 
-		object_data.incapacitated and "T" or "F",
-		citizen.medical_data.incapacitated and "T" or "F"
-	)]]
-
-	-- always end the tooltip with a new line, if it doesn't
-	local tooltip_length = tooltip:len()
-	if tooltip:sub(tooltip_length, tooltip_length) ~= "\n" then
-		tooltip = tooltip.."\n"
-	end
-
-	server.setCharacterTooltip(citizen.object_id, tooltip)
-end
-
----# Updates the citizen's data based on their stability, such as cardiac arrest.
----@param citizen Citizen
-function Citizens.updateStability(citizen)
-	local stability = Modifiables.get(citizen.medical_data.stability)
-
-	-- if the stability is 0 or less, than give the citizen cardiac arrest
-	if stability <= 0 then
-		-- if the citizen doesn't already have cardiac arrest
-		if not citizen.medical_data.medical_conditions.cardiac_arrest.custom_data.cardiac_arrest then
-			medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
-		end
-	end
-end
-
----@param transform SWMatrix
----@param outfit_type SWOutfitTypeEnum
----@return Citizen citizen the new citizen
-function Citizens.create(transform, outfit_type)
-	local citizen = { ---@type Citizen
-		name = Citizens.generateName(),
-		transform = transform,
-		schedule = {},
-		outfit_type = outfit_type,
-		object_id = nil,
-		id = g_savedata.libraries.citizens.next_citizen_id,
-		health = 100,
-		medical_data = {
-			medical_conditions = {},
-			required_treatments = {},
-			stability = Modifiables.prepare({}, 100),
-			incapacitated = false
-		},
-		inventory = Inventory.create(), -- READ ONLY (May change to only store the inventory id at some point)
-		suppress_next_health_change = false,
-		object_type = "citizen",
-		statuses = {},
-		vehicle_data = {
-			linked_vehicles = {},
-			occupating_vehicle_id = -1
-		}
-	}
-
-	-- register the medical conditions.
-	for medical_condition_name, medical_condition_data in pairs(medical_conditions) do
-		citizen.medical_data.medical_conditions[medical_condition_name] = {
-			name = medical_condition_name,
-			display_name = "",
-			custom_data = table.copy.deep(medical_condition_data.custom_data),
-			hidden = medical_condition_data.hidden
-		}
-	end
-
-	g_savedata.libraries.citizens.next_citizen_id = g_savedata.libraries.citizens.next_citizen_id + 1
-
-	table.insert(g_savedata.libraries.citizens.citizen_list, citizen)
-
-	return citizen
-	
-	--citizen.schedule = Citizens.generateSchedule(citizen)
-end
-
----@param citizen Citizen the cititzen to spawn
----@return boolean was_spawned if the citizen was spawned
-function Citizens.spawn(citizen)
-
-	-- citizen is already spawned.
-	if citizen.object_id then
-		return false
-	end
-
-	-- spawn the citizen
-	local object_id, is_success = server.spawnCharacter(citizen.transform, citizen.outfit_type)
-
-	-- the citizen was saved (They failed to spawn, they were saved from the sw community)
-	if not is_success then
-		d.print(("Failed to spawn citizen, outfit type: %s, transform: %s"):format(citizen.outfit_type, string.fromTable(citizen.transform)), true, 1)
-		return false
-	end
-
-	-- citizen was spawned (Good luck.)
-	citizen.object_id = object_id
-
-	-- update their tooltip
-	Citizens.updateTooltip(citizen)
-
-	return true
-end
-
 function Citizens.remove(citizen)
 
 	-- remove all effects from this citizen
@@ -606,9 +443,6 @@ end
 ---@return Citizen? citizen the data of the citizen, returns nil if it failed to find the citizen from it's id.
 function Citizens.getData(citizen_id)
 
-	--! TEMP DEBUG
-	d.print(("Attempting to find citizen with id: %s"):format(citizen_id))
-
 	-- go through all citizens
 	for citizen_index = 1, #g_savedata.libraries.citizens.citizen_list do
 		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
@@ -628,13 +462,19 @@ function Citizens.getData(citizen_id)
 	-- only could get here if it failed to find the citizen's data, so return nil (not needed, but just for the code to be clearer)
 	return nil
 end
+
 --[[
 	onTick
 ]]
 function Citizens.onTick(game_ticks)
-	-- go through all citizens
 
-	--d.print(("#g_savedata.libraries.citizens.citizens_list: %s\n#g_savedata.libraries.citizens.citizens_list: %s"):format(#g_savedata.libraries.citizens.citizen_list, #g_savedata.libraries.citizens.citizen_list), false, 0)
+
+	-- If the addon has not been setup, skip.
+	if not addon_setup then
+		return
+	end
+
+	-- go through all citizens
 	for citizen_index = 1, #g_savedata.libraries.citizens.citizen_list do
 		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
 
@@ -643,88 +483,8 @@ function Citizens.onTick(game_ticks)
 			goto next_citizen
 		end
 
-		--d.print("Test", false, 0)
-
-		-- update their transform
-		local new_transform, is_success = server.getObjectPos(citizen.object_id)
-
-		-- ensure it was gotten.
-		if is_success then
-			citizen.transform = new_transform
-		end
-
-		--server.setCharacterData(citizen.object_id, 100, true, true)
-
-		-- detect changes in their health
-		local object_data = server.getObjectData(citizen.object_id)
-
-		if not citizen.medical_data.medical_conditions.burns.custom_data.degree then
-			citizen.medical_data.medical_conditions.burns.custom_data = {
-				degree = 0, -- the degree of the burn
-				affected_area = 0, -- the % of their body that is covered in the burn
-				burn_temp = 0, -- the temperature of the burn 
-				burn_decay = 0
-			}
-		end
-
-		Citizens.updateStability(citizen)
-
-		-- just ensure the data isn't bad to avoid an error
-		if object_data and object_data.hp then
-			local health_change = object_data.hp - citizen.health
-
-			-- the citizen's health changed
-			if health_change ~= 0 then
-				Citizens.onCitizenDamaged(citizen, health_change)
-				-- update the citizen's health
-				citizen.health = object_data.hp
-			end
-		else
-			d.print(("<line>: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
-		end
-
-		-- tick their medical conditions
-		medicalCondition.onTick(citizen, game_ticks)
-
-		-- check if this citizen has the applying_first_aid effect.
-		local applying_first_aid, _ = Effects.has(citizen, "applying_first_aid")
-
-		--! temp commented out to try to reverse engineer the healing discharge system
-		if citizen.medical_data.incapacitated then -- if the citizen should be incapacitated
-			if not object_data.incapacitated then -- if the citizen should be incapacitated, but isn't
-				server.killCharacter(citizen.object_id)
-				d.print(("Attempting to kill citizen %s"):format(citizen.name.full), false, 0)
-			end
-		elseif applying_first_aid then
-			--server.setCharacterData(citizen.object_id, 50, true, true)
-		elseif not applying_first_aid then -- if we're not applying first aid, then allow the health to be overridden.
-			if object_data.hp < 97 then -- if the citizen's health is below 97
-				server.reviveCharacter(citizen.object_id)
-				-- suppress the next health change to avoid it being mistooken for healing
-				citizen.suppress_next_health_change = true
-			elseif object_data.hp > 97 then
-
-				server.setCharacterData(citizen.object_id, 97, true, true)
-
-				-- suppress the next health change to avoid it being mistooken for taking damage
-				citizen.suppress_next_health_change = true
-			end
-		end
-
-		--[[if citizen.medical_conditions.burns.custom_data.degree < 4 then
-			if object_data.hp < 99 then
-				server.reviveCharacter(citizen.object_id)
-			end
-		elseif object_data.dead then
-			server.reviveCharacter(citizen.object_id)
-			server.setCharacterData(citizen.object_id, 5, true, true)
-			d.print(("Attempting to revive %s"):format(citizen.name.full), false, 0)
-		elseif not object_data.incapacitated then
-			server.killCharacter(citizen.object_id)
-		end]]
-
-		-- update their tooltip
-		Citizens.updateTooltip(citizen)
+		-- Tick the citizen
+		Citizen.tick(citizen, game_ticks)
 
 		::next_citizen::
 	end
@@ -895,7 +655,6 @@ end
 --[[
 	definitions
 ]]
-
 
 --[[ Define how to reference a citizen via references.lua ]]
 References.define(

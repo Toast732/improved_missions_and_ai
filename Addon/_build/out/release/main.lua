@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.20)"
+ADDON_VERSION = "(0.0.1.22)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -5078,14 +5078,10 @@ function bindedSetupMain(...)
 	-- get the list of binds for this callback.
 	local binds = binded_callbacks.setupMain
 
-	d.print("B")
-
 	-- check if the list exists
 	if not binds then
 		return
 	end
-
-	d.print("C")
 
 	d.print(string.fromTable(binds))
 
@@ -6487,7 +6483,7 @@ function ZoneLinker.getZoneData(component_data, location_data)
 
 	-- If the tile's location was not found, return nil.
 	if not is_success then
-		d.print(("6473: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
+		d.print(("6469: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
 		return nil
 	end
 
@@ -6615,7 +6611,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If the value was not found, return nil.
 	if not type_value then
-		d.print(("6601: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
+		d.print(("6597: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
 			addon_component_data.tags_full
 		), true, 1)
 		return nil
@@ -6626,7 +6622,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If it was not found, return nil.
 	if not usable_prop_type then
-		d.print(("6612: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
+		d.print(("6608: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
 			type_value
 		), true, 1)
 		return nil
@@ -6723,12 +6719,6 @@ function UsableProp.setupOOP(dirty_usable_prop)
 	---@param zone_data SWZone The zone data to check against.
 	---@return boolean matches If the usable prop matches the given data.
 	dirty_usable_prop.matches = function(self, addon_component_data, zone_data)
-
-		-- Print the given zone_data's matrix
-		d.print(("zone_data.transform: %s"):format(string.fromTable(zone_data.transform)), true, 0)
-
-		-- Print our matrix.
-		d.print(("self.transform: %s"):format(string.fromTable(self.transform)), true, 0)
 
 		-- If the usable prop's type is the same, and the transform is the same, then we found a match.
 		return (
@@ -6852,7 +6842,7 @@ function UsableProps.setupMain(is_world_create)
 
 	-- If we failed to find any, abort.
 	if not got_spawning_data then
-		d.print(("6838: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
+		d.print(("6828: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
 		return
 	end
 
@@ -6881,7 +6871,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the component data was not found, skip.
 		if not is_success then
-			d.print(("6867: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("6857: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -6895,7 +6885,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the zone data was not found, skip.
 		if not zone_data then
-			d.print(("6881: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("6871: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -6994,13 +6984,13 @@ function UsableProps.selectRandomPropWithType(usablePropHashmap, type, amount, s
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("6980: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
+		d.print(("6970: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
 	-- If we have less props than the amount, return nil.
 	if #props_with_type < amount then
-		d.print(("6986: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
+		d.print(("6976: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
@@ -7046,7 +7036,7 @@ function UsableProps.getPropsWithType(prop_type)
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("7032: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
+		d.print(("7022: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
 		return nil
 	end
 
@@ -7104,7 +7094,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -7153,6 +7143,8 @@ AIJob = {}
 
 ---@class AIJob: DirtyAIJob
 ---@field getPay fun(self: AIJob, hours_worked: number): number The function for getting the pay for the worker.
+---@field assignCitizen fun(self: AIJob, citizen_id: CitizenID): boolean The function for assigning a citizen to the job, returns false if the job is already filled.
+---@field getFit fun(self: AIJob, citizen_id: CitizenID): number Gets how well the citizen fits for the job, returns a number from 0-1. (0 being the worst, 1 being the best.
 
 --- How an individual employee is performing in their job, used for things like wage increases, and promotions.
 ---@class AIJobPerformance
@@ -7225,7 +7217,7 @@ function AIJob.create(usable_prop)
 
 	-- If the building was not found, print an error and return.
 	if not job_building_id then
-		d.print(("7211: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
+		d.print(("7203: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
 			usable_prop.id
 		), true, 1)
 		return
@@ -7299,6 +7291,32 @@ function AIJob.setupOOP(job)
 	job.getPay = function(self, hours_worked)
 		--TODO: Account for age based minimum wage, skipping it for now, as ages are not implemented.
 		return self.paygrade * hours_worked
+	end
+
+	--- Create the function for assigning a citizen to the job.
+	---@param self AIJob
+	---@param citizen_id CitizenID The citizen to assign to the job.
+	---@return boolean is_success if the citizen was assigned to the job.
+	job.assignCitizen = function(self, citizen_id)
+		-- If the job is already filled, return false.
+		if self.worker then
+			return false
+		end
+
+		-- Set the worker.
+		self.worker = citizen_id
+
+		-- Return true.
+		return true
+	end
+
+	--- Create the function for getting how well a citizen fits for the job.
+	---@param self AIJob
+	---@param citizen_id CitizenID The citizen to check against.
+	---@return number fit The fit of the citizen for the job, from 0-1.
+	job.getFit = function(self, citizen_id)
+		--TODO: Implement this function properly.
+		return 1
 	end
 
 	-- Return the job.
@@ -7385,7 +7403,7 @@ function AIJobs.setupMain(is_world_create)
 
 	-- If it failed, print an error and return.
 	if not ai_job_props then
-		d.print(("7371 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
+		d.print(("7389 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
 		return
 	end
 
@@ -7483,7 +7501,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -7553,6 +7571,11 @@ function GameMaster.setupMain(is_world_create)
 	--TODO: Remove later, for debug, put as todo so it's marked.
 	is_world_create = true
 
+	-- Setup the citizens
+	for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+		Citizen.setup(citizen)
+	end
+
 	-- If the world was created.
 	if is_world_create then
 		-- Spawn the citizens.
@@ -7601,7 +7624,7 @@ function GameMaster.spawnCitizens()
 
 					-- If there are no bed props, then skip this citizen.
 					if bed_props == nil then
-						d.print(("7587: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
+						d.print(("7610: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
 						goto continue
 					end
 
@@ -7611,19 +7634,18 @@ function GameMaster.spawnCitizens()
 					local bed_prop = g_savedata.libraries.usable_props.props[bed_props[1]]
 
 					-- Create the citizen.
-					local new_citizen = Citizens.create(
+					local new_citizen = Citizen.create(
 						bed_prop.transform,
 						0
 					)
 
+					-- Assign the citizen's home.
+					new_citizen.home_building_id = building_id
+
 					-- Spawn the citizen.
-					Citizens.spawn(new_citizen)
+					Citizen.spawn(new_citizen)
 
 					is_success = bed_prop:addEntity(new_citizen.object_id)
-
-					d.print(("Is Success: %s"):format(tostring(is_success)), true, 0)
-
-					d.print(("Test: %s"):format(#g_savedata.libraries.usable_props.props[bed_props[1]].entities), true, 0)
 
 					::continue::
 				end
@@ -7649,7 +7671,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -7944,21 +7966,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("7930: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("7952: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("7937: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("7959: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("7944: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("7966: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -7996,14 +8018,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("7982: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8004: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("7989: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8011: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -8013,7 +8035,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("7999: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("8021: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -8047,7 +8069,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("8033: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("8055: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -8058,7 +8080,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("8044: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("8066: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -8114,7 +8136,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("8100: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("8122: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -8266,7 +8288,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("8252: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("8274: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -8275,7 +8297,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("8261: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("8283: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -8296,7 +8318,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("8282: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("8304: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -8305,7 +8327,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("8291: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("8313: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -8314,6 +8336,341 @@ function References.getData(indexing_data)
 	-- get & return the object data, set referencing data to {} if its nil, as this should always return a table to try to prevent errors.
 	return referencing_data or {}, referencing_data ~= nil
 end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Used for individual handling of citizens.
+]]
+
+-- library name
+Citizen = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class CitizenName
+---@field first string their first name
+---@field last string their last name
+---@field full string their first + last name
+
+---@class Status
+---@field name string the internal name for the status
+---@field tooltip string the tooltip for the status
+---@field priority number the priority for this status. Highest priority will be shown.
+
+---@class CitizenVehicleData
+---@field linked_vehicles table<integer, nil> the vehicles linked to this citizen.
+---@field occupating_vehicle_id integer the vehicle_id the citizen is an occupant of. -1 for none.
+
+---@class DirtyCitizen
+---@field name CitizenName the citizen's name
+---@field transform SWMatrix the citizen's matrix
+---@field schedule table the citizen's schedule
+---@field outfit_type SWOutfitTypeEnum the citizen's outfit type
+---@field object_id integer|nil the citizen's object_id, nil if the citizen has not yet been spawned.
+---@field id CitizenID the citizen's ID.
+---@field medical_data citizenMedicalData the medical data for the citizen
+---@field health number the amount of health the citizen has.
+---@field inventory Inventory the inventory of the citizen, use only for reading, use the functions directly when writing to avoid issues with the table not referencing the original.
+---@field suppress_next_health_change boolean if the next health change should be suppressed, used to avoid false positives from the addon's health overrides.
+---@field object_type "citizen"
+---@field statuses table<integer, Status> stores the statuses of the citizen.
+---@field vehicle_data CitizenVehicleData
+---@field home_building_id BuildingID the building_id of the citizen's home.
+
+---@class Citizen: DirtyCitizen a citizen with the OOP functions added.
+---@field updateTooltip fun(self: Citizen) Updates the citizen's tooltip.
+---@field updateStability fun(self: Citizen) Updates the citizen's stability.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+-- minimum and maximum sleep duration
+local sleep_duration_parametres = {
+	min = 5,
+	max = 11
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+---@param transform SWMatrix
+---@param outfit_type SWOutfitTypeEnum
+---@return Citizen citizen the new citizen
+function Citizen.create(transform, outfit_type)
+	---@type DirtyCitizen
+	local citizen = {
+		name = Citizens.generateName(),
+		transform = transform,
+		schedule = {},
+		outfit_type = outfit_type,
+		object_id = nil,
+		id = g_savedata.libraries.citizens.next_citizen_id,
+		health = 100,
+		medical_data = {
+			medical_conditions = {},
+			required_treatments = {},
+			stability = Modifiables.prepare({}, 100),
+			incapacitated = false
+		},
+		inventory = Inventory.create(), -- READ ONLY (May change to only store the inventory id at some point)
+		suppress_next_health_change = false,
+		object_type = "citizen",
+		statuses = {},
+		vehicle_data = {
+			linked_vehicles = {},
+			occupating_vehicle_id = -1
+		},
+		home_building_id = -1
+	}
+
+	-- register the medical conditions.
+	for medical_condition_name, medical_condition_data in pairs(medical_conditions) do
+		citizen.medical_data.medical_conditions[medical_condition_name] = {
+			name = medical_condition_name,
+			display_name = "",
+			custom_data = table.copy.deep(medical_condition_data.custom_data),
+			hidden = medical_condition_data.hidden
+		}
+	end
+
+	g_savedata.libraries.citizens.next_citizen_id = g_savedata.libraries.citizens.next_citizen_id + 1
+
+	table.insert(g_savedata.libraries.citizens.citizen_list, citizen)
+
+	return Citizen.setup(citizen)
+	
+	--citizen.schedule = Citizens.generateSchedule(citizen)
+end
+
+--- Adds the oop functions to the citizen.
+---@param citizen DirtyCitizen|Citizen the citizen to add the oop functions to
+---@return Citizen citizen the citizen with the oop functions added
+function Citizen.setup(citizen)
+	---@cast citizen Citizen
+
+	--[[
+	
+		Setup the general functions
+
+	]]
+	
+	---# Update a citizen's tooltip.
+	---@param self Citizen
+	citizen.updateTooltip = function(self)
+		-- Define the tooltip string.
+		local tooltip = "\n"
+
+		-- Get the highest priority status for this citizen.
+		local highest_status = Citizens.Status.getHighest(citizen)
+		if highest_status.tooltip ~= "" then
+			-- add the status at the top of the tooltip
+			tooltip = ("%s%s\n"):format(tooltip, highest_status.tooltip)
+		end
+
+		-- Add the citizen's name to the tooltip
+		tooltip = tooltip..citizen.name.full
+
+		-- Add their medical conditions to the tooltip
+		tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(citizen))
+
+		-- Always end the tooltip with a new line, if it doesn't
+		local tooltip_length = tooltip:len()
+		if tooltip:sub(tooltip_length, tooltip_length) ~= "\n" then
+			tooltip = tooltip.."\n"
+		end
+
+		-- Set their tooltip.
+		server.setCharacterTooltip(citizen.object_id, tooltip)
+	end
+
+	--[[
+
+		Setup the medical functions
+
+	]]
+
+	---# Updates the citizen's data based on their stability, such as cardiac arrest.
+	---@param self Citizen
+	citizen.updateStability = function(self)
+		local stability = Modifiables.get(self.medical_data.stability)
+
+		-- if the stability is 0 or less, then give the citizen cardiac arrest
+		if stability <= 0 then
+			-- if the citizen doesn't already have cardiac arrest
+			if not citizen.medical_data.medical_conditions.cardiac_arrest.custom_data.cardiac_arrest then
+				medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
+			end
+		end
+	end
+
+	return citizen
+end
+
+---@param citizen Citizen the cititzen to spawn
+---@return boolean was_spawned if the citizen was spawned
+function Citizen.spawn(citizen)
+
+	-- citizen is already spawned.
+	if citizen.object_id then
+		return false
+	end
+
+	-- spawn the citizen
+	local object_id, is_success = server.spawnCharacter(citizen.transform, citizen.outfit_type)
+
+	-- the citizen was saved (They failed to spawn, they were saved from the sw community)
+	if not is_success then
+		d.print(("Failed to spawn citizen, outfit type: %s, transform: %s"):format(citizen.outfit_type, string.fromTable(citizen.transform)), true, 1)
+		return false
+	end
+
+	-- citizen was spawned (Good luck.)
+	citizen.object_id = object_id
+
+	-- update their tooltip
+	citizen:updateTooltip()
+
+	return true
+end
+
+--- Ticks the citizen.
+---@param citizen Citizen the citizen to tick
+---@param game_ticks integer the amount of game ticks that have passed
+function Citizen.tick(citizen, game_ticks)
+
+	-- update their transform
+	local new_transform, is_success = server.getObjectPos(citizen.object_id)
+
+	-- ensure it was gotten.
+	if is_success then
+		citizen.transform = new_transform
+	end
+	
+	--[[
+	
+		Ticking Citizen's medical system.
+	
+	]]
+
+	do
+		-- detect changes in their health
+		local object_data = server.getObjectData(citizen.object_id)
+
+		if not citizen.medical_data.medical_conditions.burns.custom_data.degree then
+			citizen.medical_data.medical_conditions.burns.custom_data = {
+				degree = 0, -- the degree of the burn
+				affected_area = 0, -- the % of their body that is covered in the burn
+				burn_temp = 0, -- the temperature of the burn 
+				burn_decay = 0
+			}
+		end
+
+		-- Update the citizen's stability.
+		citizen:updateStability()
+
+		-- just ensure the data isn't bad to avoid an error
+		if object_data and object_data.hp then
+			local health_change = object_data.hp - citizen.health
+
+			-- the citizen's health changed
+			if health_change ~= 0 then
+				Citizens.onCitizenDamaged(citizen, health_change)
+				-- update the citizen's health
+				citizen.health = object_data.hp
+			end
+		else
+			d.print(("8621: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+		end
+
+		-- tick their medical conditions
+		medicalCondition.onTick(citizen, game_ticks)
+
+		-- check if this citizen has the applying_first_aid effect.
+		local applying_first_aid, _ = Effects.has(citizen, "applying_first_aid")
+
+		if citizen.medical_data.incapacitated then -- if the citizen should be incapacitated
+			if not object_data.incapacitated then -- if the citizen should be incapacitated, but isn't
+				server.killCharacter(citizen.object_id)
+				d.print(("Attempting to kill citizen %s"):format(citizen.name.full), false, 0)
+			end
+		elseif applying_first_aid then
+			--server.setCharacterData(citizen.object_id, 50, true, true)
+		elseif not applying_first_aid then -- if we're not applying first aid, then allow the health to be overridden.
+			if object_data.hp < 97 then -- if the citizen's health is below 97
+				server.reviveCharacter(citizen.object_id)
+				-- suppress the next health change to avoid it being mistooken for healing
+				citizen.suppress_next_health_change = true
+			elseif object_data.hp > 97 then
+
+				server.setCharacterData(citizen.object_id, 97, true, true)
+
+				-- suppress the next health change to avoid it being mistooken for taking damage
+				citizen.suppress_next_health_change = true
+			end
+		end
+	end -- End ticking medical
+
+	-- Update the citizen's tooltip
+	citizen:updateTooltip()
+
+end
+
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -8322,7 +8679,7 @@ end
 -- library name
 Citizens = {}
 
----@alias citizenID integer
+---@alias CitizenID integer
 
 --[[
 
@@ -8338,14 +8695,8 @@ Citizens = {}
 ]]
 g_savedata.libraries.citizens = {
 	citizen_list = {}, ---@type table<integer, Citizen>
-	next_citizen_id = 1 ---@type citizenID The next citizen ID to assign.
+	next_citizen_id = 1 ---@type CitizenID The next citizen ID to assign.
 }
-
---g_savedata.libraries.citizens = g_savedata.libraries.citizens
-
--- based off from 2021 employment rates in scotland
--- https://www.gov.scot/publications/scotlands-labour-market-people-places-regions-protected-characteristics-statistics-annual-population-survey-2021/pages/4/
-local employment_rate = 73.2
 
 --[[
 	list of first names
@@ -8461,11 +8812,7 @@ local last_names = {
 	"Tory"
 }
 
--- minimum and maximum sleep duration
-local sleep_duration_parametres = {
-	min = 5,
-	max = 11
-}
+--g_savedata.libraries.citizens = g_savedata.libraries.citizens
 
 -- if the distance from this task to the next task is less or equal to this distance (m), then they can just walk.
 local walking_distance = 500
@@ -8500,35 +8847,6 @@ local npc_job_list = {
 
 
 ]]
-
----@class CitizenName
----@field first string their first name
----@field last string their last name
----@field full string their first + last name
-
----@class Status
----@field name string the internal name for the status
----@field tooltip string the tooltip for the status
----@field priority number the priority for this status. Highest priority will be shown.
-
----@class CitizenVehicleData
----@field linked_vehicles table<integer, nil> the vehicles linked to this citizen.
----@field occupating_vehicle_id integer the vehicle_id the citizen is an occupant of. -1 for none.
-
----@class Citizen
----@field name CitizenName the citizen's name
----@field transform SWMatrix the citizen's matrix
----@field schedule table the citizen's schedule
----@field outfit_type SWOutfitTypeEnum the citizen's outfit type
----@field object_id integer|nil the citizen's object_id, nil if the citizen has not yet been spawned.
----@field id citizenID the citizen's ID.
----@field medical_data citizenMedicalData the medical data for the citizen
----@field health number the amount of health the citizen has.
----@field inventory Inventory the inventory of the citizen, use only for reading, use the functions directly when writing to avoid issues with the table not referencing the original.
----@field suppress_next_health_change boolean if the next health change should be suppressed, used to avoid false positives from the addon's health overrides.
----@field object_type "citizen"
----@field statuses table<integer, Status> stores the statuses of the citizen.
----@field vehicle_data CitizenVehicleData
 
 --[[
 
@@ -8730,131 +9048,6 @@ Citizens.Status = {
 	end
 }
 
----# Update a citizen's tooltip.
----@param citizen Citizen the citizen who's tooltip to update
-function Citizens.updateTooltip(citizen)
-	local tooltip = "\n"
-
-	-- get the highest status for this citizen.
-	local highest_status = Citizens.Status.getHighest(citizen)
-	if highest_status.tooltip ~= "" then
-		-- add the status at the top of the tooltip
-		tooltip = ("%s%s\n"):format(tooltip, highest_status.tooltip)
-	end
-
-	-- add the citizen's name to the tooltip
-	tooltip = tooltip..citizen.name.full
-
-	-- add their stability bar
-	--tooltip = ("%s\n\nStability\n|%s|"):format(tooltip, string.toBar(math.min(100, math.max(0, Modifiables.get(citizen.medical_data.stability)/100)), 16, "=", "  "))
-	
-	-- add their medical conditions to the tooltip
-	tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(citizen))
-
-	--[[local object_data = server.getObjectData(citizen.object_id)
-
-	tooltip = ("%s\n\nDebug Data\nINCAP O: %s C: %s"):format(tooltip, 
-		object_data.incapacitated and "T" or "F",
-		citizen.medical_data.incapacitated and "T" or "F"
-	)]]
-
-	-- always end the tooltip with a new line, if it doesn't
-	local tooltip_length = tooltip:len()
-	if tooltip:sub(tooltip_length, tooltip_length) ~= "\n" then
-		tooltip = tooltip.."\n"
-	end
-
-	server.setCharacterTooltip(citizen.object_id, tooltip)
-end
-
----# Updates the citizen's data based on their stability, such as cardiac arrest.
----@param citizen Citizen
-function Citizens.updateStability(citizen)
-	local stability = Modifiables.get(citizen.medical_data.stability)
-
-	-- if the stability is 0 or less, than give the citizen cardiac arrest
-	if stability <= 0 then
-		-- if the citizen doesn't already have cardiac arrest
-		if not citizen.medical_data.medical_conditions.cardiac_arrest.custom_data.cardiac_arrest then
-			medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
-		end
-	end
-end
-
----@param transform SWMatrix
----@param outfit_type SWOutfitTypeEnum
----@return Citizen citizen the new citizen
-function Citizens.create(transform, outfit_type)
-	local citizen = { ---@type Citizen
-		name = Citizens.generateName(),
-		transform = transform,
-		schedule = {},
-		outfit_type = outfit_type,
-		object_id = nil,
-		id = g_savedata.libraries.citizens.next_citizen_id,
-		health = 100,
-		medical_data = {
-			medical_conditions = {},
-			required_treatments = {},
-			stability = Modifiables.prepare({}, 100),
-			incapacitated = false
-		},
-		inventory = Inventory.create(), -- READ ONLY (May change to only store the inventory id at some point)
-		suppress_next_health_change = false,
-		object_type = "citizen",
-		statuses = {},
-		vehicle_data = {
-			linked_vehicles = {},
-			occupating_vehicle_id = -1
-		}
-	}
-
-	-- register the medical conditions.
-	for medical_condition_name, medical_condition_data in pairs(medical_conditions) do
-		citizen.medical_data.medical_conditions[medical_condition_name] = {
-			name = medical_condition_name,
-			display_name = "",
-			custom_data = table.copy.deep(medical_condition_data.custom_data),
-			hidden = medical_condition_data.hidden
-		}
-	end
-
-	g_savedata.libraries.citizens.next_citizen_id = g_savedata.libraries.citizens.next_citizen_id + 1
-
-	table.insert(g_savedata.libraries.citizens.citizen_list, citizen)
-
-	return citizen
-	
-	--citizen.schedule = Citizens.generateSchedule(citizen)
-end
-
----@param citizen Citizen the cititzen to spawn
----@return boolean was_spawned if the citizen was spawned
-function Citizens.spawn(citizen)
-
-	-- citizen is already spawned.
-	if citizen.object_id then
-		return false
-	end
-
-	-- spawn the citizen
-	local object_id, is_success = server.spawnCharacter(citizen.transform, citizen.outfit_type)
-
-	-- the citizen was saved (They failed to spawn, they were saved from the sw community)
-	if not is_success then
-		d.print(("Failed to spawn citizen, outfit type: %s, transform: %s"):format(citizen.outfit_type, string.fromTable(citizen.transform)), true, 1)
-		return false
-	end
-
-	-- citizen was spawned (Good luck.)
-	citizen.object_id = object_id
-
-	-- update their tooltip
-	Citizens.updateTooltip(citizen)
-
-	return true
-end
-
 function Citizens.remove(citizen)
 
 	-- remove all effects from this citizen
@@ -8885,9 +9078,6 @@ end
 ---@return Citizen? citizen the data of the citizen, returns nil if it failed to find the citizen from it's id.
 function Citizens.getData(citizen_id)
 
-	--! TEMP DEBUG
-	d.print(("Attempting to find citizen with id: %s"):format(citizen_id))
-
 	-- go through all citizens
 	for citizen_index = 1, #g_savedata.libraries.citizens.citizen_list do
 		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
@@ -8907,13 +9097,19 @@ function Citizens.getData(citizen_id)
 	-- only could get here if it failed to find the citizen's data, so return nil (not needed, but just for the code to be clearer)
 	return nil
 end
+
 --[[
 	onTick
 ]]
 function Citizens.onTick(game_ticks)
-	-- go through all citizens
 
-	--d.print(("#g_savedata.libraries.citizens.citizens_list: %s\n#g_savedata.libraries.citizens.citizens_list: %s"):format(#g_savedata.libraries.citizens.citizen_list, #g_savedata.libraries.citizens.citizen_list), false, 0)
+
+	-- If the addon has not been setup, skip.
+	if not addon_setup then
+		return
+	end
+
+	-- go through all citizens
 	for citizen_index = 1, #g_savedata.libraries.citizens.citizen_list do
 		local citizen = g_savedata.libraries.citizens.citizen_list[citizen_index]
 
@@ -8922,88 +9118,8 @@ function Citizens.onTick(game_ticks)
 			goto next_citizen
 		end
 
-		--d.print("Test", false, 0)
-
-		-- update their transform
-		local new_transform, is_success = server.getObjectPos(citizen.object_id)
-
-		-- ensure it was gotten.
-		if is_success then
-			citizen.transform = new_transform
-		end
-
-		--server.setCharacterData(citizen.object_id, 100, true, true)
-
-		-- detect changes in their health
-		local object_data = server.getObjectData(citizen.object_id)
-
-		if not citizen.medical_data.medical_conditions.burns.custom_data.degree then
-			citizen.medical_data.medical_conditions.burns.custom_data = {
-				degree = 0, -- the degree of the burn
-				affected_area = 0, -- the % of their body that is covered in the burn
-				burn_temp = 0, -- the temperature of the burn 
-				burn_decay = 0
-			}
-		end
-
-		Citizens.updateStability(citizen)
-
-		-- just ensure the data isn't bad to avoid an error
-		if object_data and object_data.hp then
-			local health_change = object_data.hp - citizen.health
-
-			-- the citizen's health changed
-			if health_change ~= 0 then
-				Citizens.onCitizenDamaged(citizen, health_change)
-				-- update the citizen's health
-				citizen.health = object_data.hp
-			end
-		else
-			d.print(("8945: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
-		end
-
-		-- tick their medical conditions
-		medicalCondition.onTick(citizen, game_ticks)
-
-		-- check if this citizen has the applying_first_aid effect.
-		local applying_first_aid, _ = Effects.has(citizen, "applying_first_aid")
-
-		--! temp commented out to try to reverse engineer the healing discharge system
-		if citizen.medical_data.incapacitated then -- if the citizen should be incapacitated
-			if not object_data.incapacitated then -- if the citizen should be incapacitated, but isn't
-				server.killCharacter(citizen.object_id)
-				d.print(("Attempting to kill citizen %s"):format(citizen.name.full), false, 0)
-			end
-		elseif applying_first_aid then
-			--server.setCharacterData(citizen.object_id, 50, true, true)
-		elseif not applying_first_aid then -- if we're not applying first aid, then allow the health to be overridden.
-			if object_data.hp < 97 then -- if the citizen's health is below 97
-				server.reviveCharacter(citizen.object_id)
-				-- suppress the next health change to avoid it being mistooken for healing
-				citizen.suppress_next_health_change = true
-			elseif object_data.hp > 97 then
-
-				server.setCharacterData(citizen.object_id, 97, true, true)
-
-				-- suppress the next health change to avoid it being mistooken for taking damage
-				citizen.suppress_next_health_change = true
-			end
-		end
-
-		--[[if citizen.medical_conditions.burns.custom_data.degree < 4 then
-			if object_data.hp < 99 then
-				server.reviveCharacter(citizen.object_id)
-			end
-		elseif object_data.dead then
-			server.reviveCharacter(citizen.object_id)
-			server.setCharacterData(citizen.object_id, 5, true, true)
-			d.print(("Attempting to revive %s"):format(citizen.name.full), false, 0)
-		elseif not object_data.incapacitated then
-			server.killCharacter(citizen.object_id)
-		end]]
-
-		-- update their tooltip
-		Citizens.updateTooltip(citizen)
+		-- Tick the citizen
+		Citizen.tick(citizen, game_ticks)
 
 		::next_citizen::
 	end
@@ -9174,7 +9290,6 @@ end
 --[[
 	definitions
 ]]
-
 
 --[[ Define how to reference a citizen via references.lua ]]
 References.define(
@@ -9367,7 +9482,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("9353: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("9468: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -9403,7 +9518,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("9389: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("9504: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -9414,7 +9529,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("9400: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("9515: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -9426,7 +9541,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("9412: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("9527: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -9576,7 +9691,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("9562: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("9677: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -9685,7 +9800,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("9671: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("9786: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -10510,7 +10625,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("10496: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("10611: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -10530,7 +10645,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("10516: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("10631: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -10694,13 +10809,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("10680: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("10795: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("10686: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("10801: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -10721,17 +10836,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("10707: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("10822: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("10712: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("10827: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("10717: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("10832: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -11629,7 +11744,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("11615: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("11730: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -11642,7 +11757,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("11628: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("11743: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -15591,7 +15706,7 @@ function pathNodeFromSWNode(sw_node, base_consume_distance)
 	-- If the node is missing the y and/or cdm fields, then print an error.
 	---@diagnostic disable-next-line: undefined-field
 	if not sw_node.y or not sw_node.cdm then
-		d.print(("15577: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+		d.print(("15692: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
 	end
 
 	return {
@@ -19784,8 +19899,6 @@ function setupMain(is_world_create)
 
 	-- start the timer for when the world has started to be setup
 	local world_setup_time = server.getTimeMillisec()
-
-	d.print("A", false)
 
 	-- Call the binded setup main.
 	bindedSetupMain(is_world_create)

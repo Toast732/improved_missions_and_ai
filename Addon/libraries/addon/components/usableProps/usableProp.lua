@@ -212,12 +212,6 @@ function UsableProp.setupOOP(dirty_usable_prop)
 	---@return boolean matches If the usable prop matches the given data.
 	dirty_usable_prop.matches = function(self, addon_component_data, zone_data)
 
-		-- Print the given zone_data's matrix
-		d.print(("zone_data.transform: %s"):format(string.fromTable(zone_data.transform)), true, 0)
-
-		-- Print our matrix.
-		d.print(("self.transform: %s"):format(string.fromTable(self.transform)), true, 0)
-
 		-- If the usable prop's type is the same, and the transform is the same, then we found a match.
 		return (
 			self.type == UsableProp.getUsablePropType(addon_component_data) -- if the type is the same

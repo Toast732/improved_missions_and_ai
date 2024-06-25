@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -89,6 +89,11 @@ function GameMaster.setupMain(is_world_create)
 	--TODO: Remove later, for debug, put as todo so it's marked.
 	is_world_create = true
 
+	-- Setup the citizens
+	for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+		Citizen.setup(citizen)
+	end
+
 	-- If the world was created.
 	if is_world_create then
 		-- Spawn the citizens.
@@ -147,19 +152,18 @@ function GameMaster.spawnCitizens()
 					local bed_prop = g_savedata.libraries.usable_props.props[bed_props[1]]
 
 					-- Create the citizen.
-					local new_citizen = Citizens.create(
+					local new_citizen = Citizen.create(
 						bed_prop.transform,
 						0
 					)
 
+					-- Assign the citizen's home.
+					new_citizen.home_building_id = building_id
+
 					-- Spawn the citizen.
-					Citizens.spawn(new_citizen)
+					Citizen.spawn(new_citizen)
 
 					is_success = bed_prop:addEntity(new_citizen.object_id)
-
-					d.print(("Is Success: %s"):format(tostring(is_success)), true, 0)
-
-					d.print(("Test: %s"):format(#g_savedata.libraries.usable_props.props[bed_props[1]].entities), true, 0)
 
 					::continue::
 				end
