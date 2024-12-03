@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.3
+-- Library Version 0.0.4
 
 --[[
 
@@ -118,11 +118,25 @@ end
 ---@param target_vector Vector3
 ---@return SWMatrix matrix the matrix created from the vector.
 function Vector3.toMatrix(target_vector)
-	-- create the matrix
-	local matrix = matrix.translation(target_vector.x, target_vector.y, target_vector.z)
-
-	-- return the matrix
-	return matrix
+	-- create and return the matrix
+	return {
+		1,
+		0,
+		0,
+		0,
+		0,
+		1,
+		0,
+		0,
+		0,
+		0,
+		1,
+		0,
+		target_vector.x,
+		target_vector.y,
+		target_vector.z,
+		1
+	}
 end
 
 --- Function for getting the euclidean distance

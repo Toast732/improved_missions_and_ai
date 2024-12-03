@@ -3,10 +3,6 @@
 		{
 			"name": "Addon",
 			"path": ".."
-		},
-		{
-			"name": "Improved Missions and AI",
-			"path": "../.."
 		}
 	],
 	"settings": {

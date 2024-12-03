@@ -27,6 +27,7 @@ limitations under the License.
 ]]
 
 -- required libraries
+require("libraries.imai.buildings.buildings")
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -53,6 +54,10 @@ AIJob = {}
 
 ---@alias AIJobID integer
 
+---@class JobHours The hours that this job is for.
+---@field start_time number The start hour of the job.
+---@field end_time number The end hour of the job.
+
 ---@class DirtyAIJob
 ---@field id AIJobID The ID of the job.
 ---@field usable_prop_id UsablePropID The ID of the usable prop for the job.
@@ -62,12 +67,15 @@ AIJob = {}
 ---@field building BuildingID The building the job is in.
 ---@field performance AIJobPerformance The performance of the worker in the job.
 ---@field company CompanyID The company the job is for.
+---@field position_index integer The index of the position in the prop. starting at 1, used to split how long the worker will be working by the number of positions.
+---@field hours JobHours The hours the job is for.
 
 ---@class AIJob: DirtyAIJob
 ---@field getPay fun(self: AIJob, hours_worked: number): number The function for getting the pay for the worker.
 ---@field assignCitizen fun(self: AIJob, citizen_id: CitizenID): boolean The function for assigning a citizen to the job, returns false if the job is already filled.
 ---@field unassignCitizen fun(self: AIJob): boolean The function for unassigning a worker from the job, returns false if the job is not filled.
 ---@field getFit fun(self: AIJob, citizen_id: CitizenID): number Gets how well the citizen fits for the job, returns a number from 0-1. (0 being the worst, 1 being the best.
+---@field getNameIdentifier fun(self: AIJob): string Gets the name identifier for the job, includes workplace name, job title, and position index.
 
 --- How an individual employee is performing in their job, used for things like wage increases, and promotions.
 ---@class AIJobPerformance
@@ -119,7 +127,8 @@ AI_JOB_PAYGRADES = {
 
 -- Function for creating a new job from the usable prop's data
 ---@param usable_prop UsableProp The usable prop for the job.
-function AIJob.create(usable_prop)
+---@param position_index number The index of the position in the prop. starting at 1, used to split how long the worker will be working by the number of positions.
+function AIJob.create(usable_prop, position_index)
 
 	-- Get the ID to use.
 	local id = g_savedata.libraries.ai_jobs.next_id
@@ -161,7 +170,12 @@ function AIJob.create(usable_prop)
 			repremands = 0
 		},
 		---@diagnostic disable-next-line: assign-type-mismatch
-		company = 0
+		company = 0,
+		position_index = position_index,
+		hours = {
+			start_time = 0,
+			end_time = 0
+		}
 	}
 
 	-- Increment the next ID.
@@ -197,6 +211,37 @@ function AIJob.clean(job)
 	local paygrade = Tags.getValue(prop.tags, "paygrade", false) --[[@as number]] or 1
 
 	job.paygrade = AI_JOB_PAYGRADES[paygrade]
+
+	--[[
+		Update the job's hours.
+	]]
+
+	-- Get the workplace's prefab data.
+	local workplace_prefab_data = Building.getWorkplacePrefabData(g_savedata.libraries.buildings.stored_buildings[job.building])
+
+	-- Get the number of positions the job has.
+	local positions = Tags.getValue(prop.tags, "positions", false) --[[@as number]] or 1
+
+	---@return JobHours job_hours The hours the job is for.
+	local function getJobHours()
+		-- Calculate how long the worker will be working this position for.
+		local job_hours = workplace_prefab_data.total_hours / positions
+
+		-- Get the time the worker will start working.
+		local start_time = workplace_prefab_data.start_time + (job_hours * (job.position_index - 1))
+
+		-- Get the time the worker will end working.
+		local end_time = start_time + job_hours
+
+		-- Return the job hours.
+		return {
+			start_time = start_time,
+			end_time = end_time
+		}
+	end
+
+	-- Set the job's hours.
+	job.hours = getJobHours()
 
 	-- Return the updated job.
 	return AIJob.setupOOP(job)
@@ -262,6 +307,19 @@ function AIJob.setupOOP(job)
 	job.getFit = function(self, citizen_id)
 		--TODO: Implement this function properly.
 		return 1
+	end
+
+	-- Gets the name identifier for the job, includes workplace name, job title, and position index.
+	job.getNameIdentifier = function(self)
+		-- Get the workplace name.
+		local workplace_name = g_savedata.libraries.buildings.stored_buildings[self.building].name
+
+		-- Return the name identifier.
+		return ("%s (Shift %d) at %s"):format(
+			self.title,
+			self.position_index,
+			workplace_name
+		)
 	end
 
 	-- Return the job.

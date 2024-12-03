@@ -259,6 +259,13 @@ function math.round(x, decimal_places)
 	-- Multiply the number by 10^places, this gives us the number to multiply and divide by to preserve the desired number of decimal places.
 	local decimal_multplier = 10^decimal_places
 
-	-- Round with the number of places.
-	return math.floor(x * decimal_multplier + 0.5) / decimal_multplier
+	-- If this is a positive number, use floor and + 0.5
+	if x >= 0 then
+		-- Round with the number of places. (positive numbers)
+		return math.floor(x * decimal_multplier + 0.5) / decimal_multplier
+	-- Otherwise, we need to use ceil and -0.5, otherwise, something like -0.5 rounds to 0, instead of -1.
+	else
+		-- Round with the number of places. (negative numbers)
+		return math.ceil(x * decimal_multplier - 0.5) / decimal_multplier
+	end
 end

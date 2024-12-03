@@ -70,6 +70,9 @@ Building = {}
 ---@class WorkplaceBuildingPrefabData: ExtraBuildingPrefabData
 ---@field max_workers integer The maximum number of workers that can work here.
 ---@field jobs integer The number of ai jobs here.
+---@field start_time number The time the workplace opens.
+---@field end_time number The time the workplace closes.
+---@field total_hours number The total hours the workplace is open.
 
 --[[
 	DATA
@@ -264,9 +267,31 @@ function Building.update(building, zone_data)
 				end
 			end
 
+			-- Get the time the workplace opens and closes.
+			local start_time = Tags.getValue(zone_data.tags, "opens", false) --[[@as number]] or 0
+
+			local end_time = Tags.getValue(zone_data.tags, "closes", false) --[[@as number]] or 0
+
+			-- Get the total hours the workplace is open.
+			local total_hours = 0
+
+			d.print(zone_data.tags, true, 0)
+
+			-- If the job works past midnight (end time is less than start time), then add the hours from the start time to midnight.
+			if end_time < start_time then
+				total_hours = 24 - start_time
+			-- Otherwise, just add the hours from the start time to the end time.
+			else
+				total_hours = end_time - start_time
+			end
+
+
 			return {
 				max_workers = job_prop_count,
-				jobs = job_prop_count
+				jobs = job_prop_count,
+				start_time = start_time,
+				end_time = end_time,
+				total_hours = total_hours
 			}
 			
 		end

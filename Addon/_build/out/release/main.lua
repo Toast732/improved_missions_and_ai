@@ -1644,8 +1644,15 @@ function math.round(x, decimal_places)
 	-- Multiply the number by 10^places, this gives us the number to multiply and divide by to preserve the desired number of decimal places.
 	local decimal_multplier = 10^decimal_places
 
-	-- Round with the number of places.
-	return math.floor(x * decimal_multplier + 0.5) / decimal_multplier
+	-- If this is a positive number, use floor and + 0.5
+	if x >= 0 then
+		-- Round with the number of places. (positive numbers)
+		return math.floor(x * decimal_multplier + 0.5) / decimal_multplier
+	-- Otherwise, we need to use ceil and -0.5, otherwise, something like -0.5 rounds to 0, instead of -1.
+	else
+		-- Round with the number of places. (negative numbers)
+		return math.ceil(x * decimal_multplier - 0.5) / decimal_multplier
+	end
 end
 
 
@@ -1763,9 +1770,9 @@ function matrix.g_equals(m1, m2)
 		m1[10] == m2[10] and
 		m1[11] == m2[11] and
 		m1[12] == m2[12] and
-		math.round(m1[13], 1) == math.round(m2[13], 1) and
-		math.round(m1[14], 1) == math.round(m2[14], 1) and
-		math.round(m1[15], 1) == math.round(m2[15], 1) and
+		math.round(m1[13], 0) == math.round(m2[13], 0) and
+		math.round(m1[14], 0) == math.round(m2[14], 0) and
+		math.round(m1[15], 0) == math.round(m2[15], 0) and
 		m1[16] == m2[16]
 		
 end
@@ -2740,7 +2747,7 @@ d = Debugging
 
 ]]
 
----@param message string the message you want to print
+---@param message string|table the message you want to print
 ---@param requires_debug ?boolean if it requires <debug_type> debug to be enabled
 ---@param debug_type ?integer the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler) 
 ---@param peer_id ?integer if you want to send it to a specific player, leave empty to send to all players
@@ -2812,9 +2819,9 @@ end
 
 --# prints all data which is in a table (use d.print instead of this)
 ---@param T table the table of which you want to print
----@param requires_debug boolean if it requires <debug_type> debug to be enabled
----@param debug_type integer the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler)
----@param peer_id integer if you want to send it to a specific player, leave empty to send to all players
+---@param requires_debug boolean? if it requires <debug_type> debug to be enabled
+---@param debug_type integer? the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler)
+---@param peer_id integer? if you want to send it to a specific player, leave empty to send to all players
 function Debugging.printTable(T, requires_debug, debug_type, peer_id)
 	d.print(string.fromTable(T), requires_debug, debug_type, peer_id)
 end
@@ -3937,7 +3944,7 @@ table.copy = {
 
 		--return deepCopy(t)
 	
-		return deepCopy(t ,"")
+		return deepCopy(t)
 		
 	end
 }
@@ -4188,7 +4195,7 @@ function Object.addObject(object_id)
 
 	-- the object doesn't actually exist
 	if not object_data then
-		d.print(("4174: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
+		d.print(("4198: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
 		return false
 	end
 
@@ -4407,19 +4414,19 @@ function Effects.apply(name, object, duration, strength)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4393: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4417: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4399: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4423: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false
 	end
 
 	-- if the object cannot have this effect applied.
 	if not effect_applicable_objects[name] or not effect_applicable_objects[name][object.object_type] then
-		d.print(("4405: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
+		d.print(("4429: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4428,7 +4435,7 @@ function Effects.apply(name, object, duration, strength)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4414: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4438: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4471,7 +4478,7 @@ end
 function Effects.remove(object, name)
 	-- if the object was never given
 	if not object then
-		d.print(("4457: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
+		d.print(("4481: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
 		return false, false
 	end
 
@@ -4480,13 +4487,13 @@ function Effects.remove(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4466: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4490: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4472: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4496: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4495,7 +4502,7 @@ function Effects.remove(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4481: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4505: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4547,13 +4554,13 @@ end
 function Effects.removeAll(object)
 	-- if the object was never given
 	if not object then
-		d.print("4533: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
+		d.print("4557: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
 		return 0, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4539: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("4563: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return 0, false
 	end
 
@@ -4562,7 +4569,7 @@ function Effects.removeAll(object)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4548: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
+		d.print(("4572: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
 		return 0, false
 	end
 
@@ -4590,7 +4597,7 @@ function Effects.removeAll(object)
 		
 		-- if this effect does not exist.
 		if not effect_definition then
-			d.print(("4576: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
+			d.print(("4600: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4628,13 +4635,13 @@ function Effects.has(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4614: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4638: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4620: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4644: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4643,7 +4650,7 @@ function Effects.has(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4629: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4653: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4708,7 +4715,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4694: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4718: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -4724,7 +4731,7 @@ function Effects.onTick(game_ticks)
 
 		-- if this effect definition does not exist.
 		if not effect_definition then
-			d.print(("4710: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
+			d.print(("4734: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4735,7 +4742,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4721: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4745: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -5551,6 +5558,9 @@ Building = {}
 ---@class WorkplaceBuildingPrefabData: ExtraBuildingPrefabData
 ---@field max_workers integer The maximum number of workers that can work here.
 ---@field jobs integer The number of ai jobs here.
+---@field start_time number The time the workplace opens.
+---@field end_time number The time the workplace closes.
+---@field total_hours number The total hours the workplace is open.
 
 --[[
 	DATA
@@ -5745,9 +5755,31 @@ function Building.update(building, zone_data)
 				end
 			end
 
+			-- Get the time the workplace opens and closes.
+			local start_time = Tags.getValue(zone_data.tags, "opens", false) --[[@as number]] or 0
+
+			local end_time = Tags.getValue(zone_data.tags, "closes", false) --[[@as number]] or 0
+
+			-- Get the total hours the workplace is open.
+			local total_hours = 0
+
+			d.print(zone_data.tags, true, 0)
+
+			-- If the job works past midnight (end time is less than start time), then add the hours from the start time to midnight.
+			if end_time < start_time then
+				total_hours = 24 - start_time
+			-- Otherwise, just add the hours from the start time to the end time.
+			else
+				total_hours = end_time - start_time
+			end
+
+
 			return {
 				max_workers = job_prop_count,
-				jobs = job_prop_count
+				jobs = job_prop_count,
+				start_time = start_time,
+				end_time = end_time,
+				total_hours = total_hours
 			}
 			
 		end
@@ -6483,7 +6515,7 @@ function ZoneLinker.getZoneData(component_data, location_data)
 
 	-- If the tile's location was not found, return nil.
 	if not is_success then
-		d.print(("6469: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
+		d.print(("6518: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
 		return nil
 	end
 
@@ -6611,7 +6643,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If the value was not found, return nil.
 	if not type_value then
-		d.print(("6597: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
+		d.print(("6646: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
 			addon_component_data.tags_full
 		), true, 1)
 		return nil
@@ -6622,7 +6654,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If it was not found, return nil.
 	if not usable_prop_type then
-		d.print(("6608: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
+		d.print(("6657: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
 			type_value
 		), true, 1)
 		return nil
@@ -6725,7 +6757,7 @@ function UsableProp.setupOOP(dirty_usable_prop)
 			self.type == UsableProp.getUsablePropType(addon_component_data) -- if the type is the same
 			and matrix.g_equals(self.transform, zone_data.transform) -- if the transform is the same.
 		)
-	end
+	end 
 
 	--- Attempts to add a new entity to the usable prop, returns false if the prop is full.
 	---@param self UsableProp The usable prop to add the entity to.
@@ -6842,7 +6874,7 @@ function UsableProps.setupMain(is_world_create)
 
 	-- If we failed to find any, abort.
 	if not got_spawning_data then
-		d.print(("6828: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
+		d.print(("6877: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
 		return
 	end
 
@@ -6871,7 +6903,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the component data was not found, skip.
 		if not is_success then
-			d.print(("6857: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("6906: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -6885,7 +6917,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the zone data was not found, skip.
 		if not zone_data then
-			d.print(("6871: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("6920: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -6984,13 +7016,13 @@ function UsableProps.selectRandomPropWithType(usablePropHashmap, type, amount, s
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("6970: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
+		d.print(("7019: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
 	-- If we have less props than the amount, return nil.
 	if #props_with_type < amount then
-		d.print(("6976: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
+		d.print(("7025: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
@@ -7036,7 +7068,7 @@ function UsableProps.getPropsWithType(prop_type)
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("7022: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
+		d.print(("7071: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
 		return nil
 	end
 
@@ -7065,7 +7097,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -7131,6 +7163,10 @@ AIJob = {}
 
 ---@alias AIJobID integer
 
+---@class JobHours The hours that this job is for.
+---@field start_time number The start hour of the job.
+---@field end_time number The end hour of the job.
+
 ---@class DirtyAIJob
 ---@field id AIJobID The ID of the job.
 ---@field usable_prop_id UsablePropID The ID of the usable prop for the job.
@@ -7140,12 +7176,15 @@ AIJob = {}
 ---@field building BuildingID The building the job is in.
 ---@field performance AIJobPerformance The performance of the worker in the job.
 ---@field company CompanyID The company the job is for.
+---@field position_index integer The index of the position in the prop. starting at 1, used to split how long the worker will be working by the number of positions.
+---@field hours JobHours The hours the job is for.
 
 ---@class AIJob: DirtyAIJob
 ---@field getPay fun(self: AIJob, hours_worked: number): number The function for getting the pay for the worker.
 ---@field assignCitizen fun(self: AIJob, citizen_id: CitizenID): boolean The function for assigning a citizen to the job, returns false if the job is already filled.
 ---@field unassignCitizen fun(self: AIJob): boolean The function for unassigning a worker from the job, returns false if the job is not filled.
 ---@field getFit fun(self: AIJob, citizen_id: CitizenID): number Gets how well the citizen fits for the job, returns a number from 0-1. (0 being the worst, 1 being the best.
+---@field getNameIdentifier fun(self: AIJob): string Gets the name identifier for the job, includes workplace name, job title, and position index.
 
 --- How an individual employee is performing in their job, used for things like wage increases, and promotions.
 ---@class AIJobPerformance
@@ -7197,7 +7236,8 @@ AI_JOB_PAYGRADES = {
 
 -- Function for creating a new job from the usable prop's data
 ---@param usable_prop UsableProp The usable prop for the job.
-function AIJob.create(usable_prop)
+---@param position_index number The index of the position in the prop. starting at 1, used to split how long the worker will be working by the number of positions.
+function AIJob.create(usable_prop, position_index)
 
 	-- Get the ID to use.
 	local id = g_savedata.libraries.ai_jobs.next_id
@@ -7218,7 +7258,7 @@ function AIJob.create(usable_prop)
 
 	-- If the building was not found, print an error and return.
 	if not job_building_id then
-		d.print(("7204: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
+		d.print(("7261: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
 			usable_prop.id
 		), true, 1)
 		return
@@ -7239,7 +7279,12 @@ function AIJob.create(usable_prop)
 			repremands = 0
 		},
 		---@diagnostic disable-next-line: assign-type-mismatch
-		company = 0
+		company = 0,
+		position_index = position_index,
+		hours = {
+			start_time = 0,
+			end_time = 0
+		}
 	}
 
 	-- Increment the next ID.
@@ -7275,6 +7320,37 @@ function AIJob.clean(job)
 	local paygrade = Tags.getValue(prop.tags, "paygrade", false) --[[@as number]] or 1
 
 	job.paygrade = AI_JOB_PAYGRADES[paygrade]
+
+	--[[
+		Update the job's hours.
+	]]
+
+	-- Get the workplace's prefab data.
+	local workplace_prefab_data = Building.getWorkplacePrefabData(g_savedata.libraries.buildings.stored_buildings[job.building])
+
+	-- Get the number of positions the job has.
+	local positions = Tags.getValue(prop.tags, "positions", false) --[[@as number]] or 1
+
+	---@return JobHours job_hours The hours the job is for.
+	local function getJobHours()
+		-- Calculate how long the worker will be working this position for.
+		local job_hours = workplace_prefab_data.total_hours / positions
+
+		-- Get the time the worker will start working.
+		local start_time = workplace_prefab_data.start_time + (job_hours * (job.position_index - 1))
+
+		-- Get the time the worker will end working.
+		local end_time = start_time + job_hours
+
+		-- Return the job hours.
+		return {
+			start_time = start_time,
+			end_time = end_time
+		}
+	end
+
+	-- Set the job's hours.
+	job.hours = getJobHours()
 
 	-- Return the updated job.
 	return AIJob.setupOOP(job)
@@ -7340,6 +7416,19 @@ function AIJob.setupOOP(job)
 	job.getFit = function(self, citizen_id)
 		--TODO: Implement this function properly.
 		return 1
+	end
+
+	-- Gets the name identifier for the job, includes workplace name, job title, and position index.
+	job.getNameIdentifier = function(self)
+		-- Get the workplace name.
+		local workplace_name = g_savedata.libraries.buildings.stored_buildings[self.building].name
+
+		-- Return the name identifier.
+		return ("%s (Shift %d) at %s"):format(
+			self.title,
+			self.position_index,
+			workplace_name
+		)
 	end
 
 	-- Return the job.
@@ -7426,7 +7515,7 @@ function AIJobs.setupMain(is_world_create)
 
 	-- If it failed, print an error and return.
 	if not ai_job_props then
-		d.print(("7412 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
+		d.print(("7518 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
 		return
 	end
 
@@ -7439,17 +7528,26 @@ function AIJobs.setupMain(is_world_create)
 		-- Store if the number of ai jobs to create, set it to how many positions are offered by this job.
 		local ai_jobs_to_create = Tags.getValue(ai_job_prop.tags, "positions", false) --[[@as number]] or 1
 
+		-- Create a new list of positions to create.
+		local positions_to_create = {}
+
+		for i = 1, ai_jobs_to_create do
+			positions_to_create[i] = true
+		end
+
 		-- Check if the ai job already exists.
 		for _, ai_job in pairs(g_savedata.libraries.ai_jobs.jobs) do
 			-- If the ai job's name is the same as the zone's name, it's not new.
 			if ai_job.usable_prop_id == prop_id then
 				ai_job_exists = true
 
+				positions_to_create[ai_job.position_index] = nil
+
 				-- Update the ai_job's data.
 				ai_job = AIJob.clean(ai_job)
 
 				-- Print that the ai_job was updated.
-				d.print(("(AIJobs.setupMain) AI Job: \"%s\" updated."):format(ai_job.title), true, 0)
+				d.print(("(AIJobs.setupMain) AI Job: \"%s\" updated."):format(ai_job:getNameIdentifier()), true, 0)
 
 				-- Store the updated ai_job.
 				new_ai_jobs[ai_job.id] = ai_job
@@ -7468,10 +7566,11 @@ function AIJobs.setupMain(is_world_create)
 		end
 
 		-- Create as many ai jobs as required.
-		for _ = 1, ai_jobs_to_create do
+		for position_index, _ in pairs(positions_to_create) do
 			-- Create a new ai_job.
 			local new_ai_job = AIJob.create(
-				ai_job_prop
+				ai_job_prop, 
+				position_index
 			)
 
 			-- If the ai_job is nil, then skip it.
@@ -7483,7 +7582,7 @@ function AIJobs.setupMain(is_world_create)
 			new_ai_jobs[new_ai_job.id] = new_ai_job
 
 			-- Print that the ai_job was created.
-			d.print(("(AIJobs.setupMain) AI Job \"%s\" created."):format(new_ai_job.title), true, 0)
+			d.print(("(AIJobs.setupMain) AI Job \"%s\" created."):format(new_ai_job:getNameIdentifier()), true, 0)
 
 			-- Increment the number of new ai_jobs made.
 			new_ai_jobs_made = new_ai_jobs_made + 1
@@ -7666,7 +7765,7 @@ function AIJobPool.create()
 
 				-- Ensure the citizen exists.
 				if not citizen then
-					d.print(("7652 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
+					d.print(("7768 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
 					goto continue
 				end
 
@@ -7775,7 +7874,7 @@ function AIJobPool.create()
 
 					-- Ensure the citizen exists.
 					if not citizen then
-						d.print(("7761 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
+						d.print(("7877 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
 						goto continue
 					end
 
@@ -7845,7 +7944,7 @@ function AIJobPool.create()
 			end
 
 			-- Print the number of citizens hired, and not hired.
-			d.print(("7831 (AIJobPool.compute) Hiring cycle complete! %d citizens were hired, and %d citizens were not hired."):format(citizens_hired, #self.citizens), true, 0)
+			d.print(("7947 (AIJobPool.compute) Hiring cycle complete! %d citizens were hired, and %d citizens were not hired."):format(citizens_hired, #self.citizens), true, 0)
 		end
 	}
 
@@ -8204,21 +8303,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("8190: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8306: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("8197: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("8313: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("8204: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("8320: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -8256,14 +8355,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("8242: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8358: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("8249: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8365: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -8273,7 +8372,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("8259: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("8375: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -8307,7 +8406,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("8293: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("8409: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -8318,7 +8417,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("8304: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("8420: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -8374,7 +8473,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("8360: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("8476: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -8526,7 +8625,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("8512: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("8628: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -8535,7 +8634,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("8521: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("8637: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -8556,7 +8655,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("8542: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("8658: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -8565,7 +8664,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("8551: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("8667: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -8603,6 +8702,679 @@ limitations under the License.
 ]]
 
 -- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Acts as a epoch timestamp for the game. Where the time is based on in game time and date, instead of real time.
+]]
+
+-- library name
+GameTimestamp = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias GameTimestamp number
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--- Used to cache timestamps.
+local cached_timestamps = {
+	now = {
+		value = 0,
+		last_updated_tick = -1
+
+	},
+	today = {
+		value = 0,
+		last_updated_tick = -1
+	}
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for creating a game timestamp for the current day.
+---@return GameTimestamp
+function GameTimestamp.today()
+
+	-- Check if the cached timestamp is still valid
+	if cached_timestamps.today.last_updated_tick == g_savedata.tick_counter then
+		return cached_timestamps.today.value
+	end
+
+	-- Otherwise, update the cached timestamp
+
+	-- Get the current date
+	local day, month, year = server.getDate()
+
+	-- Deduct 2032 from the year, as the game starts in 2032.
+	year = year - 2032
+
+	-- Deduct 5 from the month, as the game starts in June.
+	month = month - 5
+
+	-- Calculate the timestamp
+	cached_timestamps.today.value = year * 365 + month * 30 + day
+
+	-- Update the last updated tick
+	cached_timestamps.today.last_updated_tick = g_savedata.tick_counter
+
+	-- Return the timestamp
+	return cached_timestamps.today.value
+end
+
+--- Function for creating a game timestamp for the current time.
+--- @return GameTimestamp
+function GameTimestamp.now()
+
+	-- Check if the cached timestamp is still valid
+	if cached_timestamps.now.last_updated_tick == g_savedata.tick_counter then
+		return cached_timestamps.now.value
+	end
+
+	-- Otherwise, update the cached timestamp
+
+	-- Get today's timestamp
+	local base_timestamp = GameTimestamp.today()
+
+	-- Get the current time as a ratio of the day
+	local day_ratio = server.getTime().percent
+
+	-- Calculate the timestamp
+	cached_timestamps.now.value = base_timestamp + day_ratio
+
+	-- Update the last updated tick
+	cached_timestamps.now.last_updated_tick = g_savedata.tick_counter
+
+	-- Return the timestamp
+	return cached_timestamps.now.value
+end
+
+--- Function for turning hours to a timestamp value, which you can use in conjunction with a timestamp for calculations.
+---@param hours number the number of hours to convert to a timestamp.
+---@return GameTimestamp game_timestamp the timestamp value for the hours.
+function GameTimestamp.hoursToTimestamp(hours)
+	return hours / 24
+end
+
+--- Function for turning minutes to a timestamp value, which you can use in conjunction with a timestamp for calculations.
+---@param minutes number the number of minutes to convert to a timestamp.
+---@return GameTimestamp game_timestamp the timestamp value for the minutes.
+function GameTimestamp.minutesToTimestamp(minutes)
+	return minutes / 1440
+end
+
+--- Function for turning seconds to a timestamp value, which you can use in conjunction with a timestamp for calculations.
+---@param seconds number the number of seconds to convert to a timestamp.
+---@return GameTimestamp game_timestamp the timestamp value for the seconds.
+function GameTimestamp.secondsToTimestamp(seconds)
+	return seconds / 86400
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Contains some code for handling the types of tasks for citizens (eg, walk to position, drive to position, etc.).
+]]
+
+-- library name
+CitizenScheduleTasks = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class CitizenScheduleTaskBase
+---@field citizen_id CitizenID the id of the citizen this task is for.
+---@field name string the name of the task.
+---@field task_type CitizenScheduleTaskType the type of task this is.
+---@field start_time GameTimestamp the time this task starts.
+---@field expiry GameTimestamp the time this task expires.
+---@field started boolean whether the task has started.
+---@field checkCompletion fun(self: CitizenScheduleTaskBase):boolean Checks if the task is completed, and returns true if it is.
+---@field taskStartActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task starts.
+---@field taskEndActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task ends.
+
+---@class CitizenScheduleTaskWalkToPosition: CitizenScheduleTaskBase
+---@field position Vector3 the position to walk to.
+---@field radius number the radius around the position to be in.
+
+---@class CitizenScheduleTaskWait: CitizenScheduleTaskBase
+
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+---@enum CitizenScheduleTaskType
+local CitizenScheduleTaskType = {
+	Base = 0,
+	WalkToPosition = 1,
+	DriveToPosition = 2,
+	Wait = 3
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Creates a base task.
+---@param citizen_id CitizenID the id of the citizen this task is for.
+---@param name string the name of the task.
+---@param task_type CitizenScheduleTaskType the type of task this is.
+---@param start_time GameTimestamp the time this task starts.
+---@param expiry GameTimestamp the time this task expires.
+---@param checkCompletion fun(self: CitizenScheduleTaskBase):boolean Checks if the task is completed, and returns true if it is.
+---@param taskStartActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task starts.
+---@param taskEndActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task ends.
+---@return CitizenScheduleTaskBase
+function CitizenScheduleTasks.createBaseTask(citizen_id, name, task_type, start_time, expiry, checkCompletion, taskStartActions, taskEndActions)
+	---@type CitizenScheduleTaskBase
+	local task = {
+		citizen_id = citizen_id,
+		name = name,
+		task_type = task_type,
+		start_time = start_time,
+		expiry = expiry,
+		started = false,
+		checkCompletion = checkCompletion,
+		taskStartActions = taskStartActions,
+		taskEndActions = taskEndActions
+	}
+
+	return task
+end
+
+--- Creates a walk to position task.
+---@param citizen_id CitizenID the id of the citizen this task is for.
+---@param name string the name of the task.
+---@param start_time GameTimestamp the time this task starts.
+---@param expiry GameTimestamp the time this task expires.
+---@param position Vector3 the position to walk to.
+---@param radius number the radius around the position to be in.
+---@param taskStartActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task starts.
+---@param taskEndActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task ends.
+---@return CitizenScheduleTaskWalkToPosition
+function CitizenScheduleTasks.createWalkToPositionTask(citizen_id, name, start_time, expiry, position, radius, taskStartActions, taskEndActions)
+	--- Create the base task.
+	local base_task = CitizenScheduleTasks.createBaseTask(
+		citizen_id,
+		name,
+		CitizenScheduleTaskType.WalkToPosition,
+		start_time,
+		expiry,
+		---@param self CitizenScheduleTaskWalkToPosition
+		---@return boolean
+		function(self)
+			-- Get the citizen.
+			local citizen = Citizens.getData(self.citizen_id)
+
+			-- If the citizen is nil, then return.
+			if citizen == nil then
+				d.print(("9051 (CitizenScheduleTaskWalkToPosition.checkCompletion) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				return true
+			end
+
+			-- If the task expired, then return true.
+			if GameTimestamp.now() > self.expiry then
+				return true
+			end
+
+			-- Return if the citizen is within the radius of the position.
+			return Vector3.euclideanDistance(Vector3.fromMatrix(citizen.transform), self.position) <= self.radius
+		end,
+		---@param self CitizenScheduleTaskWalkToPosition
+		function(self)
+			-- Get the citizen.
+			local citizen = Citizens.getData(self.citizen_id)
+
+			-- If the citizen is nil, then return.
+			if citizen == nil then
+				d.print(("9070 (CitizenScheduleTaskWalkToPosition.taskStartActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				return
+			end
+
+			-- Create the route for the citizen.
+			local route = LandRoute.new(citizen.transform, Vector3.toMatrix(self.position))
+
+			-- Set the citizen's route.
+			citizen.walking_route = route
+
+			-- If the taskStartActions is not nil, then call it.
+			if taskStartActions then
+				taskStartActions(self)
+			end
+		end,
+		---@param self CitizenScheduleTaskWalkToPosition
+		function(self)
+			-- Get the citizen.
+			local citizen = Citizens.getData(self.citizen_id)
+
+			-- Remove the walking route.
+			citizen.walking_route = nil
+
+			-- If the taskEndActions is not nil, then call it.
+			if taskEndActions then
+				taskEndActions(self)
+			end
+		end
+	) --[[@as CitizenScheduleTaskWalkToPosition]]
+
+	-- Set the position and radius.
+	base_task.position = position
+
+	base_task.radius = radius
+
+	return base_task
+end
+
+--- Creates a Wait task.
+---@param citizen_id CitizenID the id of the citizen this task is for.
+---@param name string the name of the task.
+---@param start_time GameTimestamp the time this task starts.
+---@param expiry GameTimestamp the time this task expires, this is what is checked for completion.
+---@param taskStartActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task starts.
+---@param taskEndActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task ends.
+---@return CitizenScheduleTaskWait
+function CitizenScheduleTasks.createWaitTask(citizen_id, name, start_time, expiry, taskStartActions, taskEndActions)
+	--- Create the base task.
+	local base_task = CitizenScheduleTasks.createBaseTask(
+		citizen_id,
+		name,
+		CitizenScheduleTaskType.Wait,
+		start_time,
+		expiry,
+		---@param self CitizenScheduleTaskWait
+		function(self)
+			-- Get the current timestamp.
+			local current_timestamp = GameTimestamp.now()
+
+			-- Return if the current timestamp is greater than the expiry.
+			return current_timestamp > self.expiry
+		end,
+		taskStartActions,
+		taskEndActions
+	) --[[@as CitizenScheduleTaskWait]]
+
+	return base_task
+end
+
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Used for citizen scheduling, where it generates and handles the citizen's schedule.
+]]
+
+-- library name
+CitizenSchedule = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@class CitizenSchedule: DirtyCitizenSchedule
+---@field generateSchedule fun(self: CitizenSchedule) Generates the next tasks for the citizen.
+---@field tick fun(self: CitizenSchedule) Ticks the schedule.
+
+---@class DirtyCitizenSchedule
+---@field tasks table<integer, CitizenScheduleTaskBase> The list of tasks in the schedule, removed when they are completed.
+---@field citizen_id CitizenID The id of the citizen this schedule is for.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for creating a new CitizenSchedule
+--- @return CitizenSchedule
+function CitizenSchedule.new(citizen_id)
+	-- create the schedule
+	---@type DirtyCitizenSchedule
+	local schedule = {
+		tasks = {},
+		citizen_id = citizen_id
+	}
+
+	-- return the schedule
+	return CitizenSchedule.clean(schedule)
+end
+
+--- Function for cleaning a schedule, where it will add the oop functions (used upon reload)
+---@param schedule DirtyCitizenSchedule|CitizenSchedule
+---@return CitizenSchedule
+function CitizenSchedule.clean(schedule)
+
+	-- Clear the existing schedule.
+	schedule.tasks = {}
+
+	--- Function for generating the next tasks for the citizen
+	---@param self CitizenSchedule
+	schedule.generateSchedule = function(self)
+
+		-- get the current timestamp, used for what we will be generating from.
+		local current_timestamp = GameTimestamp.now()
+
+		-- Clear the existing schedule.
+		self.tasks = {}
+
+		--[[
+
+			Generate the tasks.
+
+		]]
+
+		-- Get the citizen.
+		local citizen = Citizens.getData(self.citizen_id)
+
+		-- If the citizen is nil, then return.
+		if citizen == nil then
+			d.print(("9234 (CitizenSchedule.generateSchedule) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+			return
+		end
+
+		-- Get today's timestamp.
+		local today_timestamp = GameTimestamp.today()
+
+		--[[
+			Account for the citizen's jobs.
+		]]
+
+		for job_index = 1, #citizen.jobs do
+			local job = g_savedata.libraries.ai_jobs.jobs[citizen.jobs[job_index]]
+
+			-- Get the job's start time for today.
+			local job_start_time = GameTimestamp.hoursToTimestamp(job.hours.start_time) + today_timestamp
+
+			-- Get the job's end time for today.
+			local job_end_time = GameTimestamp.hoursToTimestamp(job.hours.end_time) + today_timestamp
+
+			-- If the job goes into the next day, then account for that.
+			if job.hours.end_time < job.hours.start_time then
+				job_end_time = job_end_time + GameTimestamp.hoursToTimestamp(24)
+			end
+
+			-- If the current time is past the end time of the job, then skip this job.
+			if current_timestamp > job_end_time then
+				goto continue
+			end
+
+			-- Get the job's prop
+			local job_prop = g_savedata.libraries.usable_props.props[job.usable_prop_id]
+
+			--TODO: This is bad, shouldn't be explicitly adding the commuting tasks for each task.
+
+			-- Create the task.
+			local go_to_work_task = CitizenScheduleTasks.createWalkToPositionTask(
+				self.citizen_id,
+				"Go To Work",
+				job_start_time - GameTimestamp.hoursToTimestamp(1),
+				job_end_time,
+				Vector3.fromMatrix(job_prop.transform),
+				0
+			)
+
+			-- Add the task to the schedule.
+			table.insert(self.tasks, go_to_work_task)
+
+			-- Create the task for the citizen to wait for their shift to start.
+			local wait_for_work_task = CitizenScheduleTasks.createWaitTask(self.citizen_id, "Wait For Work", job_start_time - GameTimestamp.hoursToTimestamp(1), job_start_time)
+
+			-- Add the task to the schedule.
+			table.insert(self.tasks, wait_for_work_task)
+
+			-- Create the task for the citizen to work.
+			local work_task = CitizenScheduleTasks.createWaitTask(self.citizen_id, "Work", job_start_time, job_end_time)
+
+			-- Add the task to the schedule.
+			table.insert(self.tasks, work_task)
+
+			-- Get the citizen's home building.
+			local citizen_home_building = g_savedata.libraries.buildings.stored_buildings[citizen.home_building_id]
+
+			-- Create a task for the worker to go home after their shift.
+			local go_home_task = CitizenScheduleTasks.createWalkToPositionTask(self.citizen_id, "Return Home After Work", job_end_time, job_end_time + GameTimestamp.hoursToTimestamp(24), Vector3.fromMatrix(citizen_home_building.transform), 5)
+
+			-- Add the task to the schedule.
+			table.insert(self.tasks, go_home_task)
+
+			::continue::
+		end
+	end
+
+	-- Ticks the schedule
+	---@param self CitizenSchedule
+	schedule.tick = function(self)
+		-- Get the current timestamp.
+		local current_timestamp = GameTimestamp.now()
+
+		-- Get the citizen.
+		local citizen = Citizens.getData(self.citizen_id)
+
+		-- If the citizen is nil, then return.
+		if citizen == nil then
+			d.print(("9318 (CitizenSchedule.tick) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+			return
+		end
+
+		-- If there are no tasks, then generate the schedule.
+		if #self.tasks == 0 then
+			self:generateSchedule()
+		end
+
+		-- If there are no tasks, then return.
+		if #self.tasks == 0 then
+			--d.print(("9329 (CitizenSchedule.tick) Error: Failed to generate the schedule for citizen with id %d."):format(self.citizen_id), true, 1)
+			return
+		end
+
+		-- Get the current task.
+		local current_task = self.tasks[1]
+
+		-- If the current task is nil, then return.
+		if current_task == nil then
+			d.print(("9338 (CitizenSchedule.tick) Error: Failed to get the current task for citizen with id %d."):format(self.citizen_id), true, 1)
+			return
+		end
+
+		-- If the task is not started, then check if we can.
+		if not current_task.started and current_task.start_time <= current_timestamp then
+			-- We can start the task, so start it.
+			current_task.started = true
+
+			d.print(("9347 (CitizenSchedule.tick) Task \"%s\" started for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
+
+			-- Call the task's start actions.
+			if current_task.taskStartActions then
+				current_task:taskStartActions()
+			end
+		end
+
+		-- If the task is started, then check if it is completed.
+		if current_task.started then
+			-- Check if the task is completed.
+			if current_task:checkCompletion() then
+
+				-- Call the task's end actions.
+				if current_task.taskEndActions then
+					current_task:taskEndActions()
+				end
+
+				d.print(("9365 (CitizenSchedule.tick) Task \"%s\" completed for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
+
+				-- The task is completed, so remove it from the schedule.
+				table.remove(self.tasks, 1)
+			end
+		end
+	end
+
+	-- return the schedule
+	return schedule --[[@as CitizenSchedule]]
+end
+
+
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -8642,7 +9414,7 @@ Citizen = {}
 ---@class DirtyCitizen
 ---@field name CitizenName the citizen's name
 ---@field transform SWMatrix the citizen's matrix
----@field schedule table the citizen's schedule
+---@field schedule CitizenSchedule the citizen's schedule
 ---@field outfit_type SWOutfitTypeEnum the citizen's outfit type
 ---@field object_id integer|nil the citizen's object_id, nil if the citizen has not yet been spawned.
 ---@field id CitizenID the citizen's ID.
@@ -8655,6 +9427,7 @@ Citizen = {}
 ---@field vehicle_data CitizenVehicleData
 ---@field home_building_id BuildingID the building_id of the citizen's home.
 ---@field jobs table<JobID> the jobs the citizen has.
+---@field walking_route Route? the route the citizen is walking on, nil if they are not walking.
 
 ---@class Citizen: DirtyCitizen a citizen with the OOP functions added.
 ---@field updateTooltip fun(self: Citizen) Updates the citizen's tooltip.
@@ -8699,7 +9472,7 @@ function Citizen.create(transform, outfit_type)
 	local citizen = {
 		name = Citizens.generateName(),
 		transform = transform,
-		schedule = {},
+		schedule = CitizenSchedule.new(g_savedata.libraries.citizens.next_citizen_id),
 		outfit_type = outfit_type,
 		object_id = nil,
 		id = g_savedata.libraries.citizens.next_citizen_id,
@@ -8838,6 +9611,8 @@ function Citizen.setup(citizen)
 		return desire
 	end
 
+	citizen.schedule = CitizenSchedule.clean(citizen.schedule)
+
 	return citizen
 end
 
@@ -8914,7 +9689,7 @@ function Citizen.tick(citizen, game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("8900: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("9692: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -8947,6 +9722,86 @@ function Citizen.tick(citizen, game_ticks)
 
 	-- Update the citizen's tooltip
 	citizen:updateTooltip()
+
+	-- Tick the citizen's schedule
+	citizen.schedule:tick()
+
+	-- If the citizen is walking, tick their walking.
+	if citizen.walking_route then
+		Citizen.tickWalking(citizen, 1)
+	end
+end
+
+--- Tick a citizen's walking.
+---@param citizen Citizen
+---@param interval number the number of ticks since the last tick (as pseudo movement shouldn't be every tick)
+function Citizen.tickWalking(citizen, interval)
+
+	-- Calculate the maximum distance the citizen can move this tick.
+	local distance_can_travel = 30.5 * (interval/62.5)
+
+	-- Get the path.
+	local path = Routing.getPathFromID(citizen.walking_route.stored_path_id)
+
+	-- Check if we got the path.
+	if not path then
+		d.print(("9748: Failed to get the path for citizen \"%s\""):format(citizen.name.full), false, 1)
+		return
+	end
+
+	-- Set the last_pos to the transform of the citizen. This will be moved along the path.
+	local last_position = Vector3.fromMatrix(citizen.transform, true)
+
+	-- Iterate through the path.
+	for path_index = citizen.walking_route.path_index, #path do
+		-- Get the node
+		local node = path[path_index]
+
+		-- Create a vector for the position of this node
+		local node_position = Vector3.new(node.x, node.y, node.z)
+
+		-- Calculate the distance from last_position to the node of this path, set to minimum 0.0001, to avoid division by 0.
+		local distance_to_waypoint = math.max(Vector3.euclideanDistance(last_position, node_position), 0.0001)
+
+		-- Get the progress the citizen can travel along this path.
+		local progress = math.min(distance_can_travel / distance_to_waypoint, 1)
+
+		--[[
+			Set last pos to the position of the node if progress is 1
+
+			Otherwise, travel along the path by progress.
+		]]
+
+		-- Remove how much we're travelling from the distance to the waypoint.
+		distance_can_travel = distance_can_travel - distance_to_waypoint * progress
+		
+		-- Check if the progress is 1
+		if progress == 1 then
+			-- Set the last position to the node position.
+			last_position = node_position
+
+			-- Increment the path index the citizen is on.
+			citizen.walking_route.path_index = citizen.walking_route.path_index + 1
+		else
+			-- Travel along the path by progress.
+			last_position = Vector3.lerp(last_position, node_position, progress)
+
+			-- Break, as we cannot move any more.
+			break
+		end
+	end
+
+	-- Set the citizen's transform to the new position.
+	citizen.transform = Vector3.toMatrix(last_position)
+
+	--d.print(("Citizen %s is now at %s"):format(citizen.name.full, string.fromTable(last_position)), false, 0)
+
+	server.removeMapObject(-1, citizen.object_id + 14784)
+
+	server.addMapObject(-1, citizen.object_id + 14784, 0, 1, citizen.transform[13], citizen.transform[15], 0, 0, 0, 0, citizen.name.full, 10, citizen.name.full, 255, 255, 255, 255)
+
+	-- Set the citizen's object's position to the new position.
+	server.setObjectPos(citizen.object_id, citizen.transform)
 
 end
 
@@ -9773,7 +10628,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("9759: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("10631: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -9809,7 +10664,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("9795: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("10667: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -9820,7 +10675,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("9806: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("10678: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -9832,7 +10687,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("9818: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("10690: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -9982,7 +10837,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("9968: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("10840: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -10091,7 +10946,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("10077: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("10949: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -10916,7 +11771,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("10902: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("11774: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -10936,7 +11791,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("10922: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("11794: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -11021,7 +11876,7 @@ medicalCondition.create(
 				-- hide tooltip, no bleeding
 				bleeds.hidden = true
 				return
-			end
+			end 
 
 			-- mild bleeding
 			bleeds.custom_data.blood.current = bleeds.custom_data.blood.current - base_blood_loss*0.5
@@ -11100,13 +11955,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("11086: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("11958: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("11092: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("11964: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -11127,17 +11982,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("11113: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("11985: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("11118: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("11990: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("11123: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("11995: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -11617,7 +12472,7 @@ function GameMaster.spawnCitizens()
 
 					-- If there are no bed props, then skip this citizen.
 					if bed_props == nil then
-						d.print(("11603: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
+						d.print(("12475: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
 						goto continue
 					end
 
@@ -11668,6 +12523,252 @@ function GameMaster.assignAIJobs()
 	-- Compute the job pool.
 	job_pool:compute()
 end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[
+	The commuting system, this is what's interacted with by things such as the citizen schedule system after the base schedule has been generated.
+]]
+
+--[[
+	Rules:
+		1. The first and final commute types must be an interim commute type (eg: walking)
+			Reasoning:
+				This is to avoid situations where, for example, a citizen could try driving into their work, and prevents cases of teleporting.
+		2. The same commute type cannot be used twice in a row.
+			Reasoning:
+				This is to avoid wasting resources, as walking straight to work will aways be better than first walking to the bus station, 
+					and then walking to work from said bus station. So this will prevent such from being calculated.
+]]
+
+-- library name
+Commuting = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias CommuteCost number
+
+---@class CommuteTypeDefinition
+---@field name string the name of the commute type, eg "walking"
+---@field interim boolean if this commute can be used as an interim commute (eg: walking from house to the car)
+---@field is_available fun(citizen: Citizen): boolean if this commute type is available for this citizen.
+---@field calculate_route fun(citizen: Citizen, origin: Vector3, destination: Vector3): Route the route for this commute type.
+---@field get_commute_time fun(citizen: Citizen, route: Route): GameTimestamp the time it takes for this citizen to commute using this commute type.
+---@field get_cost fun(citizen: Citizen, route: Route): CommuteCost the cost of this commute type.
+
+---@class CommuteBuilder
+---@field citizen Citizen the citizen this commute is for.
+---@field origin Vector3 the origin of the commute.
+---@field destination Vector3 the destination of the commute.
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--- The types of commutes that are registered.
+---@type table<string, CommuteTypeDefinition>
+commute_types = {}
+
+--- The interim commutes that are registered.
+---@type table<int, CommuteTypeDefinition>
+interim_commute_types = {}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- Function for registering a new commute type.
+---@param name string the name of the commute type, eg "walking"
+---@param interim boolean if this commute can be used as an interim commute (eg: walking from house to the car)
+---@param is_available fun(citizen: Citizen): boolean if this commute type is available for this citizen.
+---@param calculate_route fun(citizen: Citizen, origin: Vector3, destination: Vector3): Route the route for this commute type.
+---@param get_commute_time fun(citizen: Citizen, route: Route): GameTimestamp the time it takes for this citizen to commute using this commute type.
+---@param get_cost fun(citizen: Citizen, route: Route): CommuteCost the cost of this commute type.
+function Commuting.registerCommuteType(name, interim, is_available, calculate_route, get_commute_time, get_cost)
+	
+	-- check if this commute type is already registered
+	for _, commute_type in ipairs(commute_types) do
+		if commute_type.name == name then
+			d.print(("Commute type %s is already registered."):format(name), true, 1)
+			return
+		end
+	end
+
+	-- create it as a commute type
+	table.insert(
+		commute_types,
+		{
+			name = name,
+			interim = interim,
+			is_available = is_available,
+			calculate_route = calculate_route,
+			get_commute_time = get_commute_time,
+			get_cost = get_cost
+		} ---@type CommuteTypeDefinition
+	)
+
+	-- If it's an interim commute, add it to the interim commutes.
+	if interim then
+		table.insert(interim_commute_types, commute_types[#commute_types])
+	end
+end
+
+--[[
+
+	Definitions
+
+]]
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	Walking Commute Definition.
+]]
+
+-- Register the walking commute type
+Commuting.registerCommuteType(
+	"Walking",
+	true,
+	function(citizen)
+		return true
+	end,
+	function(citizen, origin, destination)
+		-- Do a land pathfind between the two points.
+		local route = LandRoute.new(
+			Vector3.toMatrix(origin),
+			Vector3.toMatrix(destination)
+		)
+
+		return route
+	end,
+	function(citizen, route)
+
+		-- Get the path for this route
+		local path = Routing.getPathFromID(route.stored_path_id)
+
+		-- Make sure we got the path.
+		if not path then
+			d.print(("12735 Walking Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
+			return math.maxinteger
+		end
+
+		-- Get the distance of the path
+		local distance = Pathfinding.getTotalPathDistance(path)
+
+		-- Get the walking speed of the citizen (m/s)
+		local walking_speed = 1.8
+
+		-- Get the time it takes to walk this distance
+		--TODO: Account for game time speed
+		local time = distance / walking_speed
+
+		-- Turn the time into a game timestamp
+		return GameTimestamp.secondsToTimestamp(time)
+	end,
+	function(citizen, route)
+		-- Get the path for this route
+		local path = Routing.getPathFromID(route.stored_path_id)
+
+		-- Make sure we got the path.
+		if not path then
+			d.print(("12758 Walking Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
+			return math.maxinteger
+		end
+
+		-- Get the distance of the path
+		local distance = Pathfinding.getTotalPathDistance(path)
+
+		-- Get the walking cost of the citizen
+		local walking_cost = 0.1
+
+		-- Get the cost of this commute
+		return distance * walking_cost
+	end
+)
 --[[
 
 Copyright 2024 Liam Matthews
@@ -11744,7 +12845,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.3
+-- Library Version 0.0.4
 
 --[[
 
@@ -11846,11 +12947,25 @@ end
 ---@param target_vector Vector3
 ---@return SWMatrix matrix the matrix created from the vector.
 function Vector3.toMatrix(target_vector)
-	-- create the matrix
-	local matrix = matrix.translation(target_vector.x, target_vector.y, target_vector.z)
-
-	-- return the matrix
-	return matrix
+	-- create and return the matrix
+	return {
+		1,
+		0,
+		0,
+		0,
+		0,
+		1,
+		0,
+		0,
+		0,
+		0,
+		1,
+		0,
+		target_vector.x,
+		target_vector.y,
+		target_vector.z,
+		1
+	}
 end
 
 --- Function for getting the euclidean distance
@@ -12201,7 +13316,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("12187: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("13319: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -12214,7 +13329,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("12200: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("13332: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -15537,7 +16652,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -15936,22 +17051,22 @@ end
 -- library name
 AI = {}
 
---- @param vehicle_object vehicle_object the vehicle you want to set the state of
---- @param state string the state you want to set the vehicle to
---- @return boolean success if the state was set
-function AI.setState(vehicle_object, state)
-	if vehicle_object then
-		if state ~= vehicle_object.state.s then
-			if state == VEHICLE.STATE.HOLDING then
-				vehicle_object.holding_target = vehicle_object.transform
-			end
-			vehicle_object.state.s = state
-		end
-	else
-		d.print("(AI.setState) vehicle_object is nil!", true, 1)
-	end
-	return false
-end
+-- --- @param vehicle_object vehicle_object the vehicle you want to set the state of
+-- --- @param state string the state you want to set the vehicle to
+-- --- @return boolean success if the state was set
+-- function AI.setState(vehicle_object, state)
+-- 	if vehicle_object then
+-- 		if state ~= vehicle_object.state.s then
+-- 			if state == VEHICLE.STATE.HOLDING then
+-- 				vehicle_object.holding_target = vehicle_object.transform
+-- 			end
+-- 			vehicle_object.state.s = state
+-- 		end
+-- 	else
+-- 		d.print("(AI.setState) vehicle_object is nil!", true, 1)
+-- 	end
+-- 	return false
+-- end
 
 --# made for use with toggles in buttons (only use for toggle inputs to seats)
 ---@param vehicle_id integer the vehicle's id that has the seat you want to set
@@ -16045,6 +17160,16 @@ PATHFINDING_NUDGE_ANGLE_MAX = math.tau
 -- The maximum number of nodes in path until it stops trying to add more, to avoid infinite recursion.
 PATHFINDING_MAX_NODES = 700
 
+--[[
+	The maximum number of nodes per nudge cycle, to avoid issues where it just gives up randomly, 
+	as it's quite complicated to try to have proper handling for this, so this will work as a stopgap fix.
+
+	Around 230 is where it starts to have issues, so 175 should be a safe number.
+
+	Note: This does not stop adding past this number, but it will just nudge again if it reaches this number to verify we're at the end.
+]]
+PATHFINDING_NODES_TILL_RE_NUDGE = 175
+
 -- The distance the final path has to be to either the x or z tile border in order to try to start nudging.
 PATHFINDING_START_NUDGING_DISTANCE = 30
 
@@ -16072,7 +17197,11 @@ PATHFINDING_START_NUDGING_DISTANCE = 30
 ---@field consumption_distance number the consumption distance for the path node.
 
 --- The path to follow, starting from the end and to the beginning,<br>the last node [#path] is always the destination, [1] is the node we're currently going to, and [0] is the previous one.
----@alias Path table<integer, PathNode>
+---@alias PathList table<integer, PathNode>
+
+---@class Path
+---@field path_list PathList the list of nodes in the path
+---@field total_distance number? the total distance of the path
 
 ---@enum YPathfinderNodeDataNSO
 ---| '0' # the node is not specific to vanilla or NSO
@@ -16163,7 +17292,7 @@ function pathNodeFromSWNode(sw_node, base_consume_distance)
 	-- If the node is missing the y and/or cdm fields, then print an error.
 	---@diagnostic disable-next-line: undefined-field
 	if not sw_node.y or not sw_node.cdm then
-		d.print(("16149: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+		d.print(("17295: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
 	end
 
 	return {
@@ -16197,12 +17326,14 @@ end
 function getPathFromNodeList(node_list, base_consume_distance)
 	-- Define the path
 	---@type Path
-	local path = {}
+	local path = {
+		path_list = {}
+	}
 
 	-- Iterate through each node in the node list.
 	for node_index = 1, #node_list do
 		-- Convert it to a PathNode and add it to the path.
-		table.insert(path, pathNodeFromSWNode(node_list[node_index], base_consume_distance))
+		table.insert(path.path_list, pathNodeFromSWNode(node_list[node_index], base_consume_distance))
 	end
 
 	-- Return the path
@@ -16216,8 +17347,8 @@ end
 function mergePaths(path1, path2)
 
 	-- for each node in path2, add it to the end of path1
-	for node_index = 1, #path2 do
-		table.insert(path1, path2[node_index])
+	for node_index = 1, #path2.path_list do
+		table.insert(path1.path_list, path2.path_list[node_index])
 	end
 
 	-- return the merged path
@@ -16258,7 +17389,9 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	-- Define the path
 	---@type Path
 	local path = {
-		pathNodeFromMatrix(matrix_start, base_consume_distance)
+		path_list = {
+			pathNodeFromMatrix(matrix_start, base_consume_distance)
+		}
 	}
 
 	--- Function to finalise the path, by adding the matrix_end to the end of the path.
@@ -16266,7 +17399,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	---@return Path path the finalised path
 	local function finalisePath(path)
 		-- Add the matrix_end to the end of the path
-		table.insert(path, pathNodeFromMatrix(matrix_end, base_consume_distance))
+		table.insert(path.path_list, pathNodeFromMatrix(matrix_end, base_consume_distance))
 
 		-- Return the finalised path
 		return path
@@ -16275,17 +17408,18 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	--- Function to check if we should nudge the pathfinding again, this checks if it's possible that we're stuck on the tile border.
 	---@param check_path Path the path to check if we should nudge.
 	---@return boolean should_nudge if we should nudge the pathfinding again.
-	local function shouldNudge(check_path)
+	local function shouldNudge(check_path, nudge_node_count)
 		-- Get the number of nodes
-		local node_count = #check_path
+		local node_count = #check_path.path_list
 
 		--- Return false if we're over the 5000 node limit
 		if node_count + previous_path_count >= PATHFINDING_MAX_NODES then
+			d.print("17417: Pathfinding has reached the maximum node limit, stopping pathfinding.", true, 1)
 			return false
 		end
 
 		-- Get the last node.
-		local last_node = check_path[node_count]
+		local last_node = check_path.path_list[node_count]
 
 		-- Get a vector2 of the last node
 		local last_node_vector = Vector2.new(last_node.x, last_node.z)
@@ -16295,6 +17429,11 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 
 		-- If we're within the start nudge distance, then we should nudge.
 		if distance_to_closest_tile_border <= PATHFINDING_START_NUDGING_DISTANCE then
+			return true
+		end
+
+		-- If we just got nodes over the NODES_TILL_RE_NUDGE limit, then we should nudge again, as it might've randomly given up.
+		if nudge_node_count >= PATHFINDING_NODES_TILL_RE_NUDGE then
 			return true
 		end
 
@@ -16308,10 +17447,10 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	-- Merge the initial path with the path
 	path = mergePaths(path, getPathFromNodeList(initial_path, base_consume_distance))
 
-	d.print(("Node Count: %s"):format(#path + previous_path_count), true, 0)
+	d.print(("Node Count: %s"):format(#path.path_list + previous_path_count), true, 0)
 
 	-- Check if we do not need to nudge, if we don't need to, then just return early.
-	if not shouldNudge(path) then
+	if not shouldNudge(path, #initial_path) then
 		-- finalise the path
 		return finalisePath(path)
 	end
@@ -16320,13 +17459,13 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	---@return Path path the path from the nudging operation
 	local function startNudging()
 		-- Get the number of nodes in the path
-		local node_count = #path
+		local node_count = #path.path_list
 
 		-- Get the last node
-		local last_node = path[node_count]
+		local last_node = path.path_list[node_count]
 
 		-- Get the angle from the second last node to the last node
-		local starting_angle = angleBetweenNodes(path[node_count-1], last_node)
+		local starting_angle = angleBetweenNodes(path.path_list[node_count-1], last_node)
 
 		-- Get the vector 2 of the last node
 		local last_node_vector = Vector2.new(last_node.x, last_node.z)
@@ -16378,7 +17517,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 					If the last node of the nudged path is the same as the last node of the current path, 
 					then continue to the next iteration, as we've not moved past the tile border.
 				]]
-				if isPathNodeEqual(nudged_path[#nudged_path], last_node) then
+				if isPathNodeEqual(nudged_path.path_list[#nudged_path.path_list], last_node) then
 					goto continue
 				end
 
@@ -16401,15 +17540,15 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 						-- nudge the pathfinding again, and return the result, as we want to make sure we did not get stuck on another tile border.
 						nudgePathfind(
 							matrix.translation( -- Set the start matrix as our last matrix.
-								nudged_path[#nudged_path].x,
-								nudged_path[#nudged_path].y,
-								nudged_path[#nudged_path].z
+								nudged_path.path_list[#nudged_path].x,
+								nudged_path.path_list[#nudged_path].y,
+								nudged_path.path_list[#nudged_path].z
 							),
 							matrix_end,
 							required_tags,
 							avoided_tags,
 							base_consume_distance,
-							#path + previous_path_count
+							#path.path_list + previous_path_count
 						)
 					)
 				end
@@ -16433,6 +17572,41 @@ end
 	External Usage
 
 ]]
+
+-- Gets the total distance of a land path
+---@param path Path the path to get the total distance of
+---@return number total_distance the total distance of the path
+function Pathfinding.getTotalPathDistance(path)
+	local total_distance = 0
+
+	-- If the total distance is already calculated, then return it.
+	if path.total_distance then
+		return path.total_distance
+	end
+
+	-- Iterate through each node in the path
+	for node_index = 1, #path.path_list - 1 do
+		-- Get the current node.
+		local current_node = path.path_list[node_index]
+
+		-- Get the next node.
+		local next_node = path.path_list[node_index + 1]
+
+		-- Add the distance between the two nodes to the total distance.
+		total_distance = total_distance + (
+			Vector3.euclideanDistance(
+				Vector3.new(current_node.x, current_node.y, current_node.z),
+				Vector3.new(next_node.x, next_node.y, next_node.z)
+			)
+		)
+	end
+
+	-- Save the total distance in this path.
+	path.total_distance = total_distance
+
+	-- Return the total distance
+	return total_distance
+end
 
 --- Gets the path for a land vehicle
 ---@param origin SWMatrix the origin, start position of the path
@@ -16679,15 +17853,15 @@ function Pathfinding.getPathY(path)
 		Pathfinding.createPathY() --build the table this one time
 		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
 	end
-	for each in pairs(path) do
+	for each in pairs(path.path_list) do
 
-		local x = math.round(path[each].x, node_decimal_places)
-		local z = math.round(path[each].z, node_decimal_places)
+		local x = math.round(path.path_list[each].x, node_decimal_places)
+		local z = math.round(path.path_list[each].z, node_decimal_places)
 
 		if g_savedata.graph_nodes.nodes[x] and g_savedata.graph_nodes.nodes[x][z] then --if y exists
-			path[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
-			--d.print("path["..each.."].y: "..tostring(path[each].y), true, 0)
-			path[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
+			path.path_list[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
+			--d.print("path.path_list["..each.."].y: "..tostring(path.path_list[each].y), true, 0)
+			path.path_list[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
 		end
 	end
 	return path --return the path with the added, or not, y values.
@@ -16742,6 +17916,8 @@ function Pathfinding.createPathY() --this looks through all env mods to see if t
 									g_savedata.graph_nodes.nodes[x] = g_savedata.graph_nodes.nodes[x] or {}
 									g_savedata.graph_nodes.nodes[x][math.round(real_transform[15], node_decimal_places)] = {
 										y = real_transform[14],
+										rx = real_transform[13],
+										rz = real_transform[15],
 										type = graph_node,
 										NSO = last_tag == "NSO" and 1 or last_tag == "not_NSO" and 2 or 0 --[[@as YPathfinderNodeDataNSO]],
 										cdm = Tags.getValue(COMPONENT_DATA.tags, "consume_distance_multiplier", false) --[[@as number]] or 1
@@ -19287,7 +20463,7 @@ function Map.addMapCircle(peer_id, ui_id, center_matrix, radius, width, r, g, b,
 		s.addMapLine(peer_id, ui_id, start_matrix, end_matrix, width, r, g, b, a)
 	end
 end
- -- functions for drawing on the map -- custom math functions
+ -- functions for drawing on the map -- custom math functions -- custom vector2 functions -- custom vector3 functions
 --[[
 
 
@@ -19437,7 +20613,7 @@ function ExecutionQueue.queue(execute_condition, function_to_execute, variable_t
 
 	return true
 end
- -- custom matrix functions -- functions for pathfinding -- functions relating to Players -- functions for script/world setup.
+ -- functions for getting game timestamps. -- custom matrix functions -- functions for pathfinding -- functions relating to Players -- functions for script/world setup.
 -- required libraries
 
 -- library name

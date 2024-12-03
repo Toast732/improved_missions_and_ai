@@ -6,22 +6,22 @@ require("libraries.addon.script.debugging")
 -- library name
 AI = {}
 
---- @param vehicle_object vehicle_object the vehicle you want to set the state of
---- @param state string the state you want to set the vehicle to
---- @return boolean success if the state was set
-function AI.setState(vehicle_object, state)
-	if vehicle_object then
-		if state ~= vehicle_object.state.s then
-			if state == VEHICLE.STATE.HOLDING then
-				vehicle_object.holding_target = vehicle_object.transform
-			end
-			vehicle_object.state.s = state
-		end
-	else
-		d.print("(AI.setState) vehicle_object is nil!", true, 1)
-	end
-	return false
-end
+-- --- @param vehicle_object vehicle_object the vehicle you want to set the state of
+-- --- @param state string the state you want to set the vehicle to
+-- --- @return boolean success if the state was set
+-- function AI.setState(vehicle_object, state)
+-- 	if vehicle_object then
+-- 		if state ~= vehicle_object.state.s then
+-- 			if state == VEHICLE.STATE.HOLDING then
+-- 				vehicle_object.holding_target = vehicle_object.transform
+-- 			end
+-- 			vehicle_object.state.s = state
+-- 		end
+-- 	else
+-- 		d.print("(AI.setState) vehicle_object is nil!", true, 1)
+-- 	end
+-- 	return false
+-- end
 
 --# made for use with toggles in buttons (only use for toggle inputs to seats)
 ---@param vehicle_id integer the vehicle's id that has the seat you want to set

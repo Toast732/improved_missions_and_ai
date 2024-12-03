@@ -38,7 +38,7 @@ d = Debugging
 
 ]]
 
----@param message string the message you want to print
+---@param message string|table the message you want to print
 ---@param requires_debug ?boolean if it requires <debug_type> debug to be enabled
 ---@param debug_type ?integer the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler) 
 ---@param peer_id ?integer if you want to send it to a specific player, leave empty to send to all players
@@ -110,9 +110,9 @@ end
 
 --# prints all data which is in a table (use d.print instead of this)
 ---@param T table the table of which you want to print
----@param requires_debug boolean if it requires <debug_type> debug to be enabled
----@param debug_type integer the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler)
----@param peer_id integer if you want to send it to a specific player, leave empty to send to all players
+---@param requires_debug boolean? if it requires <debug_type> debug to be enabled
+---@param debug_type integer? the type of message, 0 = debug (debug.chat) | 1 = error (debug.chat) | 2 = profiler (debug.profiler)
+---@param peer_id integer? if you want to send it to a specific player, leave empty to send to all players
 function Debugging.printTable(T, requires_debug, debug_type, peer_id)
 	d.print(string.fromTable(T), requires_debug, debug_type, peer_id)
 end

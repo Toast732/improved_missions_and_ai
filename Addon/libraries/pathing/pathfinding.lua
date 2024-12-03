@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.2
+-- Library Version 0.0.3
 
 --[[
 
@@ -68,6 +68,16 @@ PATHFINDING_NUDGE_ANGLE_MAX = math.tau
 -- The maximum number of nodes in path until it stops trying to add more, to avoid infinite recursion.
 PATHFINDING_MAX_NODES = 700
 
+--[[
+	The maximum number of nodes per nudge cycle, to avoid issues where it just gives up randomly, 
+	as it's quite complicated to try to have proper handling for this, so this will work as a stopgap fix.
+
+	Around 230 is where it starts to have issues, so 175 should be a safe number.
+
+	Note: This does not stop adding past this number, but it will just nudge again if it reaches this number to verify we're at the end.
+]]
+PATHFINDING_NODES_TILL_RE_NUDGE = 175
+
 -- The distance the final path has to be to either the x or z tile border in order to try to start nudging.
 PATHFINDING_START_NUDGING_DISTANCE = 30
 
@@ -95,7 +105,11 @@ PATHFINDING_START_NUDGING_DISTANCE = 30
 ---@field consumption_distance number the consumption distance for the path node.
 
 --- The path to follow, starting from the end and to the beginning,<br>the last node [#path] is always the destination, [1] is the node we're currently going to, and [0] is the previous one.
----@alias Path table<integer, PathNode>
+---@alias PathList table<integer, PathNode>
+
+---@class Path
+---@field path_list PathList the list of nodes in the path
+---@field total_distance number? the total distance of the path
 
 ---@enum YPathfinderNodeDataNSO
 ---| '0' # the node is not specific to vanilla or NSO
@@ -220,12 +234,14 @@ end
 function getPathFromNodeList(node_list, base_consume_distance)
 	-- Define the path
 	---@type Path
-	local path = {}
+	local path = {
+		path_list = {}
+	}
 
 	-- Iterate through each node in the node list.
 	for node_index = 1, #node_list do
 		-- Convert it to a PathNode and add it to the path.
-		table.insert(path, pathNodeFromSWNode(node_list[node_index], base_consume_distance))
+		table.insert(path.path_list, pathNodeFromSWNode(node_list[node_index], base_consume_distance))
 	end
 
 	-- Return the path
@@ -239,8 +255,8 @@ end
 function mergePaths(path1, path2)
 
 	-- for each node in path2, add it to the end of path1
-	for node_index = 1, #path2 do
-		table.insert(path1, path2[node_index])
+	for node_index = 1, #path2.path_list do
+		table.insert(path1.path_list, path2.path_list[node_index])
 	end
 
 	-- return the merged path
@@ -281,7 +297,9 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	-- Define the path
 	---@type Path
 	local path = {
-		pathNodeFromMatrix(matrix_start, base_consume_distance)
+		path_list = {
+			pathNodeFromMatrix(matrix_start, base_consume_distance)
+		}
 	}
 
 	--- Function to finalise the path, by adding the matrix_end to the end of the path.
@@ -289,7 +307,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	---@return Path path the finalised path
 	local function finalisePath(path)
 		-- Add the matrix_end to the end of the path
-		table.insert(path, pathNodeFromMatrix(matrix_end, base_consume_distance))
+		table.insert(path.path_list, pathNodeFromMatrix(matrix_end, base_consume_distance))
 
 		-- Return the finalised path
 		return path
@@ -298,17 +316,18 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	--- Function to check if we should nudge the pathfinding again, this checks if it's possible that we're stuck on the tile border.
 	---@param check_path Path the path to check if we should nudge.
 	---@return boolean should_nudge if we should nudge the pathfinding again.
-	local function shouldNudge(check_path)
+	local function shouldNudge(check_path, nudge_node_count)
 		-- Get the number of nodes
-		local node_count = #check_path
+		local node_count = #check_path.path_list
 
 		--- Return false if we're over the 5000 node limit
 		if node_count + previous_path_count >= PATHFINDING_MAX_NODES then
+			d.print("<line>: Pathfinding has reached the maximum node limit, stopping pathfinding.", true, 1)
 			return false
 		end
 
 		-- Get the last node.
-		local last_node = check_path[node_count]
+		local last_node = check_path.path_list[node_count]
 
 		-- Get a vector2 of the last node
 		local last_node_vector = Vector2.new(last_node.x, last_node.z)
@@ -318,6 +337,11 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 
 		-- If we're within the start nudge distance, then we should nudge.
 		if distance_to_closest_tile_border <= PATHFINDING_START_NUDGING_DISTANCE then
+			return true
+		end
+
+		-- If we just got nodes over the NODES_TILL_RE_NUDGE limit, then we should nudge again, as it might've randomly given up.
+		if nudge_node_count >= PATHFINDING_NODES_TILL_RE_NUDGE then
 			return true
 		end
 
@@ -331,10 +355,10 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	-- Merge the initial path with the path
 	path = mergePaths(path, getPathFromNodeList(initial_path, base_consume_distance))
 
-	d.print(("Node Count: %s"):format(#path + previous_path_count), true, 0)
+	d.print(("Node Count: %s"):format(#path.path_list + previous_path_count), true, 0)
 
 	-- Check if we do not need to nudge, if we don't need to, then just return early.
-	if not shouldNudge(path) then
+	if not shouldNudge(path, #initial_path) then
 		-- finalise the path
 		return finalisePath(path)
 	end
@@ -343,13 +367,13 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 	---@return Path path the path from the nudging operation
 	local function startNudging()
 		-- Get the number of nodes in the path
-		local node_count = #path
+		local node_count = #path.path_list
 
 		-- Get the last node
-		local last_node = path[node_count]
+		local last_node = path.path_list[node_count]
 
 		-- Get the angle from the second last node to the last node
-		local starting_angle = angleBetweenNodes(path[node_count-1], last_node)
+		local starting_angle = angleBetweenNodes(path.path_list[node_count-1], last_node)
 
 		-- Get the vector 2 of the last node
 		local last_node_vector = Vector2.new(last_node.x, last_node.z)
@@ -401,7 +425,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 					If the last node of the nudged path is the same as the last node of the current path, 
 					then continue to the next iteration, as we've not moved past the tile border.
 				]]
-				if isPathNodeEqual(nudged_path[#nudged_path], last_node) then
+				if isPathNodeEqual(nudged_path.path_list[#nudged_path.path_list], last_node) then
 					goto continue
 				end
 
@@ -424,15 +448,15 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 						-- nudge the pathfinding again, and return the result, as we want to make sure we did not get stuck on another tile border.
 						nudgePathfind(
 							matrix.translation( -- Set the start matrix as our last matrix.
-								nudged_path[#nudged_path].x,
-								nudged_path[#nudged_path].y,
-								nudged_path[#nudged_path].z
+								nudged_path.path_list[#nudged_path].x,
+								nudged_path.path_list[#nudged_path].y,
+								nudged_path.path_list[#nudged_path].z
 							),
 							matrix_end,
 							required_tags,
 							avoided_tags,
 							base_consume_distance,
-							#path + previous_path_count
+							#path.path_list + previous_path_count
 						)
 					)
 				end
@@ -456,6 +480,41 @@ end
 	External Usage
 
 ]]
+
+-- Gets the total distance of a land path
+---@param path Path the path to get the total distance of
+---@return number total_distance the total distance of the path
+function Pathfinding.getTotalPathDistance(path)
+	local total_distance = 0
+
+	-- If the total distance is already calculated, then return it.
+	if path.total_distance then
+		return path.total_distance
+	end
+
+	-- Iterate through each node in the path
+	for node_index = 1, #path.path_list - 1 do
+		-- Get the current node.
+		local current_node = path.path_list[node_index]
+
+		-- Get the next node.
+		local next_node = path.path_list[node_index + 1]
+
+		-- Add the distance between the two nodes to the total distance.
+		total_distance = total_distance + (
+			Vector3.euclideanDistance(
+				Vector3.new(current_node.x, current_node.y, current_node.z),
+				Vector3.new(next_node.x, next_node.y, next_node.z)
+			)
+		)
+	end
+
+	-- Save the total distance in this path.
+	path.total_distance = total_distance
+
+	-- Return the total distance
+	return total_distance
+end
 
 --- Gets the path for a land vehicle
 ---@param origin SWMatrix the origin, start position of the path
@@ -702,15 +761,15 @@ function Pathfinding.getPathY(path)
 		Pathfinding.createPathY() --build the table this one time
 		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
 	end
-	for each in pairs(path) do
+	for each in pairs(path.path_list) do
 
-		local x = math.round(path[each].x, node_decimal_places)
-		local z = math.round(path[each].z, node_decimal_places)
+		local x = math.round(path.path_list[each].x, node_decimal_places)
+		local z = math.round(path.path_list[each].z, node_decimal_places)
 
 		if g_savedata.graph_nodes.nodes[x] and g_savedata.graph_nodes.nodes[x][z] then --if y exists
-			path[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
-			--d.print("path["..each.."].y: "..tostring(path[each].y), true, 0)
-			path[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
+			path.path_list[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
+			--d.print("path.path_list["..each.."].y: "..tostring(path.path_list[each].y), true, 0)
+			path.path_list[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
 		end
 	end
 	return path --return the path with the added, or not, y values.
@@ -765,6 +824,8 @@ function Pathfinding.createPathY() --this looks through all env mods to see if t
 									g_savedata.graph_nodes.nodes[x] = g_savedata.graph_nodes.nodes[x] or {}
 									g_savedata.graph_nodes.nodes[x][math.round(real_transform[15], node_decimal_places)] = {
 										y = real_transform[14],
+										rx = real_transform[13],
+										rz = real_transform[15],
 										type = graph_node,
 										NSO = last_tag == "NSO" and 1 or last_tag == "not_NSO" and 2 or 0 --[[@as YPathfinderNodeDataNSO]],
 										cdm = Tags.getValue(COMPONENT_DATA.tags, "consume_distance_multiplier", false) --[[@as number]] or 1

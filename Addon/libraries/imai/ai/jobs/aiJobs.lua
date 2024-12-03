@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -122,17 +122,26 @@ function AIJobs.setupMain(is_world_create)
 		-- Store if the number of ai jobs to create, set it to how many positions are offered by this job.
 		local ai_jobs_to_create = Tags.getValue(ai_job_prop.tags, "positions", false) --[[@as number]] or 1
 
+		-- Create a new list of positions to create.
+		local positions_to_create = {}
+
+		for i = 1, ai_jobs_to_create do
+			positions_to_create[i] = true
+		end
+
 		-- Check if the ai job already exists.
 		for _, ai_job in pairs(g_savedata.libraries.ai_jobs.jobs) do
 			-- If the ai job's name is the same as the zone's name, it's not new.
 			if ai_job.usable_prop_id == prop_id then
 				ai_job_exists = true
 
+				positions_to_create[ai_job.position_index] = nil
+
 				-- Update the ai_job's data.
 				ai_job = AIJob.clean(ai_job)
 
 				-- Print that the ai_job was updated.
-				d.print(("(AIJobs.setupMain) AI Job: \"%s\" updated."):format(ai_job.title), true, 0)
+				d.print(("(AIJobs.setupMain) AI Job: \"%s\" updated."):format(ai_job:getNameIdentifier()), true, 0)
 
 				-- Store the updated ai_job.
 				new_ai_jobs[ai_job.id] = ai_job
@@ -151,10 +160,11 @@ function AIJobs.setupMain(is_world_create)
 		end
 
 		-- Create as many ai jobs as required.
-		for _ = 1, ai_jobs_to_create do
+		for position_index, _ in pairs(positions_to_create) do
 			-- Create a new ai_job.
 			local new_ai_job = AIJob.create(
-				ai_job_prop
+				ai_job_prop, 
+				position_index
 			)
 
 			-- If the ai_job is nil, then skip it.
@@ -166,7 +176,7 @@ function AIJobs.setupMain(is_world_create)
 			new_ai_jobs[new_ai_job.id] = new_ai_job
 
 			-- Print that the ai_job was created.
-			d.print(("(AIJobs.setupMain) AI Job \"%s\" created."):format(new_ai_job.title), true, 0)
+			d.print(("(AIJobs.setupMain) AI Job \"%s\" created."):format(new_ai_job:getNameIdentifier()), true, 0)
 
 			-- Increment the number of new ai_jobs made.
 			new_ai_jobs_made = new_ai_jobs_made + 1

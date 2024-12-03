@@ -214,7 +214,7 @@ medicalCondition.create(
 				-- hide tooltip, no bleeding
 				bleeds.hidden = true
 				return
-			end
+			end 
 
 			-- mild bleeding
 			bleeds.custom_data.blood.current = bleeds.custom_data.blood.current - base_blood_loss*0.5

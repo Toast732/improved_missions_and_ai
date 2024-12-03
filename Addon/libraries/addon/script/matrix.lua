@@ -114,9 +114,9 @@ function matrix.g_equals(m1, m2)
 		m1[10] == m2[10] and
 		m1[11] == m2[11] and
 		m1[12] == m2[12] and
-		math.round(m1[13], 1) == math.round(m2[13], 1) and
-		math.round(m1[14], 1) == math.round(m2[14], 1) and
-		math.round(m1[15], 1) == math.round(m2[15], 1) and
+		math.round(m1[13], 0) == math.round(m2[13], 0) and
+		math.round(m1[14], 0) == math.round(m2[14], 0) and
+		math.round(m1[15], 0) == math.round(m2[15], 0) and
 		m1[16] == m2[16]
 		
 end

@@ -286,7 +286,7 @@ table.copy = {
 
 		--return deepCopy(t)
 	
-		return deepCopy(t ,"")
+		return deepCopy(t)
 		
 	end
 }

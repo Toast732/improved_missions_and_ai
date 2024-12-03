@@ -217,7 +217,7 @@ function UsableProp.setupOOP(dirty_usable_prop)
 			self.type == UsableProp.getUsablePropType(addon_component_data) -- if the type is the same
 			and matrix.g_equals(self.transform, zone_data.transform) -- if the transform is the same.
 		)
-	end
+	end 
 
 	--- Attempts to add a new entity to the usable prop, returns false if the prop is full.
 	---@param self UsableProp The usable prop to add the entity to.

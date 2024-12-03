@@ -27,6 +27,8 @@ limitations under the License.
 ]]
 
 -- required libraries
+require("libraries.addon.script.time.gameTimestamp")
+require("libraries.imai.ai.citizens.dependencies.scheduling.citizenSchedule")
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -59,6 +61,7 @@ Citizen = {}
 ---@field tooltip string the tooltip for the status
 ---@field priority number the priority for this status. Highest priority will be shown.
 
+--! Remove this, thinking of abstracting to the item/inventory system, and rewriting the item/inventory system a bit to accomodate.
 ---@class CitizenVehicleData
 ---@field linked_vehicles table<integer, nil> the vehicles linked to this citizen.
 ---@field occupating_vehicle_id integer the vehicle_id the citizen is an occupant of. -1 for none.
@@ -66,7 +69,7 @@ Citizen = {}
 ---@class DirtyCitizen
 ---@field name CitizenName the citizen's name
 ---@field transform SWMatrix the citizen's matrix
----@field schedule table the citizen's schedule
+---@field schedule CitizenSchedule the citizen's schedule
 ---@field outfit_type SWOutfitTypeEnum the citizen's outfit type
 ---@field object_id integer|nil the citizen's object_id, nil if the citizen has not yet been spawned.
 ---@field id CitizenID the citizen's ID.
@@ -79,6 +82,7 @@ Citizen = {}
 ---@field vehicle_data CitizenVehicleData
 ---@field home_building_id BuildingID the building_id of the citizen's home.
 ---@field jobs table<JobID> the jobs the citizen has.
+---@field walking_route Route? the route the citizen is walking on, nil if they are not walking.
 
 ---@class Citizen: DirtyCitizen a citizen with the OOP functions added.
 ---@field updateTooltip fun(self: Citizen) Updates the citizen's tooltip.
@@ -123,7 +127,7 @@ function Citizen.create(transform, outfit_type)
 	local citizen = {
 		name = Citizens.generateName(),
 		transform = transform,
-		schedule = {},
+		schedule = CitizenSchedule.new(g_savedata.libraries.citizens.next_citizen_id),
 		outfit_type = outfit_type,
 		object_id = nil,
 		id = g_savedata.libraries.citizens.next_citizen_id,
@@ -262,6 +266,8 @@ function Citizen.setup(citizen)
 		return desire
 	end
 
+	citizen.schedule = CitizenSchedule.clean(citizen.schedule)
+
 	return citizen
 end
 
@@ -371,5 +377,85 @@ function Citizen.tick(citizen, game_ticks)
 
 	-- Update the citizen's tooltip
 	citizen:updateTooltip()
+
+	-- Tick the citizen's schedule
+	citizen.schedule:tick()
+
+	-- If the citizen is walking, tick their walking.
+	if citizen.walking_route then
+		Citizen.tickWalking(citizen, 1)
+	end
+end
+
+--- Tick a citizen's walking.
+---@param citizen Citizen
+---@param interval number the number of ticks since the last tick (as pseudo movement shouldn't be every tick)
+function Citizen.tickWalking(citizen, interval)
+
+	-- Calculate the maximum distance the citizen can move this tick.
+	local distance_can_travel = 30.5 * (interval/62.5)
+
+	-- Get the path.
+	local path = Routing.getPathFromID(citizen.walking_route.stored_path_id)
+
+	-- Check if we got the path.
+	if not path then
+		d.print(("<line>: Failed to get the path for citizen \"%s\""):format(citizen.name.full), false, 1)
+		return
+	end
+
+	-- Set the last_pos to the transform of the citizen. This will be moved along the path.
+	local last_position = Vector3.fromMatrix(citizen.transform, true)
+
+	-- Iterate through the path.
+	for path_index = citizen.walking_route.path_index, #path do
+		-- Get the node
+		local node = path[path_index]
+
+		-- Create a vector for the position of this node
+		local node_position = Vector3.new(node.x, node.y, node.z)
+
+		-- Calculate the distance from last_position to the node of this path, set to minimum 0.0001, to avoid division by 0.
+		local distance_to_waypoint = math.max(Vector3.euclideanDistance(last_position, node_position), 0.0001)
+
+		-- Get the progress the citizen can travel along this path.
+		local progress = math.min(distance_can_travel / distance_to_waypoint, 1)
+
+		--[[
+			Set last pos to the position of the node if progress is 1
+
+			Otherwise, travel along the path by progress.
+		]]
+
+		-- Remove how much we're travelling from the distance to the waypoint.
+		distance_can_travel = distance_can_travel - distance_to_waypoint * progress
+		
+		-- Check if the progress is 1
+		if progress == 1 then
+			-- Set the last position to the node position.
+			last_position = node_position
+
+			-- Increment the path index the citizen is on.
+			citizen.walking_route.path_index = citizen.walking_route.path_index + 1
+		else
+			-- Travel along the path by progress.
+			last_position = Vector3.lerp(last_position, node_position, progress)
+
+			-- Break, as we cannot move any more.
+			break
+		end
+	end
+
+	-- Set the citizen's transform to the new position.
+	citizen.transform = Vector3.toMatrix(last_position)
+
+	--d.print(("Citizen %s is now at %s"):format(citizen.name.full, string.fromTable(last_position)), false, 0)
+
+	server.removeMapObject(-1, citizen.object_id + 14784)
+
+	server.addMapObject(-1, citizen.object_id + 14784, 0, 1, citizen.transform[13], citizen.transform[15], 0, 0, 0, 0, citizen.name.full, 10, citizen.name.full, 255, 255, 255, 255)
+
+	-- Set the citizen's object's position to the new position.
+	server.setObjectPos(citizen.object_id, citizen.transform)
 
 end

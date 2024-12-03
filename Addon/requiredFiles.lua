@@ -42,6 +42,8 @@ require("libraries.imai.gameplay.gameMaster")
 
 require("libraries.imai.ai.citizens.citizens")
 
+require("libraries.imai.commuting.communting")
+
 require("libraries.imai.missions.missions")
 
 require("animations.animations")
@@ -61,9 +63,14 @@ require("libraries.addon.script.debugging") -- functions for debugging
 require("libraries.map") -- functions for drawing on the map
 require("libraries.utils.math") -- custom math functions
 
+require("libraries.utils.vector2") -- custom vector2 functions
+require("libraries.utils.vector3") -- custom vector3 functions
+
 require("libraries.utils.unitConversions")
 
 require("libraries.utils.executionQueue")
+
+require("libraries.addon.script.time.gameTimestamp") -- functions for getting game timestamps.
 
 require("libraries.addon.script.matrix") -- custom matrix functions
 require("libraries.pathing.pathfinding") -- functions for pathfinding
