@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.23)"
+ADDON_VERSION = "(0.0.1.25)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -4755,6 +4755,500 @@ function Effects.onTick(game_ticks)
 end
 
 
+-- Require Asset System.
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	This is used to store the list of assets, to keep this system modular, these are not tied directly to a citizen, but instead, use an asset_holder_id to link to
+		owners.
+
+	An asset is an something that the holder has access to. An asset is kept abstract, so it could be an object, a vehicle, a building, or just a virtual item for data storage.
+
+	Additionally, the asset holder does not always mean ownership, and does not mean that the asset is always accessible to the holders. For example,
+		a citizen may have a car, but, it's currently in use by one of their family members, so, currently, they do not have access to it.
+		another possibility, is that a citizen may have a car, but it was stolen by the player, as such, the player is now an asset holder, and the citizen does not have access to it.
+
+		The owner has the power to decide who has access to the asset, and can revoke access at any time, to anybody they lent it to. (stealing it overrides this, however.)
+]]
+
+-- library name
+HoldableAssetManager = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.asset_manager = {}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--[[
+
+
+	Post Required Libraries
+
+
+]]
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	This defines the class for a holdable asset.
+]]
+
+-- library name
+HoldableAssetManager.HoldableAsset = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias AssetID integer
+
+---@class HoldableAsset
+---@field asset_id AssetID
+---@field asset_type AssetType The type of asset this is.
+
+---@class HoldableAssetDefinition
+---@field asset_type AssetType
+
+---@alias HoldableAssets table<HoldableAsset>
+--[[
+
+
+	Constants
+
+
+]]
+
+---@type table<AssetType, HoldableAssetDefinition>
+HOLDABLE_ASSET_DEFINITIONS = {}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.asset_manager.holdable_assets = {
+	---@type HoldableAssets
+	assets = {},
+
+	---@type AssetID
+	next_asset_id = 1
+}
+
+---@enum ASSET_TYPE
+ASSET_TYPE = {
+	BUILDING = 1
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- This function is used to define a new asset type.
+---@param asset_type ASSET_TYPE The asset type to define.
+function HoldableAssetManager.HoldableAsset.registerAssetType(asset_type)
+end
+
+--- This function is used to create the base definition of a holdable asset. This should only really be used by definitions, rather than actual implementations.
+---@param asset_type AssetType the asset type this is.
+---@return HoldableAsset holdable_asset the created asset.
+function HoldableAssetManager.HoldableAsset.createBaseAsset(asset_type)
+	-- Create the asset.
+	---@type HoldableAsset
+	local holdable_asset = {
+		asset_id = g_savedata.libraries.asset_manager.holdable_assets.next_asset_id,
+		asset_type = asset_type
+	}
+
+	-- Increment the next_asset_id
+	g_savedata.libraries.asset_manager.holdable_assets.next_asset_id = g_savedata.libraries.asset_manager.holdable_assets.next_asset_id + 1
+
+	-- Store the asset.
+	table.insert(g_savedata.libraries.asset_manager.holdable_assets.assets, holdable_asset)
+
+	-- Return the asset.
+	return g_savedata.libraries.asset_manager.holdable_assets.assets[#g_savedata.libraries.asset_manager.holdable_assets.assets]
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	This file is used to define and handle some of the functionality for asset holders themselves.
+]]
+
+-- library name
+HoldableAssetManager.AssetHolder = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias AssetHolderID integer
+
+---@class DirtyAssetHolder an asset holder without the OOP functions setup.
+---@field asset_holder_id AssetHolderID
+---@field held_assets HeldAssets
+
+---@class AssetHolder: DirtyAssetHolder
+
+---@alias AssetHolders table<AssetHolder>
+
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+g_savedata.libraries.asset_manager.asset_holders = {
+	---@type AssetHolders
+	holders = {},
+
+	---@type AssetHolderID
+	next_asset_holder_id = 1
+}
+
+--[[
+
+
+	Functions
+
+
+]]
+
+--- This function is used to simply create a new AssetHolder, and returns it's ID. If the ID is lost, it is incredibly difficult to get back, so make sure it's stored.
+--- @return AssetHolderID asset_holder_id the ID of the new holder.
+function HoldableAssetManager.AssetHolder.new()
+
+	--- Create the AssetHolder.
+	---@type DirtyAssetHolder
+	local asset_holder = {
+		asset_holder_id = g_savedata.libraries.asset_manager.asset_holders.next_asset_holder_id,
+		held_assets = {}
+	}
+
+	-- Increment the next_asset_holder_id
+	g_savedata.libraries.asset_manager.asset_holders.next_asset_holder_id = g_savedata.libraries.asset_manager.asset_holders.next_asset_holder_id + 1
+
+	-- Store the asset holder.
+	table.insert(g_savedata.libraries.asset_manager.asset_holders.holders, asset_holder)
+
+	-- Return their ID.
+	return asset_holder.asset_holder_id
+end
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	This is used to store the information used to link assets and their holders, storing data such as their relationship, who granted them access, etc.
+]]
+
+-- library name
+HoldableAssetManager.AssetRelationship = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+---@enum AssetRelationship
+ASSET_RELATIONSHIP = {
+	OWNED = 1,
+	SHARED = 2,
+	STOLE = 3
+}
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+--[[
+	
+Copyright 2024 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[ 
+	This is used to store the information used to link assets and their holders, storing data such as their relationship, who granted them access, etc.
+]]
+
+-- library name
+HoldableAssetManager.HeldAssets = {}
+
+--[[
+
+
+	Classes
+
+
+]]
+
+---@alias HeldAssetID integer
+
+---@class HeldAsset This links an asset to a holder, which then stores data such as their relationship.
+---@field held_asset_id HeldAssetID
+---@field asset_id AssetID The asset this held asset is linked to
+---@field relationship AssetRelationship The relationship between this holder and this asset
+---@field grantor_holder_id AssetHolderID? Who granted this holder access to this asset, if applicable.
+
+---@alias HeldAssets table<HeldAsset>
+
+--[[
+
+
+	Constants
+
+
+]]
+
+--[[
+
+
+	Variables
+
+
+]]
+
+--[[
+
+
+	Functions
+
+
+]]
+
+
+
+
+
 -- Require Towns.
 --[[
 	
@@ -5130,7 +5624,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -5167,6 +5661,7 @@ Town = {}
 ---@field id TownID The ID of the town.
 ---@field name string The name of the town.
 ---@field buildings table<index, BuildingID> The buildings in the town.
+---@field asset_holder_id AssetHolderID the id of this asset holder.
 
 --[[
 
@@ -5199,10 +5694,12 @@ Town = {}
 function Town.create(id, name)
 
 	-- Create the town.
+	---@type Town
 	local new_town = {
 		id = id,
 		name = name,
-		buildings = {}
+		buildings = {},
+		asset_holder_id = HoldableAssetManager.AssetHolder.new()
 	}
 
 	-- Return the town.
@@ -5582,6 +6079,7 @@ Building = {}
 ---@field extra_prefab_data table<BuildingType, ExtraBuildingPrefabData> The extra prefab data for this building.
 ---@field extra_data table<BuildingType, ExtraBuildingData> The extra data for this building.
 ---@field usable_props UsablePropHashmap The props within this building.
+---@field asset_id AssetID the id of this asset.
 
 --[[
 
@@ -5645,7 +6143,8 @@ function Building.create(name, building_id, zone_data)
 		types = {},
 		extra_prefab_data = {},
 		extra_data = {},
-		usable_props = {}
+		usable_props = {},
+		asset_id = HoldableAssetManager.Asset.new()
 	}
 	
 	-- Update the building's data.
@@ -6515,7 +7014,7 @@ function ZoneLinker.getZoneData(component_data, location_data)
 
 	-- If the tile's location was not found, return nil.
 	if not is_success then
-		d.print(("6518: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
+		d.print(("7017: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
 		return nil
 	end
 
@@ -6643,7 +7142,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If the value was not found, return nil.
 	if not type_value then
-		d.print(("6646: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
+		d.print(("7145: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
 			addon_component_data.tags_full
 		), true, 1)
 		return nil
@@ -6654,7 +7153,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If it was not found, return nil.
 	if not usable_prop_type then
-		d.print(("6657: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
+		d.print(("7156: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
 			type_value
 		), true, 1)
 		return nil
@@ -6874,7 +7373,7 @@ function UsableProps.setupMain(is_world_create)
 
 	-- If we failed to find any, abort.
 	if not got_spawning_data then
-		d.print(("6877: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
+		d.print(("7376: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
 		return
 	end
 
@@ -6903,7 +7402,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the component data was not found, skip.
 		if not is_success then
-			d.print(("6906: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("7405: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -6917,7 +7416,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the zone data was not found, skip.
 		if not zone_data then
-			d.print(("6920: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("7419: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -7016,13 +7515,13 @@ function UsableProps.selectRandomPropWithType(usablePropHashmap, type, amount, s
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("7019: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
+		d.print(("7518: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
 	-- If we have less props than the amount, return nil.
 	if #props_with_type < amount then
-		d.print(("7025: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
+		d.print(("7524: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
@@ -7068,7 +7567,7 @@ function UsableProps.getPropsWithType(prop_type)
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("7071: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
+		d.print(("7570: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
 		return nil
 	end
 
@@ -7258,7 +7757,7 @@ function AIJob.create(usable_prop, position_index)
 
 	-- If the building was not found, print an error and return.
 	if not job_building_id then
-		d.print(("7261: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
+		d.print(("7760: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
 			usable_prop.id
 		), true, 1)
 		return
@@ -7515,7 +8014,7 @@ function AIJobs.setupMain(is_world_create)
 
 	-- If it failed, print an error and return.
 	if not ai_job_props then
-		d.print(("7518 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
+		d.print(("8017 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
 		return
 	end
 
@@ -7765,7 +8264,7 @@ function AIJobPool.create()
 
 				-- Ensure the citizen exists.
 				if not citizen then
-					d.print(("7768 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
+					d.print(("8267 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
 					goto continue
 				end
 
@@ -7874,7 +8373,7 @@ function AIJobPool.create()
 
 					-- Ensure the citizen exists.
 					if not citizen then
-						d.print(("7877 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
+						d.print(("8376 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
 						goto continue
 					end
 
@@ -7944,7 +8443,7 @@ function AIJobPool.create()
 			end
 
 			-- Print the number of citizens hired, and not hired.
-			d.print(("7947 (AIJobPool.compute) Hiring cycle complete! %d citizens were hired, and %d citizens were not hired."):format(citizens_hired, #self.citizens), true, 0)
+			d.print(("8446 (AIJobPool.compute) Hiring cycle complete! %d citizens were hired, and %d citizens were not hired."):format(citizens_hired, #self.citizens), true, 0)
 		end
 	}
 
@@ -8303,21 +8802,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("8306: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8805: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("8313: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("8812: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("8320: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("8819: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -8355,14 +8854,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("8358: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8857: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("8365: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("8864: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -8372,7 +8871,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("8375: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("8874: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -8406,7 +8905,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("8409: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("8908: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -8417,7 +8916,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("8420: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("8919: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -8473,7 +8972,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("8476: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("8975: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -8625,7 +9124,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("8628: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("9127: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -8634,7 +9133,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("8637: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("9136: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -8655,7 +9154,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("8658: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("9157: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -8664,7 +9163,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("8667: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("9166: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -9048,7 +9547,7 @@ function CitizenScheduleTasks.createWalkToPositionTask(citizen_id, name, start_t
 
 			-- If the citizen is nil, then return.
 			if citizen == nil then
-				d.print(("9051 (CitizenScheduleTaskWalkToPosition.checkCompletion) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				d.print(("9550 (CitizenScheduleTaskWalkToPosition.checkCompletion) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 				return true
 			end
 
@@ -9067,7 +9566,7 @@ function CitizenScheduleTasks.createWalkToPositionTask(citizen_id, name, start_t
 
 			-- If the citizen is nil, then return.
 			if citizen == nil then
-				d.print(("9070 (CitizenScheduleTaskWalkToPosition.taskStartActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				d.print(("9569 (CitizenScheduleTaskWalkToPosition.taskStartActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 				return
 			end
 
@@ -9231,7 +9730,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If the citizen is nil, then return.
 		if citizen == nil then
-			d.print(("9234 (CitizenSchedule.generateSchedule) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+			d.print(("9733 (CitizenSchedule.generateSchedule) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -9315,7 +9814,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If the citizen is nil, then return.
 		if citizen == nil then
-			d.print(("9318 (CitizenSchedule.tick) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+			d.print(("9817 (CitizenSchedule.tick) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -9326,7 +9825,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If there are no tasks, then return.
 		if #self.tasks == 0 then
-			--d.print(("9329 (CitizenSchedule.tick) Error: Failed to generate the schedule for citizen with id %d."):format(self.citizen_id), true, 1)
+			--d.print(("9828 (CitizenSchedule.tick) Error: Failed to generate the schedule for citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -9335,7 +9834,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If the current task is nil, then return.
 		if current_task == nil then
-			d.print(("9338 (CitizenSchedule.tick) Error: Failed to get the current task for citizen with id %d."):format(self.citizen_id), true, 1)
+			d.print(("9837 (CitizenSchedule.tick) Error: Failed to get the current task for citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -9344,7 +9843,7 @@ function CitizenSchedule.clean(schedule)
 			-- We can start the task, so start it.
 			current_task.started = true
 
-			d.print(("9347 (CitizenSchedule.tick) Task \"%s\" started for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
+			d.print(("9846 (CitizenSchedule.tick) Task \"%s\" started for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
 
 			-- Call the task's start actions.
 			if current_task.taskStartActions then
@@ -9362,7 +9861,7 @@ function CitizenSchedule.clean(schedule)
 					current_task:taskEndActions()
 				end
 
-				d.print(("9365 (CitizenSchedule.tick) Task \"%s\" completed for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
+				d.print(("9864 (CitizenSchedule.tick) Task \"%s\" completed for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
 
 				-- The task is completed, so remove it from the schedule.
 				table.remove(self.tasks, 1)
@@ -9407,6 +9906,7 @@ Citizen = {}
 ---@field tooltip string the tooltip for the status
 ---@field priority number the priority for this status. Highest priority will be shown.
 
+--! Remove this, thinking of abstracting to the item/inventory system, and rewriting the item/inventory system a bit to accomodate.
 ---@class CitizenVehicleData
 ---@field linked_vehicles table<integer, nil> the vehicles linked to this citizen.
 ---@field occupating_vehicle_id integer the vehicle_id the citizen is an occupant of. -1 for none.
@@ -9425,6 +9925,7 @@ Citizen = {}
 ---@field object_type "citizen"
 ---@field statuses table<integer, Status> stores the statuses of the citizen.
 ---@field vehicle_data CitizenVehicleData
+---@field asset_holder_id AssetHolderID the citizen's asset holder id
 ---@field home_building_id BuildingID the building_id of the citizen's home.
 ---@field jobs table<JobID> the jobs the citizen has.
 ---@field walking_route Route? the route the citizen is walking on, nil if they are not walking.
@@ -9491,6 +9992,7 @@ function Citizen.create(transform, outfit_type)
 			linked_vehicles = {},
 			occupating_vehicle_id = -1
 		},
+		asset_holder_id = HoldableAssetManager.AssetHolder.new(),
 		home_building_id = -1,
 		jobs = {}
 	}
@@ -9689,7 +10191,7 @@ function Citizen.tick(citizen, game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("9692: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("10194: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -9745,7 +10247,7 @@ function Citizen.tickWalking(citizen, interval)
 
 	-- Check if we got the path.
 	if not path then
-		d.print(("9748: Failed to get the path for citizen \"%s\""):format(citizen.name.full), false, 1)
+		d.print(("10250: Failed to get the path for citizen \"%s\""):format(citizen.name.full), false, 1)
 		return
 	end
 
@@ -10628,7 +11130,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("10631: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("11133: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -10664,7 +11166,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("10667: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("11169: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -10675,7 +11177,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("10678: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("11180: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -10687,7 +11189,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("10690: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("11192: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -10837,7 +11339,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("10840: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("11342: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -10946,7 +11448,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("10949: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("11451: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -11771,7 +12273,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("11774: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("12276: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -11791,7 +12293,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("11794: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("12296: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -11955,13 +12457,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("11958: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("12460: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("11964: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("12466: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -11982,17 +12484,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("11985: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("12487: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("11990: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("12492: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("11995: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("12497: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -12472,7 +12974,7 @@ function GameMaster.spawnCitizens()
 
 					-- If there are no bed props, then skip this citizen.
 					if bed_props == nil then
-						d.print(("12475: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
+						d.print(("12977: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
 						goto continue
 					end
 
@@ -12523,6 +13025,9 @@ function GameMaster.assignAIJobs()
 	-- Compute the job pool.
 	job_pool:compute()
 end
+
+
+-- Require Citizens.
 --[[
 	
 Copyright 2024 Liam Matthews
@@ -12732,7 +13237,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("12735 Walking Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("13240 Walking Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -12755,7 +13260,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("12758 Walking Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("13263 Walking Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -13316,7 +13821,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("13319: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("13824: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -13329,7 +13834,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("13332: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("13837: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -17292,7 +17797,7 @@ function pathNodeFromSWNode(sw_node, base_consume_distance)
 	-- If the node is missing the y and/or cdm fields, then print an error.
 	---@diagnostic disable-next-line: undefined-field
 	if not sw_node.y or not sw_node.cdm then
-		d.print(("17295: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+		d.print(("17800: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
 	end
 
 	return {
@@ -17414,7 +17919,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 
 		--- Return false if we're over the 5000 node limit
 		if node_count + previous_path_count >= PATHFINDING_MAX_NODES then
-			d.print("17417: Pathfinding has reached the maximum node limit, stopping pathfinding.", true, 1)
+			d.print("17922: Pathfinding has reached the maximum node limit, stopping pathfinding.", true, 1)
 			return false
 		end
 

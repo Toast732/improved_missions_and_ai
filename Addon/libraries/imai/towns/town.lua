@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -53,6 +53,7 @@ Town = {}
 ---@field id TownID The ID of the town.
 ---@field name string The name of the town.
 ---@field buildings table<index, BuildingID> The buildings in the town.
+---@field asset_holder_id AssetHolderID the id of this asset holder.
 
 --[[
 
@@ -85,10 +86,12 @@ Town = {}
 function Town.create(id, name)
 
 	-- Create the town.
+	---@type Town
 	local new_town = {
 		id = id,
 		name = name,
-		buildings = {}
+		buildings = {},
+		asset_holder_id = HoldableAssetManager.AssetHolder.new()
 	}
 
 	-- Return the town.

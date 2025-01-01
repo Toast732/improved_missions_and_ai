@@ -94,6 +94,7 @@ Building = {}
 ---@field extra_prefab_data table<BuildingType, ExtraBuildingPrefabData> The extra prefab data for this building.
 ---@field extra_data table<BuildingType, ExtraBuildingData> The extra data for this building.
 ---@field usable_props UsablePropHashmap The props within this building.
+---@field asset_id AssetID the id of this asset.
 
 --[[
 
@@ -157,7 +158,8 @@ function Building.create(name, building_id, zone_data)
 		types = {},
 		extra_prefab_data = {},
 		extra_data = {},
-		usable_props = {}
+		usable_props = {},
+		asset_id = HoldableAssetManager.Asset.new()
 	}
 	
 	-- Update the building's data.

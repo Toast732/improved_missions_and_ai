@@ -80,6 +80,7 @@ Citizen = {}
 ---@field object_type "citizen"
 ---@field statuses table<integer, Status> stores the statuses of the citizen.
 ---@field vehicle_data CitizenVehicleData
+---@field asset_holder_id AssetHolderID the citizen's asset holder id
 ---@field home_building_id BuildingID the building_id of the citizen's home.
 ---@field jobs table<JobID> the jobs the citizen has.
 ---@field walking_route Route? the route the citizen is walking on, nil if they are not walking.
@@ -146,6 +147,7 @@ function Citizen.create(transform, outfit_type)
 			linked_vehicles = {},
 			occupating_vehicle_id = -1
 		},
+		asset_holder_id = HoldableAssetManager.AssetHolder.new(),
 		home_building_id = -1,
 		jobs = {}
 	}

@@ -72,6 +72,8 @@ HoldableAssetManager = {}
 
 ]]
 
+g_savedata.libraries.asset_manager = {}
+
 --[[
 
 
@@ -80,3 +82,15 @@ HoldableAssetManager = {}
 
 ]]
 
+--[[
+
+
+	Post Required Libraries
+
+
+]]
+
+require("libraries.imai.holdableAssetManager.assets.holdableAsset")
+require("libraries.imai.holdableAssetManager.holders.assetHolder")
+require("libraries.imai.holdableAssetManager.holders.assetRelationship")
+require("libraries.imai.holdableAssetManager.holders.heldAsset")

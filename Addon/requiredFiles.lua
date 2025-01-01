@@ -18,6 +18,9 @@ require("libraries.addon.commands.command.command") -- command handler, used to 
 
 require("libraries.imai.effects.effects")
 
+-- Require Asset System.
+require("libraries.imai.holdableAssetManager.holdableAssetManager")
+
 -- Require Towns.
 require("libraries.imai.towns.towns")
 require("libraries.imai.towns.town")
@@ -40,6 +43,7 @@ require("libraries.imai.ai.jobs.pool.aiJobPool")
 -- Require Game Master.
 require("libraries.imai.gameplay.gameMaster")
 
+-- Require Citizens.
 require("libraries.imai.ai.citizens.citizens")
 
 require("libraries.imai.commuting.communting")
