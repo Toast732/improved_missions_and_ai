@@ -28,6 +28,7 @@ limitations under the License.
 
 -- required libraries
 require("libraries.addon.callbacks.binder.binder")
+require("libraries.imai.holdableAssetManager.holdableAssetManager")
 require("libraries.imai.buildings.buildings")
 require("libraries.addon.components.usableProps.usableProps")
 require("libraries.imai.ai.citizens.citizens")
@@ -91,6 +92,11 @@ function GameMaster.setupMain(is_world_create)
 	--TODO: Remove later, for debug, put as todo so it's marked.
 	is_world_create = true
 
+	-- Setup the asset holders.
+	for _, asset_holder in pairs(g_savedata.libraries.asset_manager.asset_holders.holders) do
+		HoldableAssetManager.AssetHolder.setup(asset_holder)
+	end
+
 	-- Setup the citizens
 	for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
 		Citizen.setup(citizen)
@@ -115,7 +121,7 @@ function GameMaster.spawnCitizens()
 	local towns = g_savedata.libraries.towns.stored_towns
 
 	-- Iterate through all of the towns.
-	for town_index, town in ipairs(towns) do
+	for _, town in ipairs(towns) do
 		
 		-- In this town, iterate through each building.
 		for _, building_id in ipairs(town.buildings) do

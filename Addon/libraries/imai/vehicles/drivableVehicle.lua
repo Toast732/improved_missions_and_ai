@@ -35,6 +35,9 @@ require("libraries.addon.callbacks.binder.binder")
 require("libraries.imai.vehicles.vehicle")
 require("libraries.imai.vehicles.routing.vehicleTypes.land")
 
+-- Require the Drivable Vehicle Asset.
+require("libraries.imai.holdableAssetManager.assets.types.drivableVehicleAsset")
+
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
@@ -63,6 +66,7 @@ DrivableVehicle = {}
 ---@class DrivableVehicle
 ---@field drivable_vehicle_id DrivableVehicleID the id of the drivable vehicle.
 ---@field generic_vin GenericVIN the generic vehicle identifier number for this vehicle.
+---@field asset_id AssetID the asset id of this asset.
 ---@field prefab_name string the name of the prefab for the vehicle.
 ---@field transform SWMatrix the transform of the vehicle.
 ---@field route Route|nil the route for this vehicle.
@@ -211,6 +215,7 @@ function DrivableVehicle.spawn(prefab_name, transform)
 	local drivable_vehicle = {
 		drivable_vehicle_id = drivable_vehicle_id,
 		generic_vin = generic_vin,
+		asset_id = HoldableAssetManager.HoldableAsset.createDrivableVehicleAsset(drivable_vehicle_id),
 		prefab_name = prefab_name,
 		transform = transform,
 		route = nil,

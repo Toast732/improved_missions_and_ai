@@ -37,14 +37,27 @@ require("libraries.imai.commuting.communting")
 	Walking Commute Definition.
 ]]
 
+-- Create the CommuteWalkingOptionData class.
+---@class CommuteWalkingOptionData: CommuteBaseOptionData
+
 -- Register the walking commute type
 Commuting.registerCommuteType(
 	"Walking",
 	true,
-	function(citizen)
-		return true
-	end,
+	---@returns table<CommuteWalkingOptionData>
 	function(citizen, origin, destination)
+		return {
+			{
+				citizen = citizen
+			}
+		}
+	end,
+	---@param options_data table<CommuteWalkingOptionData>
+	function(options_data)
+		return #options_data > 0
+	end,
+	---@param option_data CommuteWalkingOptionData
+	function(option_data, origin, destination)
 		-- Do a land pathfind between the two points.
 		local route = LandRoute.new(
 			Vector3.toMatrix(origin),
@@ -53,7 +66,8 @@ Commuting.registerCommuteType(
 
 		return route
 	end,
-	function(citizen, route)
+	---@param option_data CommuteWalkingOptionData
+	function(option_data, route)
 
 		-- Get the path for this route
 		local path = Routing.getPathFromID(route.stored_path_id)
@@ -77,7 +91,8 @@ Commuting.registerCommuteType(
 		-- Turn the time into a game timestamp
 		return GameTimestamp.secondsToTimestamp(time)
 	end,
-	function(citizen, route)
+	---@param option_data CommuteWalkingOptionData
+	function(option_data, route)
 		-- Get the path for this route
 		local path = Routing.getPathFromID(route.stored_path_id)
 
@@ -90,7 +105,7 @@ Commuting.registerCommuteType(
 		-- Get the distance of the path
 		local distance = Pathfinding.getTotalPathDistance(path)
 
-		-- Get the walking cost of the citizen
+		-- Get the walking cost of the citizen (per metre)
 		local walking_cost = 0.1
 
 		-- Get the cost of this commute

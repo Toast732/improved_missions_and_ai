@@ -54,8 +54,9 @@ HoldableAssetManager.AssetHolder = {}
 ---@field held_assets HeldAssets
 
 ---@class AssetHolder: DirtyAssetHolder
+---@field getHeldAssetsOfType fun(self: AssetHolder, asset_type: ASSET_TYPE): table<integer, HeldAsset> function to get all held assets of a certain type.
 
----@alias AssetHolders table<AssetHolder>
+---@alias AssetHolders table<AssetHolderID, AssetHolder>
 
 
 --[[
@@ -101,12 +102,46 @@ function HoldableAssetManager.AssetHolder.new()
 		held_assets = {}
 	}
 
+	-- Setup the functions for the asset holder.
+	asset_holder = HoldableAssetManager.AssetHolder.setup(asset_holder)
+
 	-- Increment the next_asset_holder_id
 	g_savedata.libraries.asset_manager.asset_holders.next_asset_holder_id = g_savedata.libraries.asset_manager.asset_holders.next_asset_holder_id + 1
 
 	-- Store the asset holder.
-	table.insert(g_savedata.libraries.asset_manager.asset_holders.holders, asset_holder)
+	g_savedata.libraries.asset_manager.asset_holders.holders[asset_holder.asset_holder_id] = asset_holder
 
 	-- Return their ID.
 	return asset_holder.asset_holder_id
+end
+
+--- Sets up the oop functions for an asset holder.
+---@param asset_holder DirtyAssetHolder|AssetHolder the asset holder to setup the functions for.
+---@return AssetHolder asset_holder the asset holder with the functions setup.
+function HoldableAssetManager.AssetHolder.setup(asset_holder)
+
+	--- Function to get all held assets of a certain type.
+	---@param self AssetHolder the asset holder to get the assets from.
+	---@param asset_type ASSET_TYPE the type of asset to get.
+	---@return table<integer, HeldAsset> held_assets the held assets of that type.
+	asset_holder.getHeldAssetsOfType = function(self, asset_type)
+		local assets = {}
+
+		-- Loop through all held assets, and add them to the list if they match the type.
+		for _, held_asset in pairs(asset_holder.held_assets) do
+
+			-- If the asset type matches, add it to the list.
+			if held_asset.asset_type == asset_type then
+
+				-- Add the asset to the list.
+				table.insert(assets, held_asset)
+			end
+		end
+
+		-- Return the assets.
+		return assets
+	end
+
+	-- Return the asset holder. Cast to AssetHolder.
+	return asset_holder --[[@as AssetHolder]]
 end

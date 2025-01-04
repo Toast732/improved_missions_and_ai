@@ -87,6 +87,7 @@ Building = {}
 ---@class Building
 ---@field id BuildingID The ID of the building.
 ---@field town_id TownID The ID of the town this building is in.
+---@field asset_id AssetID the id of this asset.
 ---@field name string The name of the building.
 ---@field transform SWMatrix The transform of the building.
 ---@field size Vector3 The size of the building.
@@ -94,7 +95,6 @@ Building = {}
 ---@field extra_prefab_data table<BuildingType, ExtraBuildingPrefabData> The extra prefab data for this building.
 ---@field extra_data table<BuildingType, ExtraBuildingData> The extra data for this building.
 ---@field usable_props UsablePropHashmap The props within this building.
----@field asset_id AssetID the id of this asset.
 
 --[[
 
@@ -152,14 +152,14 @@ function Building.create(name, building_id, zone_data)
 	local building = {
 		id = building_id,
 		town_id = town_id,
+		asset_id = HoldableAssetManager.Asset.new(),
 		name = name,
 		transform = zone_data.transform,
 		size = Vector3.new(zone_data.size.x, zone_data.size.y, zone_data.size.z),
 		types = {},
 		extra_prefab_data = {},
 		extra_data = {},
-		usable_props = {},
-		asset_id = HoldableAssetManager.Asset.new()
+		usable_props = {}
 	}
 	
 	-- Update the building's data.

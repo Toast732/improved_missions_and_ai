@@ -27,6 +27,7 @@ limitations under the License.
 ]]
 
 -- required libraries
+require("libraries.imai.holdableAssetManager.holdableAssetManager") -- require here, to ensure it's put above this file.
 
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
@@ -56,7 +57,7 @@ HoldableAssetManager.HoldableAsset = {}
 ---@class HoldableAssetDefinition
 ---@field asset_type AssetType
 
----@alias HoldableAssets table<HoldableAsset>
+---@alias HoldableAssets table<AssetID, HoldableAsset>
 --[[
 
 
@@ -86,7 +87,8 @@ g_savedata.libraries.asset_manager.holdable_assets = {
 
 ---@enum ASSET_TYPE
 ASSET_TYPE = {
-	BUILDING = 1
+	BUILDING = 1,
+	DRIVABLE_VEHICLE = 2
 }
 
 --[[
@@ -104,7 +106,7 @@ end
 
 --- This function is used to create the base definition of a holdable asset. This should only really be used by definitions, rather than actual implementations.
 ---@param asset_type AssetType the asset type this is.
----@return HoldableAsset holdable_asset the created asset.
+---@return AssetID asset_id the created asset's ID.
 function HoldableAssetManager.HoldableAsset.createBaseAsset(asset_type)
 	-- Create the asset.
 	---@type HoldableAsset
@@ -117,8 +119,8 @@ function HoldableAssetManager.HoldableAsset.createBaseAsset(asset_type)
 	g_savedata.libraries.asset_manager.holdable_assets.next_asset_id = g_savedata.libraries.asset_manager.holdable_assets.next_asset_id + 1
 
 	-- Store the asset.
-	table.insert(g_savedata.libraries.asset_manager.holdable_assets.assets, holdable_asset)
+	g_savedata.libraries.asset_manager.holdable_assets.assets[holdable_asset.asset_id] = holdable_asset
 
-	-- Return the asset.
-	return g_savedata.libraries.asset_manager.holdable_assets.assets[#g_savedata.libraries.asset_manager.holdable_assets.assets]
+	-- Return the asset id.
+	return holdable_asset.asset_id
 end

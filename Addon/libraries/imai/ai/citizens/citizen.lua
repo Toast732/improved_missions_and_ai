@@ -89,6 +89,7 @@ Citizen = {}
 ---@field updateTooltip fun(self: Citizen) Updates the citizen's tooltip.
 ---@field updateStability fun(self: Citizen) Updates the citizen's stability.
 ---@field getJobDesire fun(self: Citizen, job: AIJob): number Gets how much the citizen wants the job.
+---@field getAssetHolder fun(self: Citizen): AssetHolder Gets the citizen's asset holder.
 
 --[[
 
@@ -266,6 +267,19 @@ function Citizen.setup(citizen)
 
 		-- Return the desire.
 		return desire
+	end
+
+	--[[
+	
+		Setup the Asset Holder Functions
+
+	]]
+
+	---# Gets the citizen's asset holder.
+	---@param self Citizen
+	---@return AssetHolder asset_holder the citizen's asset holder.
+	citizen.getAssetHolder = function(self)
+		return g_savedata.libraries.asset_manager.asset_holders.holders[self.asset_holder_id]
 	end
 
 	citizen.schedule = CitizenSchedule.clean(citizen.schedule)

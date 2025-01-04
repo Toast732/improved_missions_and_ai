@@ -60,13 +60,18 @@ Commuting = {}
 
 ---@alias CommuteCost number
 
+--- Base class to be extended from, so each commute option can specify the custom data they require.
+---@class CommuteBaseOptionData
+---@field citizen Citizen the citizen this commute is for.
+
 ---@class CommuteTypeDefinition
 ---@field name string the name of the commute type, eg "walking"
 ---@field interim boolean if this commute can be used as an interim commute (eg: walking from house to the car)
----@field is_available fun(citizen: Citizen): boolean if this commute type is available for this citizen.
----@field calculate_route fun(citizen: Citizen, origin: Vector3, destination: Vector3): Route the route for this commute type.
----@field get_commute_time fun(citizen: Citizen, route: Route): GameTimestamp the time it takes for this citizen to commute using this commute type.
----@field get_cost fun(citizen: Citizen, route: Route): CommuteCost the cost of this commute type.
+---@field get_options fun(citizen: Citizen, origin: Vector3, destination: Vector3): table<CommuteBaseOptionData> the options for this commute type.
+---@field is_available fun(options_data: table<CommuteBaseOptionData>): boolean if this commute type is available for this citizen.
+---@field calculate_route fun(option_data: CommuteBaseOptionData, origin: Vector3, destination: Vector3): Route the route for this commute type.
+---@field get_commute_time fun(option_data: CommuteBaseOptionData, route: Route): GameTimestamp the time it takes for this citizen to commute using this commute type.
+---@field get_cost fun(option_data: CommuteBaseOptionData, route: Route): CommuteCost the cost of this commute type.
 
 ---@class CommuteBuilder
 ---@field citizen Citizen the citizen this commute is for.
@@ -108,11 +113,12 @@ interim_commute_types = {}
 --- Function for registering a new commute type.
 ---@param name string the name of the commute type, eg "walking"
 ---@param interim boolean if this commute can be used as an interim commute (eg: walking from house to the car)
----@param is_available fun(citizen: Citizen): boolean if this commute type is available for this citizen.
----@param calculate_route fun(citizen: Citizen, origin: Vector3, destination: Vector3): Route the route for this commute type.
----@param get_commute_time fun(citizen: Citizen, route: Route): GameTimestamp the time it takes for this citizen to commute using this commute type.
----@param get_cost fun(citizen: Citizen, route: Route): CommuteCost the cost of this commute type.
-function Commuting.registerCommuteType(name, interim, is_available, calculate_route, get_commute_time, get_cost)
+---@param get_options fun(citizen: Citizen, origin: Vector3, destination: Vector3): table<CommuteBaseOptionData> the options for this commute type.
+---@param is_available fun(options_data: table<CommuteBaseOptionData>): boolean if this commute type is available for this citizen.
+---@param calculate_route fun(option_data: CommuteBaseOptionData, origin: Vector3, destination: Vector3): Route the route for this commute type.
+---@param get_commute_time fun(option_data: CommuteBaseOptionData, route: Route): GameTimestamp the time it takes for this citizen to commute using this commute type.
+---@param get_cost fun(option_data: CommuteBaseOptionData, route: Route): CommuteCost the cost of this commute type.
+function Commuting.registerCommuteType(name, interim, get_options, is_available, calculate_route, get_commute_time, get_cost)
 	
 	-- check if this commute type is already registered
 	for _, commute_type in ipairs(commute_types) do
@@ -122,17 +128,22 @@ function Commuting.registerCommuteType(name, interim, is_available, calculate_ro
 		end
 	end
 
+	-- create the commute type definition
+	---@type CommuteTypeDefinition
+	local commute_type_definition = {
+		name = name,
+		interim = interim,
+		get_options = get_options,
+		is_available = is_available,
+		calculate_route = calculate_route,
+		get_commute_time = get_commute_time,
+		get_cost = get_cost
+	}
+
 	-- create it as a commute type
 	table.insert(
 		commute_types,
-		{
-			name = name,
-			interim = interim,
-			is_available = is_available,
-			calculate_route = calculate_route,
-			get_commute_time = get_commute_time,
-			get_cost = get_cost
-		} ---@type CommuteTypeDefinition
+		commute_type_definition
 	)
 
 	-- If it's an interim commute, add it to the interim commutes.
@@ -148,3 +159,4 @@ end
 ]]
 
 require("libraries.imai.commuting.types.walkingCommute")
+require("libraries.imai.commuting.types.drivingCommute")
