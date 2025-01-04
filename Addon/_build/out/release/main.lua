@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
  
---? Copyright 2024 Liam Matthews
+--? Copyright 2025 Liam Matthews
 
 --? Licensed under the Apache License, Version 2.0 (the "License");
 --? you may not use this file except in compliance with the License.
@@ -218,7 +218,7 @@ g_savedata = {
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -247,7 +247,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -955,7 +955,7 @@ end
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1082,7 +1082,7 @@ Command.registerPermission(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1107,7 +1107,7 @@ limitations under the License.
 -- Adds the generic commands, eg: "info"
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1221,7 +1221,7 @@ Command.registerCommand(
 -- Adds the variable interaction commands, eg: "print_variable", "set_variable"
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -2234,7 +2234,7 @@ function Map.addMapCircle(peer_id, ui_id, center_matrix, radius, width, r, g, b,
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -4136,7 +4136,7 @@ Command.registerCommand(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -4298,7 +4298,7 @@ function onCharacterDespawn(object_id, object_data)
 end -- command handler, used to register commands.
 --[[
 
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -4758,7 +4758,7 @@ end
 -- Require Asset System.
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -4849,7 +4849,7 @@ g_savedata.libraries.asset_manager = {}
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -4974,7 +4974,7 @@ function HoldableAssetManager.HoldableAsset.createBaseAsset(asset_type)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -5121,7 +5121,7 @@ function HoldableAssetManager.AssetHolder.setup(asset_holder)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -5200,7 +5200,7 @@ ASSET_RELATIONSHIP = {
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -5288,7 +5288,7 @@ HoldableAssetManager.HeldAssets = {}
 -- Require Towns.
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -5317,7 +5317,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -5644,7 +5644,7 @@ function Binder.bind.setupMain(callback, priority)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -5887,7 +5887,7 @@ Binder.bind.setupMain(Towns.setupMain, TOWNS_SETUP_MAIN_PRIORITY)
 -- Require Buildings.
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -5916,7 +5916,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -6024,7 +6024,7 @@ function Tags.getValue(tags, tag, as_string)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -6583,7 +6583,7 @@ Binder.bind.setupMain(Buildings.setupMain, BUILDINGS_SETUP_MAIN_PRIORITY)
 -- Require Usable Props
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -6612,7 +6612,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -6965,7 +6965,7 @@ end
  -- Doesn't spawn anything, just used for the filtering it has.
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -7075,7 +7075,7 @@ function ZoneLinker.getZoneData(component_data, location_data)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -7616,7 +7616,7 @@ Binder.bind.setupMain(UsableProps.setupMain, USABLE_PROPS_SETUP_MAIN_PRIORITY)
 -- Require AI Jobs.
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -7645,7 +7645,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -8142,7 +8142,7 @@ Binder.bind.setupMain(AIJobs.setupMain, AI_JOBS_SETUP_MAIN_PRIORITY)
 -- Require AI Job Pool.
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -8498,7 +8498,7 @@ end
 -- Require Game Master.
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -8527,7 +8527,7 @@ limitations under the License.
 -- required libraries
 --[[
 
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -8624,7 +8624,7 @@ function Zones.setReserved(zone_index, state)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -8741,7 +8741,7 @@ function Modifiables.get(t)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -8768,7 +8768,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -9070,7 +9070,7 @@ function Inventory.hasItem(inventory_id, item_name)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -9210,7 +9210,7 @@ function References.getData(indexing_data)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -9239,7 +9239,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -9404,7 +9404,7 @@ function GameTimestamp.secondsToTimestamp(seconds)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -9433,7 +9433,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -11009,7 +11009,7 @@ References.define(
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -11075,7 +11075,7 @@ Effects.define(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -11327,7 +11327,7 @@ Flag.registerBooleanFlag(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -11520,7 +11520,7 @@ end
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -11547,7 +11547,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12097,7 +12097,7 @@ medicalCondition.create(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12214,7 +12214,7 @@ medicalCondition.create(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12587,7 +12587,7 @@ Item.createPrefab(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12725,7 +12725,7 @@ medicalCondition.create(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12856,7 +12856,7 @@ medicalCondition.create(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13085,7 +13085,7 @@ end
 -- Require Citizens.
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13244,7 +13244,7 @@ end
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13506,7 +13506,7 @@ Commuting.registerCommuteType(
 )
 --[[
 
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13535,7 +13535,7 @@ limitations under the License.
 -- required libraries
 --[[
 
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13564,7 +13564,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14366,7 +14366,7 @@ Command.registerCommand(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14437,7 +14437,7 @@ g_savedata.included_animations = {
 -- effects
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14466,7 +14466,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15409,7 +15409,7 @@ Binder.bind.onVehicleLoad(
 -- markers
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15650,7 +15650,7 @@ Animator.define(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15714,7 +15714,7 @@ g_savedata.included_missions.scripted.transport = g_savedata.included_missions.s
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15743,7 +15743,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15971,7 +15971,7 @@ Objective.defineType(
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16100,7 +16100,7 @@ Missions.define(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16129,7 +16129,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16158,7 +16158,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16344,7 +16344,7 @@ function UnitConversions.knots.toMilesPerHour(knots)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16373,7 +16373,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16902,7 +16902,7 @@ Command.registerCommand(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17313,7 +17313,7 @@ function Vehicle.getGenericVehicle(generic_vin)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17342,7 +17342,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17371,7 +17371,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17401,7 +17401,7 @@ limitations under the License.
 -- required libraries
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20216,7 +20216,7 @@ function DrivingVehicles.tick(drivable_vehicle)
 end
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20253,7 +20253,7 @@ limitations under the License.
 ]]
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20474,7 +20474,7 @@ land_normal_driving_state:defineCondition(
 )
 --[[
 	
-Copyright 2024 Liam Matthews
+Copyright 2025 Liam Matthews
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
