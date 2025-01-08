@@ -49,7 +49,17 @@ Commuting.registerCommuteType(
 	"Driving",
 	false,
 	---@returns table<integer, CommuteDrivingOptionData>
-	function(citizen, origin, destination)
+	function(citizen_id, origin, destination)
+
+		-- Get the citizen
+		local citizen = Citizens.getData(citizen_id)
+
+		-- Ensure the citizen is not nil
+		if not citizen then
+			d.print(("<line>: Driving Commute (GetOptions): Citizen %s not found"):format(citizen_id), true, 1)
+			return {}
+		end
+
 		-- Get the citizen's asset holder profile
 		local asset_holder = citizen:getAssetHolder()
 
@@ -61,7 +71,7 @@ Commuting.registerCommuteType(
 		--TODO Filter out ones unreasonable (eg: is at the destination, so no reason to drive, though, this might be better to handle elsewhere)
 
 		-- Create the options data
-		local options_data = {} ---@type table<CommuteDrivingOptionData>
+		local options_data = {} ---@type table<integer, CommuteDrivingOptionData>
 
 		-- Go through each drivable vehicle asset
 		for held_asset_index = 1, #drivable_vehicle_assets do
@@ -129,6 +139,11 @@ Commuting.registerCommuteType(
 	end,
 	---@param option_data CommuteDrivingOptionData
 	function(option_data, route)
+
+		if option_data.cost then
+			return option_data.cost
+		end
+
 		-- Get the path for this route
 		local path = Routing.getPathFromID(route.stored_path_id)
 
@@ -145,6 +160,27 @@ Commuting.registerCommuteType(
 		local driving_cost = 0.5
 
 		-- Get the cost of this commute
-		return distance * driving_cost
-	end
+		option_data.cost = distance * driving_cost
+
+		-- Get the cost of this commute
+		return option_data.cost
+	end,
+	---@param option_data CommuteDrivingOptionData
+	function(option_data, route)
+
+		-- Get the citizen
+		local citizen = Citizens.getData(option_data.citizen_id)
+
+		-- Ensure the citizen is not nil
+		if not citizen then
+			d.print(("<line>: Driving Commute (GetCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
+			return true
+		end
+
+		return Vector3.euclideanDistance(
+			Vector3.fromMatrix(citizen.transform, true),
+			Vector3.fromMatrix(route.end_matrix, true)
+		) < 20
+	end,
+	nil
 )

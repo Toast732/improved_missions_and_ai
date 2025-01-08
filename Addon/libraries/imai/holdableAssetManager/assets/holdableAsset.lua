@@ -52,10 +52,10 @@ HoldableAssetManager.HoldableAsset = {}
 
 ---@class HoldableAsset
 ---@field asset_id AssetID
----@field asset_type AssetType The type of asset this is.
+---@field asset_type ASSET_TYPE The type of asset this is.
 
 ---@class HoldableAssetDefinition
----@field asset_type AssetType
+---@field asset_type ASSET_TYPE
 
 ---@alias HoldableAssets table<AssetID, HoldableAsset>
 --[[
@@ -66,7 +66,7 @@ HoldableAssetManager.HoldableAsset = {}
 
 ]]
 
----@type table<AssetType, HoldableAssetDefinition>
+---@type table<ASSET_TYPE, HoldableAssetDefinition>
 HOLDABLE_ASSET_DEFINITIONS = {}
 
 --[[
@@ -105,7 +105,7 @@ function HoldableAssetManager.HoldableAsset.registerAssetType(asset_type)
 end
 
 --- This function is used to create the base definition of a holdable asset. This should only really be used by definitions, rather than actual implementations.
----@param asset_type AssetType the asset type this is.
+---@param asset_type ASSET_TYPE the asset type this is.
 ---@return AssetID asset_id the created asset's ID.
 function HoldableAssetManager.HoldableAsset.createBaseAsset(asset_type)
 	-- Create the asset.
@@ -123,4 +123,11 @@ function HoldableAssetManager.HoldableAsset.createBaseAsset(asset_type)
 
 	-- Return the asset id.
 	return holdable_asset.asset_id
+end
+
+--- This function is used to get an asset by it's ID.
+---@param asset_id AssetID The ID of the asset to get.
+---@return HoldableAsset asset The asset.
+function HoldableAssetManager.HoldableAsset.getAsset(asset_id)
+	return g_savedata.libraries.asset_manager.holdable_assets.assets[asset_id]
 end

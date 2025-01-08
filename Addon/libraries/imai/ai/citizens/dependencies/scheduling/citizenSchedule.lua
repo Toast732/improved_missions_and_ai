@@ -157,10 +157,8 @@ function CitizenSchedule.clean(schedule)
 			-- Get the job's prop
 			local job_prop = g_savedata.libraries.usable_props.props[job.usable_prop_id]
 
-			--TODO: This is bad, shouldn't be explicitly adding the commuting tasks for each task.
-
 			-- Create the task.
-			local go_to_work_task = CitizenScheduleTasks.createWalkToPositionTask(
+			local go_to_work_task = CitizenScheduleTasks.createCommuteTask(
 				self.citizen_id,
 				"Go To Work",
 				job_start_time - GameTimestamp.hoursToTimestamp(1),
@@ -188,7 +186,14 @@ function CitizenSchedule.clean(schedule)
 			local citizen_home_building = g_savedata.libraries.buildings.stored_buildings[citizen.home_building_id]
 
 			-- Create a task for the worker to go home after their shift.
-			local go_home_task = CitizenScheduleTasks.createWalkToPositionTask(self.citizen_id, "Return Home After Work", job_end_time, job_end_time + GameTimestamp.hoursToTimestamp(24), Vector3.fromMatrix(citizen_home_building.transform), 5)
+			local go_home_task = CitizenScheduleTasks.createCommuteTask(
+				self.citizen_id,
+				"Return Home After Work",
+				job_end_time,
+				job_end_time + GameTimestamp.hoursToTimestamp(24),
+				Vector3.fromMatrix(citizen_home_building.transform),
+				5
+			)
 
 			-- Add the task to the schedule.
 			table.insert(self.tasks, go_home_task)

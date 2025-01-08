@@ -28,6 +28,9 @@ limitations under the License.
 
 -- required libraries
 require("libraries.addon.components.tags")
+
+require("libraries.imai.holdableAssetManager.assets.types.buildingAsset")
+
 require("libraries.imai.towns.towns")
 require("libraries.imai.towns.town")
 
@@ -152,7 +155,7 @@ function Building.create(name, building_id, zone_data)
 	local building = {
 		id = building_id,
 		town_id = town_id,
-		asset_id = HoldableAssetManager.Asset.new(),
+		asset_id = HoldableAssetManager.HoldableAsset.createBuildingAsset(building_id),
 		name = name,
 		transform = zone_data.transform,
 		size = Vector3.new(zone_data.size.x, zone_data.size.y, zone_data.size.z),

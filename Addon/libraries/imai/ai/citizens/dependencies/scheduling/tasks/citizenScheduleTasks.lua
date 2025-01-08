@@ -58,8 +58,8 @@ CitizenScheduleTasks = {}
 ---@field taskStartActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task starts.
 ---@field taskEndActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task ends.
 
----@class CitizenScheduleTaskWalkToPosition: CitizenScheduleTaskBase
----@field position Vector3 the position to walk to.
+---@class CitizenScheduleTaskCommute: CitizenScheduleTaskBase
+---@field position Vector3 the position to commute to.
 ---@field radius number the radius around the position to be in.
 
 ---@class CitizenScheduleTaskWait: CitizenScheduleTaskBase
@@ -84,9 +84,8 @@ CitizenScheduleTasks = {}
 ---@enum CitizenScheduleTaskType
 local CitizenScheduleTaskType = {
 	Base = 0,
-	WalkToPosition = 1,
-	DriveToPosition = 2,
-	Wait = 3
+	Wait = 1,
+	Commute = 2,
 }
 
 --[[
@@ -124,25 +123,25 @@ function CitizenScheduleTasks.createBaseTask(citizen_id, name, task_type, start_
 	return task
 end
 
---- Creates a walk to position task.
+--- Creates a commute task
 ---@param citizen_id CitizenID the id of the citizen this task is for.
 ---@param name string the name of the task.
 ---@param start_time GameTimestamp the time this task starts.
 ---@param expiry GameTimestamp the time this task expires.
----@param position Vector3 the position to walk to.
+---@param position Vector3 the position to commute to.
 ---@param radius number the radius around the position to be in.
 ---@param taskStartActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task starts.
 ---@param taskEndActions fun(self: CitizenScheduleTaskBase)? Actions to take when the task ends.
----@return CitizenScheduleTaskWalkToPosition
-function CitizenScheduleTasks.createWalkToPositionTask(citizen_id, name, start_time, expiry, position, radius, taskStartActions, taskEndActions)
+---@return CitizenScheduleTaskCommute
+function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, expiry, position, radius, taskStartActions, taskEndActions)
 	--- Create the base task.
 	local base_task = CitizenScheduleTasks.createBaseTask(
 		citizen_id,
 		name,
-		CitizenScheduleTaskType.WalkToPosition,
+		CitizenScheduleTaskType.Commute,
 		start_time,
 		expiry,
-		---@param self CitizenScheduleTaskWalkToPosition
+		---@param self CitizenScheduleTaskCommute
 		---@return boolean
 		function(self)
 			-- Get the citizen.
@@ -150,19 +149,42 @@ function CitizenScheduleTasks.createWalkToPositionTask(citizen_id, name, start_t
 
 			-- If the citizen is nil, then return.
 			if citizen == nil then
-				d.print(("<line> (CitizenScheduleTaskWalkToPosition.checkCompletion) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				d.print(("<line> (CitizenScheduleTaskCommute.checkCompletion) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 				return true
 			end
 
 			-- If the task expired, then return true.
 			if GameTimestamp.now() > self.expiry then
+				d.print(("<line> (CitizenScheduleTaskCommute.checkCompletion) Task expired, marked as completed. (%s > %s)"):format(GameTimestamp.now(), self.expiry), true, 0)
+				return true
+			end
+
+			-- If the citizen's active_commute_id is nil, then return true.
+			if citizen.active_commute_id == nil then
+				d.print(("<line> (CitizenScheduleTaskCommute.checkCompletion) Commute id is nil for citizen %d, commute completed."):format(self.citizen_id), true, 0)
+				return true
+			end
+
+			-- Get the commute.
+			---@type ActiveCommute
+			local commute = g_savedata.libraries.commuting.active_commutes[citizen.active_commute_id]
+
+			-- If the commute is nil, then return true.
+			if commute == nil then
+				d.print(("<line> (CitizenScheduleTaskCommute.checkCompletion) Commute not found for citizen %d, commute completed."):format(self.citizen_id), true, 0)
+				return true
+			end
+
+			-- If the current segment index is not a segment, then return true.
+			if commute.commute_segments[commute.current_segment_index] == nil then
+				d.print(("<line> (CitizenScheduleTaskCommute.checkCompletion) Current segment index does not have an associated segment, commute completed for citizen %d"):format(self.citizen_id), true, 0)
 				return true
 			end
 
 			-- Return if the citizen is within the radius of the position.
 			return Vector3.euclideanDistance(Vector3.fromMatrix(citizen.transform), self.position) <= self.radius
 		end,
-		---@param self CitizenScheduleTaskWalkToPosition
+		---@param self CitizenScheduleTaskCommute
 		function(self)
 			-- Get the citizen.
 			local citizen = Citizens.getData(self.citizen_id)
@@ -173,31 +195,47 @@ function CitizenScheduleTasks.createWalkToPositionTask(citizen_id, name, start_t
 				return
 			end
 
-			-- Create the route for the citizen.
-			local route = LandRoute.new(citizen.transform, Vector3.toMatrix(self.position))
+			-- Create the builder
+			---@type CommuteBuilder
+			local commute_builder = {
+				citizen_id = self.citizen_id,
+				origin = Vector3.fromMatrix(citizen.transform),
+				destination = self.position
+			}
 
-			-- Set the citizen's route.
-			citizen.walking_route = route
+			-- Create the commute for the citizen.
+			local active_commute_id = Commuting.commute(commute_builder)
+
+			-- Store the active commute id in the citizen.
+			citizen.active_commute_id = active_commute_id
 
 			-- If the taskStartActions is not nil, then call it.
 			if taskStartActions then
 				taskStartActions(self)
 			end
 		end,
-		---@param self CitizenScheduleTaskWalkToPosition
+		---@param self CitizenScheduleTaskCommute
 		function(self)
 			-- Get the citizen.
 			local citizen = Citizens.getData(self.citizen_id)
 
-			-- Remove the walking route.
-			citizen.walking_route = nil
+			-- If the citizen is nil, then return.
+			if citizen == nil then
+				d.print(("<line> (CitizenScheduleTaskWalkToPosition.taskEndActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				return
+			end
+
+			-- Remove the active commute.
+			g_savedata.libraries.commuting.active_commutes[citizen.active_commute_id] = nil
+
+			citizen.active_commute_id = nil
 
 			-- If the taskEndActions is not nil, then call it.
 			if taskEndActions then
 				taskEndActions(self)
 			end
 		end
-	) --[[@as CitizenScheduleTaskWalkToPosition]]
+	) --[[@as CitizenScheduleTaskCommute]]
 
 	-- Set the position and radius.
 	base_task.position = position

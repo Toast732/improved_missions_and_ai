@@ -44,15 +44,15 @@ require("libraries.imai.commuting.communting")
 Commuting.registerCommuteType(
 	"Walking",
 	true,
-	---@returns table<CommuteWalkingOptionData>
-	function(citizen, origin, destination)
+	---@returns table<integer, CommuteWalkingOptionData>
+	function(citizen_id, origin, destination)
 		return {
 			{
-				citizen = citizen
+				citizen_id = citizen_id
 			}
 		}
 	end,
-	---@param options_data table<CommuteWalkingOptionData>
+	---@param options_data table<integer, CommuteWalkingOptionData>
 	function(options_data)
 		return #options_data > 0
 	end,
@@ -93,6 +93,11 @@ Commuting.registerCommuteType(
 	end,
 	---@param option_data CommuteWalkingOptionData
 	function(option_data, route)
+
+		if option_data.cost then
+			return option_data.cost
+		end
+
 		-- Get the path for this route
 		local path = Routing.getPathFromID(route.stored_path_id)
 
@@ -108,7 +113,107 @@ Commuting.registerCommuteType(
 		-- Get the walking cost of the citizen (per metre)
 		local walking_cost = 0.1
 
+		-- Update the cost.
+		option_data.cost = distance * walking_cost
+
 		-- Get the cost of this commute
-		return distance * walking_cost
+		return option_data.cost
+	end,
+	---@param option_data CommuteWalkingOptionData
+	function(option_data, route)
+
+		-- Get the citizen
+		local citizen = Citizens.getData(option_data.citizen_id)
+
+		-- Ensure the citizen is not nil
+		if not citizen then
+			d.print(("<line>: Walking Commute (checkCompletion): Citizen %s not found"):format(option_data.citizen_id), true, 1)
+			return true
+		end
+
+		return Vector3.euclideanDistance(
+			Vector3.fromMatrix(citizen.transform, true),
+			Vector3.fromMatrix(route.end_matrix, true)
+		) < 1
+	end,
+	---@param option_data CommuteWalkingOptionData
+	function(option_data, route, game_ticks)
+
+		-- Get the citizen
+		local citizen = Citizens.getData(option_data.citizen_id)
+
+		-- Ensure the citizen is not nil
+		if not citizen then
+			d.print(("<line>: Walking Commute (getCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
+			return
+		end
+
+		-- Calculate the maximum distance the citizen can move this tick.
+		local distance_can_travel = 30.5 * (game_ticks/62.5)
+
+		-- Get the path.
+		local path = Routing.getPathFromID(route.stored_path_id)
+
+		-- Check if we got the path.
+		if not path then
+			d.print(("<line>: Failed to get the path for citizen \"%s\""):format(citizen.name.full), false, 1)
+			return
+		end
+
+		-- Set the last_pos to the transform of the citizen. This will be moved along the path.
+		local last_position = Vector3.fromMatrix(citizen.transform, true)
+
+		-- Iterate through the path.
+		for path_index = route.path_index, #path.path_list do
+			-- Get the node
+			local node = path.path_list[path_index]
+
+			-- Create a vector for the position of this node
+			local node_position = Vector3.new(node.x, node.y, node.z)
+
+			-- Calculate the distance from last_position to the node of this path, set to minimum 0.0001, to avoid division by 0.
+			local distance_to_waypoint = math.max(Vector3.euclideanDistance(last_position, node_position), 0.0001)
+
+			-- Get the progress the citizen can travel along this path.
+			local progress = math.min(distance_can_travel / distance_to_waypoint, 1)
+
+			--[[
+				Set last pos to the position of the node if progress is 1
+
+				Otherwise, travel along the path by progress.
+			]]
+
+			-- Remove how much we're travelling from the distance to the waypoint.
+			distance_can_travel = distance_can_travel - distance_to_waypoint * progress
+			
+			-- Check if the progress is 1
+			if progress == 1 then
+				-- Set the last position to the node position.
+				last_position = node_position
+
+				-- Increment the path index the citizen is on.
+				route.path_index = route.path_index + 1
+				--d.print("moved to next node.")
+			else
+				-- Travel along the path by progress.
+				last_position = Vector3.lerp(last_position, node_position, progress)
+
+				-- Break, as we cannot move any more.
+				--d.print("cannot move anymore!")
+				break
+			end
+		end
+
+		-- Set the citizen's transform to the new position.
+		citizen.transform = Vector3.toMatrix(last_position)
+
+		--d.print(("Citizen %s is now at %s"):format(citizen.name.full, string.fromTable(last_position)), false, 0)
+
+		server.removeMapObject(-1, citizen.object_id + 14784)
+
+		server.addMapObject(-1, citizen.object_id + 14784, 0, 1, citizen.transform[13], citizen.transform[15], 0, 0, 0, 0, citizen.name.full, 10, citizen.name.full, 255, 255, 255, 255)
+
+		-- Set the citizen's object's position to the new position.
+		is_success = server.setObjectPos(citizen.object_id, citizen.transform)
 	end
 )

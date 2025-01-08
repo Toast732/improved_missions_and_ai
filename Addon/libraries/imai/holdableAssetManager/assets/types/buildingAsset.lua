@@ -44,3 +44,20 @@ require("libraries.imai.holdableAssetManager.assets.holdableAsset")
 HoldableAssetManager.HoldableAsset.registerAssetType(
 	ASSET_TYPE.BUILDING
 )
+
+--- This function is used to create a new building asset.
+---@param building_id BuildingID The ID of the building.
+---@return AssetID The ID of the asset.
+function HoldableAssetManager.HoldableAsset.createBuildingAsset(building_id)
+	-- Create the base asset.
+	local asset_id = HoldableAssetManager.HoldableAsset.createBaseAsset(ASSET_TYPE.BUILDING)
+
+	-- Get the asset.
+	local asset = HoldableAssetManager.HoldableAsset.getAsset(asset_id) --[[@as BuildingAsset]]
+
+	-- Add the building ID.
+	asset.building_id = building_id
+
+	-- Return the asset ID.
+	return asset_id
+end

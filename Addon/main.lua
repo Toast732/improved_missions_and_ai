@@ -26,7 +26,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.26)"
+ADDON_VERSION = "(0.0.1.27)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -368,6 +368,8 @@ function onTick(game_ticks)
 	Animator.onTick(game_ticks)
 
 	DrivableVehicle.onTick(game_ticks)
+
+	Commuting.onTick(game_ticks)
 end
 
 --------------------------------------------------------------------------------

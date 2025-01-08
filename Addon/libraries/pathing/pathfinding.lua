@@ -448,9 +448,9 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 						-- nudge the pathfinding again, and return the result, as we want to make sure we did not get stuck on another tile border.
 						nudgePathfind(
 							matrix.translation( -- Set the start matrix as our last matrix.
-								nudged_path.path_list[#nudged_path].x,
-								nudged_path.path_list[#nudged_path].y,
-								nudged_path.path_list[#nudged_path].z
+								nudged_path.path_list[#nudged_path.path_list].x,
+								nudged_path.path_list[#nudged_path.path_list].y,
+								nudged_path.path_list[#nudged_path.path_list].z
 							),
 							matrix_end,
 							required_tags,
@@ -761,15 +761,15 @@ function Pathfinding.getPathY(path)
 		Pathfinding.createPathY() --build the table this one time
 		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
 	end
-	for each in pairs(path.path_list) do
+	for each in pairs(path) do
 
-		local x = math.round(path.path_list[each].x, node_decimal_places)
-		local z = math.round(path.path_list[each].z, node_decimal_places)
+		local x = math.round(path[each].x, node_decimal_places)
+		local z = math.round(path[each].z, node_decimal_places)
 
 		if g_savedata.graph_nodes.nodes[x] and g_savedata.graph_nodes.nodes[x][z] then --if y exists
-			path.path_list[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
+			path[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
 			--d.print("path.path_list["..each.."].y: "..tostring(path.path_list[each].y), true, 0)
-			path.path_list[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
+			path[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
 		end
 	end
 	return path --return the path with the added, or not, y values.
