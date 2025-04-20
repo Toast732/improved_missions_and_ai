@@ -29,7 +29,7 @@ Command.registerCommand(
 	---@param peer_id integer the peer_id of the sender
 	---@param arg table the arguments of the command.
 	function(full_message, peer_id, arg)
-		Citizens.spawn(Citizens.create(server.getPlayerPos(peer_id), 1))
+		Citizen.spawn(Citizen.create(server.getPlayerPos(peer_id), 1))
 	end,
 	"admin_script",
 	"Spawns a citizen at the player's position",

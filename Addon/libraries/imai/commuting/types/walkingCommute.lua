@@ -209,11 +209,9 @@ Commuting.registerCommuteType(
 
 		--d.print(("Citizen %s is now at %s"):format(citizen.name.full, string.fromTable(last_position)), false, 0)
 
-		server.removeMapObject(-1, citizen.object_id + 14784)
-
-		server.addMapObject(-1, citizen.object_id + 14784, 0, 1, citizen.transform[13], citizen.transform[15], 0, 0, 0, 0, citizen.name.full, 10, citizen.name.full, 255, 255, 255, 255)
-
 		-- Set the citizen's object's position to the new position.
 		is_success = server.setObjectPos(citizen.object_id, citizen.transform)
-	end
+	end,
+	nil,
+	nil
 )

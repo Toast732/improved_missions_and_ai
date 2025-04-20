@@ -33,9 +33,11 @@ require("libraries.utils.string")
 
 ---@alias defaultCommandPermissions "none"|"auth"|"admin"|"script"|"auth_script"|"admin_script"
 
+---@alias commandFunctionToExecute fun(full_message: string, peer_id: integer, ...)
+
 ---@class Command
 ---@field name string the name of the command
----@field function_to_execute function the function to execute when the command is called, given params are: full_message, peer_id, arg
+---@field function_to_execute commandFunctionToExecute the function to execute when the command is called, given params are: full_message, peer_id, arg
 ---@field required_permission defaultCommandPermissions|string the permission this command requires
 ---@field description string the description of the command
 ---@field short_description string the short description for this command
@@ -129,7 +131,7 @@ end
 
 ---# Registers a command
 ---@param name commandName the name of the command
----@param function_to_execute function the function to execute when the command is called, params are (full_message, peer_id, args)
+---@param function_to_execute commandFunctionToExecute the function to execute when the command is called, params are (full_message, peer_id, args)
 ---@param required_permission defaultCommandPermissions|string the permission required to execute this command.
 ---@param description string the description of the command
 ---@param short_description string the shortened description of the command

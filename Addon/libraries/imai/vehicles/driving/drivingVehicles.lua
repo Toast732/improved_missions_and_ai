@@ -265,8 +265,27 @@ function DrivingVehicles.tick(drivable_vehicle)
 
 		-- Check if the condition is met
 		if condition.condition_function == true or condition.condition_function(drivable_vehicle) then
+
+			-- Get the debug tooltip
+			local debug_tooltip = ""
+
+			-- Add the generic vin to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Generic VIN: %s\n"):format(drivable_vehicle.generic_vin)
+
+			-- Add the vehicle id to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Vehicle ID: %s\n\n"):format(generic_vehicle.vehicle_ids[1])
+
+			-- Add the driving style to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Driving Style: %s\n"):format(drivable_vehicle.driving_style)
+
+			-- Add the driving state to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Driving State: %s\n"):format(drivable_vehicle.driving_state)
+
+			-- Add the driving condition to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Driving Condition: %s\n"):format(condition.driving_condition)
+
 			-- Set the tooltip
-			server.setVehicleTooltip(generic_vehicle.vehicle_ids[1], condition.driving_condition)
+			server.setVehicleTooltip(generic_vehicle.vehicle_ids[1], debug_tooltip)
 			
 			-- If it is, return the behaviour
 			return condition.behaviour(drivable_vehicle)

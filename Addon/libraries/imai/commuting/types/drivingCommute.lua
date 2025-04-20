@@ -83,8 +83,9 @@ Commuting.registerCommuteType(
 			local drivable_vehicle_asset = g_savedata.libraries.asset_manager.holdable_assets.assets[held_asset.asset_id] --[[@as DrivableVehicleAsset]]
 
 			-- Create the option data
+			---@type CommuteDrivingOptionData
 			local option_data = {
-				citizen = citizen,
+				citizen_id = citizen_id,
 				drivable_vehicle_id = drivable_vehicle_asset.drivable_vehicle_id
 			}
 
@@ -101,9 +102,19 @@ Commuting.registerCommuteType(
 	end,
 	---@param option_data CommuteDrivingOptionData
 	function(option_data, origin, destination)
+
+		-- Get the drivable vehicle associated with the given id.
+		local drivable_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[option_data.drivable_vehicle_id]
+
+		-- Ensure the drivable vehicle is not nil
+		if not drivable_vehicle then
+			d.print(("<line>: Driving Commute (GetRoute): Drivable Vehicle %s not found"):format(option_data.drivable_vehicle_id), true, 1)
+			return {}
+		end
+
 		-- Do a land pathfind between the two points.
 		local route = LandRoute.new(
-			Vector3.toMatrix(origin),
+			Vector3.toMatrix(Vector3.fromMatrix(drivable_vehicle.transform, true)),
 			Vector3.toMatrix(destination)
 		)
 
@@ -157,7 +168,7 @@ Commuting.registerCommuteType(
 		local distance = Pathfinding.getTotalPathDistance(path)
 
 		-- Get the driving cost for the citizen (per metre)
-		local driving_cost = 0.5
+		local driving_cost = 0.05
 
 		-- Get the cost of this commute
 		option_data.cost = distance * driving_cost
@@ -181,6 +192,28 @@ Commuting.registerCommuteType(
 			Vector3.fromMatrix(citizen.transform, true),
 			Vector3.fromMatrix(route.end_matrix, true)
 		) < 20
+	end,
+	nil,
+	---@param option_data CommuteDrivingOptionData
+	function(option_data, route)
+		-- Get the drivable vehicle from it's id.
+		local drivable_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[option_data.drivable_vehicle_id]
+
+		-- Ensure the drivable vehicle is not nil
+		if not drivable_vehicle then
+			d.print(("<line>: Driving Commute (startActions): Drivable Vehicle %s not found"):format(option_data.drivable_vehicle_id), true, 1)
+			return
+		end
+
+		-- Set the drivable vehicle's route
+		drivable_vehicle.route = route
+
+		-- Set the driver to be seated.
+		DrivableVehicle.setSeated(
+			drivable_vehicle,
+			option_data.citizen_id,
+			DRIVABLE_VEHICLE_SEAT_TYPE.DRIVER
+		)
 	end,
 	nil
 )

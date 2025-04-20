@@ -104,6 +104,12 @@ PATHFINDING_START_NUDGING_DISTANCE = 30
 ---@field ui_id SWUI_ID the ui id of the path node for debug
 ---@field consumption_distance number the consumption distance for the path node.
 
+---@class DirtyPathNode
+---@field x integer the x coordinate of the path node
+---@field y integer the y coordinate of the path node
+---@field z integer the z coordinate of the path node
+---@field cdm number the consumption distance multiplier for the node. Short formed, to try to keep the save file size a bit lower.
+
 --- The path to follow, starting from the end and to the beginning,<br>the last node [#path] is always the destination, [1] is the node we're currently going to, and [0] is the previous one.
 ---@alias PathList table<integer, PathNode>
 
@@ -745,34 +751,195 @@ function Pathfinding.updatePathfinding()
 	function server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --permanantly do this new function using the old name.
 		local path = old_pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --do the normal old function
 		--d.print("(updatePathfinding) getting path y", true, 0)
-		return Pathfinding.getPathY(path) --add y to all of the paths.
+		return Pathfinding.getPathY(path --[[@as table<integer, SWPathFindPoint>]]) --add y to all of the paths.
 	end
 	function server.pathfindOcean(matrix_start, matrix_end)
 		local path = old_pathfindOcean(matrix_start, matrix_end)
-		return Pathfinding.getPathY(path)
+		return Pathfinding.getPathY(path --[[@as table<integer, SWPathFindPoint>]])
 	end
 end
 
 local node_decimal_places = 0
 
+--TODO: The order of modifications to make, this is a bit of a workaround, and the code should be cleaned up in the future once the issue is further nailed down.
+local pathfinding_coordinate_modification_order = {
+	Vector2.new(0, 0),
+	Vector2.new(-1, 0),
+	Vector2.new(0, -1),
+	Vector2.new(-1, -1),
+	Vector2.new(1, 0),
+	Vector2.new(0, 1),
+	Vector2.new(-1, 1),
+	Vector2.new(1, -1),
+	Vector2.new(1, 1),
+}
+
 -- Credit to woe
+---@param path table<integer, SWPathFindPoint> the path to convert.
+---@return table<integer, DirtyPathNode> the path with y values.
 function Pathfinding.getPathY(path)
+
+	---@cast path +table<integer, DirtyPathNode>, -table<integer, SWPathFindPoint>
+
+	--- Function that turns the x and y in the path into an x and y to use in the graph_nodes table.
+	---@param node SWPathFindPoint|DirtyPathNode the path point to convert the x and y in.
+	---@return Vector2 vector the vector2 with the x and y converted.
+	local function convertNodeToVector(node)
+		return Vector2.new(
+			math.round(
+				node.x,
+				node_decimal_places
+			),
+			math.round(
+				node.z,
+				node_decimal_places
+			)
+		)
+	end
+
+	---@param node SWPathFindPoint|DirtyPathNode the path point to get the savedata node of.
+	---@return YPathfinderNodeData? g_savedata_node the savedata node of the path point.
+	---@return Vector2? vector the vector2 of the g_savedata_node with the x and y converted.
+	---@return Vector2 converted_coordinates the vector2 of the node with the x and y converted.
+	local function getSavedataNode(node)
+
+		---@param vector Vector2
+		---@return YPathfinderNodeData? the savedata node of the path point.
+		local function attemptGetNode(vector)
+			-- If the node exists in the savedata, then return it.
+			if g_savedata.graph_nodes.nodes[vector.x] and g_savedata.graph_nodes.nodes[vector.x][vector.y] then
+				return g_savedata.graph_nodes.nodes[vector.x][vector.y]
+			end
+
+			-- Otherwise, return nil.
+			return nil
+		end
+
+		-- Convert the coordinates for the node.
+		local converted_coordinates = convertNodeToVector(node)
+
+		-- Go through each modification, and attempt to get the node.
+		for modification_index = 1, #pathfinding_coordinate_modification_order do
+
+			-- Get the modified coordinates.
+			local modified_coordinates = Vector2.add(
+				converted_coordinates,
+				pathfinding_coordinate_modification_order[modification_index]
+			)
+
+			-- Try getting the node.
+			local g_savedata_node = attemptGetNode(modified_coordinates)
+
+			-- If the node exists, then return it.
+			if g_savedata_node then
+				return g_savedata_node, modified_coordinates, converted_coordinates
+			end
+		end
+
+		-- Otherwise, return nil.
+		return nil, nil, converted_coordinates
+	end
+
 	if not g_savedata.graph_nodes.init then --if it has never built the node's table
 		Pathfinding.createPathY() --build the table this one time
 		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
 	end
-	for each in pairs(path) do
+	for node_index = 1, #path do
 
-		local x = math.round(path[each].x, node_decimal_places)
-		local z = math.round(path[each].z, node_decimal_places)
+		local g_savedata_node, _, converted_coordinates = getSavedataNode(path[node_index])
 
-		if g_savedata.graph_nodes.nodes[x] and g_savedata.graph_nodes.nodes[x][z] then --if y exists
-			path[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
+		if g_savedata_node then --if y exists
+			path[node_index].y = g_savedata_node.y --add it to the table that already contains x and z
 			--d.print("path.path_list["..each.."].y: "..tostring(path.path_list[each].y), true, 0)
-			path[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
+			path[node_index].cdm = g_savedata_node.cdm
+
+		--TODO: Not the greatest code, could be cleaned up, however, this shouldn't be occuring in the first place, and instances where this occurs should be fixed at the source.
+		else
+			-- Otherwise, we cannot find a saved node for this, print an warning, and set it's values.
+			d.print(("<line>: (Pathfinding.getPathY) Could not find a saved node For node index %s.\nBefore Rounding:\n\tx: %s\n\tz: %s\nAfter Rounding:\n\tx: %s\n\tz: %s"):format(
+				node_index,
+				path[node_index].x,
+				path[node_index].z,
+				converted_coordinates.x,
+				converted_coordinates.y
+			), true, 0)
+
+			-- Get the previous node.
+			local previous_node = path[node_index - 1]
+
+			-- Get the next node
+			local next_node = path[node_index + 1]
+
+			-- Store if the previous node is valid.
+			local previous_node_valid = previous_node and previous_node.y and previous_node.cdm
+
+			-- Store if the next node exists
+			local next_node_exists = next_node
+
+			-- Store if the next node has a g_savedata entry.
+			local next_node_savedata_valid = false
+
+			-- Store the next node savedata.
+			---@type YPathfinderNodeData
+			local next_node_savedata = nil
+
+			-- If the next node exists, then get the savedata for it.
+			if next_node_exists then
+
+				-- Attempt to get the next node.
+				next_node_savedata, _, _ = getSavedataNode(next_node)  --[[@as YPathfinderNodeData]]
+
+				next_node_savedata_valid = next_node_savedata and next_node_savedata.y and next_node_savedata.cdm --[[@as boolean]]
+			end
+
+			-- If the previous and next node savedata is valid, then set the y and cdm to the average of the two nodes.
+			if previous_node_valid and next_node_savedata_valid then
+				path[node_index].y = (previous_node.y + next_node_savedata.y) / 2
+				path[node_index].cdm = (previous_node.cdm + next_node_savedata.cdm) / 2
+
+				d.print(("<line>: (Pathfinding.getPathY) Previous and Next node are complete - Set the y and cdm to the average of the previous and next nodes for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+					node_index,
+					path[node_index].y,
+					path[node_index].cdm
+				), true, 0)
+
+			-- If the previous node is valid, but the next's savedata is not, then set the y and cdm to the previous node's values.
+			elseif previous_node_valid then
+
+				path[node_index].y = previous_node.y
+				path[node_index].cdm = previous_node.cdm
+
+				d.print(("<line>: (Pathfinding.getPathY) Previous node is complete, next is invalid - Set the y and cdm to the previous node's values for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+					node_index,
+					path[node_index].y,
+					path[node_index].cdm
+				), true, 0)
+
+			-- If only the next is valid, then set the y and cdm to the next node's values.
+			elseif next_node_savedata_valid then
+				path[node_index].y = next_node_savedata.y
+				path[node_index].cdm = next_node_savedata.cdm
+
+				d.print(("<line>: (Pathfinding.getPathY) Next node is complete, previous is invalid - Set the y and cdm to the next node's values for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+					node_index,
+					path[node_index].y,
+					path[node_index].cdm
+				), true, 0)
+
+			-- Otherwise, they're both also invalid, set the y to 0, and cdm to 1.
+			else
+				path[node_index].y = 0
+				path[node_index].cdm = 1
+
+				d.print(("<line>: (Pathfinding.getPathY) Both previous and next nodes are invalid - Set the y and cdm to 0 and 1 for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+					node_index,
+					path[node_index].y,
+					path[node_index].cdm
+				), true, 0)
+			end
 		end
 	end
-	return path --return the path with the added, or not, y values.
+	return path --[[@as table<integer, DirtyPathNode>]] --return the path with the added, or not, y values.
 end
 
 -- Credit to woe

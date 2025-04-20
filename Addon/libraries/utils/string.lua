@@ -387,11 +387,14 @@ function string.formatTime(format, time, as_game_time)
 			goto next_unit
 		end
 
+		-- Floor the time unit instances
+		floored_time_unit_instances = math.floor(time_unit_instances)
+
 		-- format this unit
-		local unit_string = ("%s%0.0f%s"):format(unit_data.prefix, time_unit_instances, unit_data.suffix)
+		local unit_string = ("%s%d%s"):format(unit_data.prefix, floored_time_unit_instances, unit_data.suffix)
 
 		-- if this unit is not 1, then add an s to where it wants the plurals to be.
-		unit_string = unit_string:setField("plural", math.floor(time_unit_instances) == 1 and "" or "s")
+		unit_string = unit_string:setField("plural", floored_time_unit_instances == 1 and "" or "s")
 
 		-- add the formatted unit to the formatted units table.
 		table.insert(formatted_units, {
@@ -400,7 +403,7 @@ function string.formatTime(format, time, as_game_time)
 		} --[[@as formattedUnit]])
 
 		-- subtract the amount of time this unit used up, from the leftover time.
-		leftover_time = leftover_time - math.floor(time_unit_instances)*seconds_in_unit
+		leftover_time = leftover_time - floored_time_unit_instances*seconds_in_unit
 
 		::next_unit::
 	end

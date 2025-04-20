@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.3
+-- Library Version 0.0.4
 
 --[[
 
@@ -219,7 +219,7 @@ local npc_job_list = {
 
 ]]
 
----@param last_name ?string the last name to override, used for if they have a family last name
+---@param last_name string? the last name to override, used for if they have a family last name
 ---@return CitizenName CitizenName the citizen's name data
 function Citizens.generateName(last_name)
 
@@ -663,6 +663,44 @@ function Citizens.onDefibrillator(citizen)
 	-- call Treatments.onDefibrillator
 	Treatments.onDefibrillator(citizen)
 end
+
+--- Bind to onVehicleLoad, used to set the citizens into the vehicle if they're occupating it.
+Binder.bind.onVehicleLoad(
+	
+	---@param vehicle_id integer the vehicle_id of the loaded vehicle.
+	function(vehicle_id)
+		-- Go through each citizen
+		for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+			-- If the citizen is occupating this vehicle
+			if citizen.vehicle_data.occupating_vehicle_id == vehicle_id then
+				-- Set the citizen to be seated in the vehicle
+				server.setSeated(citizen.object_id, vehicle_id, citizen.vehicle_data.seat_name)
+			end
+		end
+	end
+)
+
+--- Bind to onObjectLoad, used to set the citizens into the vehicle if they're occupating it.
+Binder.bind.onObjectLoad(
+	
+	---@param object_id integer the object_id of the loaded object.
+	function(object_id)
+		-- Go through each citizen
+		for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+			-- If the citizen matches this object_id
+			if citizen.object_id == object_id then
+				-- Check if this citizen is occupating a vehicle.
+				if citizen.vehicle_data.occupating_vehicle_id ~= -1 then
+					-- If they are, set them to the seat of the vehicle they're occupating.
+					server.setSeated(citizen.object_id, citizen.vehicle_data.occupating_vehicle_id, citizen.vehicle_data.seat_name)
+				end
+
+				-- Break, there cannot be two citizens with the same object_id.
+				break
+			end
+		end
+	end
+)
 
 --[[
 	definitions

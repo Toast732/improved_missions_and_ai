@@ -88,9 +88,9 @@ land_normal_driving_state:defineCondition(
 		---@cast path -nil
 
 		-- Alias variables creating previous_node and target_node
-		local previous_node = path[drivable_vehicle.route.path_index]
+		local previous_node = path.path_list[drivable_vehicle.route.path_index]
 
-		local target_node = path[drivable_vehicle.route.path_index + 1]
+		local target_node = path.path_list[drivable_vehicle.route.path_index + 1]
 
 		-- Create vectors of the nodes.
 		local previous_node_vec2 = Vector2.new(previous_node.x, previous_node.z)
@@ -108,8 +108,8 @@ land_normal_driving_state:defineCondition(
 			CAR_PATH_MAX_PROJECTION_DISTANCE
 		)
 
-		server.removeMapLine(-1, 10000512)
-		server.addMapLine(-1, 10000512, drivable_vehicle.transform, matrix.translation(projected_position.x, 0, projected_position.y), 1, 0, 0, 255, 255)
+		server.removeMapLine(-1, 10000512 + drivable_vehicle.drivable_vehicle_id)
+		server.addMapLine(-1, 10000512 + drivable_vehicle.drivable_vehicle_id, drivable_vehicle.transform, matrix.translation(projected_position.x, 0, projected_position.y), 1, 0, 0, 255, 255)
 
 		-- If our projection distance is less than the consumption distance, go to the next node, for the next tick.
 		if projection_distance < CAR_PATH_MAX_PROJECTION_DISTANCE / 2 then
@@ -141,7 +141,7 @@ land_normal_driving_state:defineCondition(
 		local bent_target_speed = base_target_speed
 
 		for i = 1, 20 do
-			server.removeMapLabel(-1, 10000512)
+			server.removeMapLabel(-1, 10000512 + drivable_vehicle.drivable_vehicle_id)
 		end
 
 		--server.addMapLabel(-1, 10000512, 2, ("Angle: %0.2f\nx: %0.1f\nz: %0.1f"):format(yaw, vehicle_position_vec2.x, vehicle_position_vec2.y), vehicle_position_vec2.x, vehicle_position_vec2.y)
@@ -153,7 +153,7 @@ land_normal_driving_state:defineCondition(
 			local bend_node_data = upcoming_turn_data[bend_index]
 
 			-- Add to the map.
-			server.addMapLabel(-1, 10000512, 2, ("Angle: %0.2f\nx: %0.1f\nz: %0.1f"):format(bend_node_data.angle, bend_node_data.position.x, bend_node_data.position.z), bend_node_data.position.x, bend_node_data.position.z)
+			server.addMapLabel(-1, 10000512 + drivable_vehicle.drivable_vehicle_id, 2, ("Angle: %0.2f\nx: %0.1f\nz: %0.1f"):format(bend_node_data.angle, bend_node_data.position.x, bend_node_data.position.z), bend_node_data.position.x, bend_node_data.position.z)
 
 			-- Get the distance ratio
 			local bend_distance_ratio = 1 - math.clamp(bend_node_data.distance / CAR_PATH_LOOK_AHEAD_DISTANCE, 0, 1)

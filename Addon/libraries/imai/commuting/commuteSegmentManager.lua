@@ -69,6 +69,8 @@ CommuteSegmentManager = {}
 ---@field insertSegment fun(self: CommuteSegmentManager, index: CommuteSegmentIndex, segment: CommuteSegment) the function to insert a segment into the commute.
 ---@field duplicate fun(self: CommuteSegmentManager): CommuteSegmentManager the function to duplicate the segment manager.
 ---@field getNextTargetPoints fun(self: CommuteSegmentManager): Vector3, Vector3, SEGMENT_CONNECTING_TO the function to get the next origin and destination points to connect.
+---@field canInsert fun(self: CommuteSegmentManager, index: CommuteSegmentIndex, commute_type: CommuteType): boolean the function to check if a segment of a specific type can be inserted at the index.
+---@field drawDebug fun(self: CommuteSegmentManager) draws map debug for each of the segments
 
 --[[
 
@@ -218,6 +220,92 @@ function CommuteSegmentManager.setup(commute_segment_manager)
 				Vector3.fromMatrix(self.segments[#self.segments].route.end_matrix, true),
 				self.builder.destination,
 				COMMUTE_CONNECTING_TO.END
+		end
+	end
+
+	--- Function to check if we can insert a segment of a specific type at the index.
+	---@param self CommuteSegmentManager the segment manager to check if we can insert a segment of a specific type at the index.
+	---@param index CommuteSegmentIndex the index to check if we can insert the segment at.
+	---@param commute_type CommuteType the definition of the segment to check if we can insert.
+	---@return boolean can_insert if we can insert the segment at the index.
+	function commute_segment_manager.canInsert(self, index, commute_type)
+		-- Get the index before us.
+		local previous_index = index - 1
+
+		-- Get the index after us (which will be this index after we're inserted, so check that one.)
+		local next_index = index
+
+		-- Get the previous segment.
+		local previous_segment = self.segments[previous_index]
+
+		-- Get the next segment.
+		local next_segment = self.segments[next_index]
+
+		-- If the previous segment exists, and it's the same type, we cannot insert.
+		if previous_segment and previous_segment.commute_type == commute_type then
+			return false
+		end
+
+		-- If the next segment exists, and it's the same type, we cannot insert.
+		if next_segment and next_segment.commute_type == commute_type then
+			return false
+		end
+
+		-- Otherwise, we can insert.
+		return true
+	end
+
+	--- Draws debug on each of the segments.
+	---@param self CommuteSegmentManager the segment manager to draw debug for.
+	function commute_segment_manager.drawDebug(self)
+		for segment_index = 1, #self.segments do
+
+			-- Get the segment.
+			local segment = self.segments[segment_index]
+
+			-- Get the path for this route.
+			local path = Routing.getPathFromID(segment.route.stored_path_id)
+
+			-- If the path is nil, then skip.
+			if not path then
+				goto continue
+			end
+
+			-- Go through all of the nodes in this path.
+			for node_index = 2, #path.path_list do
+				-- Get this node.
+				local node = path.path_list[node_index]
+
+				-- Get the previous node.
+				local previous_node = path.path_list[node_index - 1]
+
+				-- Draw a line.
+				server.addMapLine(
+					0,
+					1258901724,
+					Vector3.toMatrix(
+						Vector3.new(
+							previous_node.x,
+							previous_node.y,
+							previous_node.z
+						)
+					),
+					Vector3.toMatrix(
+						Vector3.new(
+							node.x,
+							node.y,
+							node.z
+						)
+					),
+					1,
+					segment.commute_type == "Walking" and 0 or 255,
+					0,
+					segment.commute_type == "Walking" and 255 or 0,
+					125
+				)
+			end
+
+			::continue::
 		end
 	end
 		

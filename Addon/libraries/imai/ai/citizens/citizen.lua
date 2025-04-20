@@ -63,8 +63,8 @@ Citizen = {}
 
 --! Remove this, thinking of abstracting to the item/inventory system, and rewriting the item/inventory system a bit to accomodate.
 ---@class CitizenVehicleData
----@field linked_vehicles table<integer, nil> the vehicles linked to this citizen.
 ---@field occupating_vehicle_id integer the vehicle_id the citizen is an occupant of. -1 for none.
+---@field seat_name string the name of the seat the citizen is in.
 
 ---@class DirtyCitizen
 ---@field id CitizenID the citizen's ID.
@@ -145,8 +145,8 @@ function Citizen.create(transform, outfit_type)
 		object_type = "citizen",
 		statuses = {},
 		vehicle_data = {
-			linked_vehicles = {},
-			occupating_vehicle_id = -1
+			occupating_vehicle_id = -1,
+			seat_name = ""
 		},
 		asset_holder_id = HoldableAssetManager.AssetHolder.new(),
 		home_building_id = -1,
@@ -191,17 +191,17 @@ function Citizen.setup(citizen)
 		local tooltip = "\n"
 
 		-- Get the highest priority status for this citizen.
-		local highest_status = Citizens.Status.getHighest(citizen)
+		local highest_status = Citizens.Status.getHighest(self)
 		if highest_status.tooltip ~= "" then
 			-- add the status at the top of the tooltip
 			tooltip = ("%s%s\n"):format(tooltip, highest_status.tooltip)
 		end
 
 		-- Add the citizen's name to the tooltip
-		tooltip = tooltip..citizen.name.full
+		tooltip = tooltip..self.name.full
 
 		-- Add their medical conditions to the tooltip
-		tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(citizen))
+		tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(self))
 
 		-- Always end the tooltip with a new line, if it doesn't
 		local tooltip_length = tooltip:len()
@@ -210,7 +210,7 @@ function Citizen.setup(citizen)
 		end
 
 		-- Set their tooltip.
-		server.setCharacterTooltip(citizen.object_id, tooltip)
+		server.setCharacterTooltip(self.object_id, tooltip)
 	end
 
 	--[[
@@ -383,7 +383,7 @@ function Citizen.tick(citizen, game_ticks)
 				citizen.suppress_next_health_change = true
 			elseif object_data.hp > 97 then
 
-				server.setCharacterData(citizen.object_id, 97, true, true)
+				server.setCharacterData(citizen.object_id, 97, true, false)
 
 				-- suppress the next health change to avoid it being mistooken for taking damage
 				citizen.suppress_next_health_change = true
@@ -397,3 +397,29 @@ function Citizen.tick(citizen, game_ticks)
 	-- Tick the citizen's schedule
 	citizen.schedule:tick()
 end
+
+Command.registerCommand(
+	"freeCar",
+	function(full_message, peer_id, ...)
+		-- Go through each citizen.
+		for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+			-- Create a drivable vehicle for the citizen.
+			local drivable_vehicle_id, is_success = DrivableVehicle.spawn("Test Land Vehicle", citizen.transform)
+
+			-- Get the drivable vehicle from the id.
+			local drivable_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[drivable_vehicle_id]
+
+			-- Set this citizen as the owner.
+			g_savedata.libraries.asset_manager.asset_holders.holders[citizen.asset_holder_id]:addAsset(
+				drivable_vehicle.asset_id,
+				ASSET_RELATIONSHIP.OWNED
+			)
+		end
+	end,
+	"admin",
+	"Gives each citizen a free car.",
+	"free car!",
+	{
+		"freeCar"
+	}
+)

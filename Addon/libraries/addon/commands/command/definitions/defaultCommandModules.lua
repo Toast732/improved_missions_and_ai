@@ -27,3 +27,6 @@ require("libraries.addon.commands.command.definitions.genericCommands")
 
 -- Adds the variable interaction commands, eg: "print_variable", "set_variable"
 require("libraries.addon.commands.command.definitions.variableInteractionCommands")
+
+-- Add the tick test command "tick_test"
+require("libraries.addon.commands.command.definitions.tickTestCommand")

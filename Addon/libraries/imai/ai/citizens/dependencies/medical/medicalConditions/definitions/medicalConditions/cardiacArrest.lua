@@ -115,3 +115,24 @@ medicalCondition.create(
 		end
 	end
 )
+
+-- FREE CARdiac arrests for all!!!11!
+Command.registerCommand(
+	"free_cardiac_arrest",
+	function(full_message, peer_id, ...)
+
+		d.print("Your all winner!", false, 0)
+
+		-- Go through each citizen.
+		for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+			-- Give them a FREE CARdiac arrest.
+			medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
+		end
+	end,
+	"admin",
+	"Gives each citizen a FREE CARdiac arrest.",
+	"IF YOU CALL NOW, I'LL GIVE YOU A SECOND CARDIAC ARREST, ABSOLUTELY FREE",
+	{
+		"free_cardiac_arrest"
+	}
+) -- P.S. Blame GitHub co-pilot.

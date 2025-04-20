@@ -59,6 +59,9 @@ Binder = {
 -- onVehicleUnload
 ---@alias CallbackOnVehicleUnload fun(vehicle_id: integer)
 
+-- onObjectLoad
+---@alias CallbackOnObjectLoad fun(object_id: integer)
+
 -- setupMain
 ---@alias CallbackSetupMain fun(is_world_create: boolean)
 
@@ -66,6 +69,7 @@ Binder = {
 ---| CallbackOnGroupSpawn
 ---| CallbackOnVehicleLoad
 ---| CallbackOnVehicleUnload
+---| CallbackOnObjectLoad
 ---| CallbackSetupMain
 
 ---@class BindedCallback
@@ -85,6 +89,7 @@ binded_callbacks = {
 	onGroupSpawn = {},
 	onVehicleLoad = {},
 	onVehicleUnload = {},
+	onObjectLoad = {},
 	setupMain = {}
 }
 
@@ -286,11 +291,59 @@ function Binder.bind.onVehicleUnload(callback, priority)
 	)
 end
 
+
 --[[
 
+	onObjectLoad
+
+]]
+
+--[[
+	Inject.
+]]
+
+old_onObjectLoad = onObjectLoad
+
+---@private
+function onObjectLoad(...)
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.onObjectLoad
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+
+	-- call old callback, if it exists
+	if old_onObjectLoad then
+		old_onObjectLoad(...)
+	end
+end
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the onObjectLoad callback.
+---@param callback CallbackOnObjectLoad the callback to bind to the onObjectLoad callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.onObjectLoad(callback, priority)
+	bindCallback(
+		"onObjectLoad",
+		callback,
+		priority
+	)
+end
+
+--[[
 
 	setupMain
-
 
 ]]
 

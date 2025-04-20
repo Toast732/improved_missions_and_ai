@@ -55,6 +55,7 @@ HoldableAssetManager.AssetHolder = {}
 
 ---@class AssetHolder: DirtyAssetHolder
 ---@field getHeldAssetsOfType fun(self: AssetHolder, asset_type: ASSET_TYPE): table<integer, HeldAsset> function to get all held assets of a certain type.
+---@field addAsset fun(self: AssetHolder, asset_id: integer, relationship: AssetRelationship, grantor_holder_id: AssetHolderID?): HeldAssetID function to add an asset to the holder.
 
 ---@alias AssetHolders table<AssetHolderID, AssetHolder>
 
@@ -130,16 +131,36 @@ function HoldableAssetManager.AssetHolder.setup(asset_holder)
 		-- Loop through all held assets, and add them to the list if they match the type.
 		for _, held_asset in pairs(asset_holder.held_assets) do
 
-			-- If the asset type matches, add it to the list.
-			if held_asset.asset_type == asset_type then
+			-- Get the asset's definition.
+			local asset = HoldableAssetManager.HoldableAsset.getAsset(held_asset.asset_id)
 
-				-- Add the asset to the list.
+			-- If the asset type matches, add it to the list.
+			if asset.asset_type == asset_type then
+
+				-- Add the held asset entry to the list.
 				table.insert(assets, held_asset)
 			end
 		end
 
 		-- Return the assets.
 		return assets
+	end
+
+	--- Function to add an asset to the holder.
+	---@param self AssetHolder the asset holder to add the asset to.
+	---@param asset_id integer the ID of the asset to add.
+	---@param relationship AssetRelationship the relationship between the holder and the asset.
+	---@param grantor_holder_id AssetHolderID? the ID of the holder who granted access to this asset, if applicable.
+	---@return HeldAssetID held_asset_id the ID of the held asset.
+	asset_holder.addAsset = function(self, asset_id, relationship, grantor_holder_id)
+		-- Create the held asset.
+		local held_asset = HoldableAssetManager.HeldAssets.new(asset_id, relationship, grantor_holder_id)
+
+		-- Add the held asset to the holder.
+		table.insert(asset_holder.held_assets, held_asset)
+
+		-- Return the held asset ID.
+		return held_asset.held_asset_id
 	end
 
 	-- Return the asset holder. Cast to AssetHolder.

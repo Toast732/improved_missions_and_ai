@@ -112,6 +112,12 @@ DRIVABLE_VEHICLE_TYPE = {
 	UNKNOWN = 3
 }
 
+---@enum DRIVABLE_VEHICLE_SEAT_TYPE
+DRIVABLE_VEHICLE_SEAT_TYPE = {
+	DRIVER = 0,
+	PASSENGER = 1
+}
+
 --- The number of ticks to split the loaded drivable vehicles by.
 LOADED_DRIVABLE_VEHICLE_UPDATE_RATE = 1--5
 
@@ -330,6 +336,52 @@ function DrivableVehicle.setSeatInput(drivable_vehicle, seat_input)
 		seat_input.button6,
 		seat_input.trigger
 	)
+
+	if generic_vehicle.vehicle_ids[1] == 1123 then
+		d.print(("(DrivableVehicle.setSeatInput) Set the seat input for vehicle %d\naxis_w: %s\naxis_d: %s\naxis_up: %s\naxis_left: %s\nbutton1: %s\nbutton2: %s\nbutton3: %s\nbutton4: %s\nbutton5: %s\nbutton6: %s\ntrigger: %s"):format(generic_vehicle.vehicle_ids[1], seat_input.axis_w, seat_input.axis_d, seat_input.axis_up, seat_input.axis_left, seat_input.button1, seat_input.button2, seat_input.button3, seat_input.button4, seat_input.button5, seat_input.button6, seat_input.trigger), true, 0)
+	end
+end
+
+---@param drivable_vehicle DrivableVehicle
+---@param citizen_id CitizenID
+---@param seat_type DRIVABLE_VEHICLE_SEAT_TYPE
+---@return boolean is_success if it successfully set the citizen to the seat.
+function DrivableVehicle.setSeated(drivable_vehicle, citizen_id, seat_type)
+	-- Get the generic vehicle for this vehicle
+	local generic_vehicle = Vehicle.getGenericVehicle(drivable_vehicle.generic_vin)
+
+	-- If we failed to get the generic vehicle, return early.
+	if not generic_vehicle then
+		d.print(("<line>: (Drivable.setSeated) Failed to get the generic vehicle for the vin %s"):format(drivable_vehicle.generic_vin), true, 1)
+		return false
+	end
+
+	-- Get the citizen from the id.
+	local citizen = Citizens.getData(citizen_id)
+
+	-- If the citizen is nil, return early.
+	if not citizen then
+		d.print(("<line>: (Drivable.setSeated) Failed to get the citizen with id %s"):format(citizen_id), true, 1)
+		return false
+	end
+
+	-- If the type is driver, then set them to the driver seat.
+	if seat_type == DRIVABLE_VEHICLE_SEAT_TYPE.DRIVER then
+
+		-- Set them to the seat.
+		server.setSeated(citizen.object_id, generic_vehicle.vehicle_ids[1], "Driver")
+
+		-- Set them to be occupating this vehicle.
+		citizen.vehicle_data = {
+			occupating_vehicle_id = generic_vehicle.vehicle_ids[1],
+			seat_name = "Driver"
+		}
+
+		-- Return true.
+		return true
+	end
+
+	return false
 end
 
 --- Function for getting the vehicle's speed, uses the speed tracker system.
@@ -403,9 +455,9 @@ function DrivableVehicle.getUpcomingTurnData(drivable_vehicle, distance)
 	local total_distance_travelled = 0
 
 	-- Iterate through the nodes
-	for node_index = drivable_vehicle.route.path_index + 1, #path do
+	for node_index = drivable_vehicle.route.path_index + 1, #path.path_list do
 		-- Get the node
-		local node = path[node_index]
+		local node = path.path_list[node_index]
 
 		-- Create a vector for the position of this node
 		local node_vec2 = Vector2.new(node.x, node.z)
@@ -428,7 +480,7 @@ function DrivableVehicle.getUpcomingTurnData(drivable_vehicle, distance)
 		---@type BendNodeData
 		local bend_node_data = {
 			position = previous_vec3,
-			angle = turn_angle - previous_yaw, -- Subtract the previous yaw from it, to get the difference.
+			angle = math.wrap(turn_angle - previous_yaw, -math.pi, math.pi), -- Subtract the previous yaw from it, to get the difference.
 			distance = total_distance_travelled
 		}
 
@@ -467,7 +519,7 @@ function DrivableVehicle.hasNextNode(drivable_vehicle)
 	end
 
 	-- Return true if the node we've reached is less than the number of nodes in the path.
-	return #path > drivable_vehicle.route.path_index
+	return #path.path_list > drivable_vehicle.route.path_index
 end
 
 --- Function for removing a vehicle from the loaded list.
@@ -562,6 +614,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- Check if the path recieved is not nil.
 		if not path then
+			d.print(("<line>: (DrivableVehicle.onTick) Failed to get the path from the route with stored path id %d, aborting."):format(unloaded_vehicle.route.stored_path_id), true, 1)
 			goto continue
 		end
 
@@ -576,6 +629,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- If the generic vehicle is nil, then skip this vehicle.
 		if not generic_vehicle then
+			d.print(("<line>: (DrivableVehicle.onTick) Failed to get the generic vehicle for vehicle %d, aborting."):format(unloaded_vehicle.generic_vin), true, 1)
 			goto continue
 		end
 
@@ -584,6 +638,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- If we failed to get it's position, skip.
 		if not is_success then
+			d.print(("<line>: (DrivableVehicle.onTick) Failed to get the position of vehicle %d, aborting."):format(unloaded_vehicle.generic_vin), true, 1)
 			goto continue
 		end
 
@@ -594,7 +649,7 @@ function DrivableVehicle.onTick(game_ticks)
 		--server.addMapObject(-1, ui_id, 1, 12, 0, 0, 0, 0, generic_vehicle.vehicle_ids[1], 0, generic_vehicle.prefab_name, 0, generic_vehicle.prefab_name)
 		server.addMapObject(-1, ui_id, 0, 12, unloaded_vehicle.transform[13], unloaded_vehicle.transform[15], 0, 0, 0, 0, generic_vehicle.prefab_name, 0, generic_vehicle.prefab_name)
 
-		--d.print(("Vehicle %d is at\nx: %s\nz: %s"):format(unloaded_vehicle.generic_vin, unloaded_vehicle.transform[13], unloaded_vehicle.transform[15]), true, 0)
+		-- d.print(("Vehicle %d is at\nx: %s\nz: %s\ndistance_can_travel: %s"):format(unloaded_vehicle.generic_vin, unloaded_vehicle.transform[13], unloaded_vehicle.transform[15], distance_can_travel), true, 0)
 		--goto continue
 
 		--[[
@@ -606,6 +661,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- If the prefab is nil, skip this vehicle.
 		if not prefab then
+			d.print(("<line>: (DrivableVehicle.onTick) Failed to get the prefab for vehicle %s, aborting."):format(unloaded_vehicle.prefab_name), true, 1)
 			goto continue
 		end
 
@@ -616,9 +672,9 @@ function DrivableVehicle.onTick(game_ticks)
 		local last_position = Vector3.fromMatrix(unloaded_vehicle.transform, true)
 
 		-- Iterate through the path.
-		for path_index = unloaded_vehicle.route.path_index, #path do
+		for path_index = unloaded_vehicle.route.path_index, #path.path_list do
 			-- Get the node
-			local node = path[path_index]
+			local node = path.path_list[path_index]
 
 			-- Create a vector for the position of this node
 			local node_position = Vector3.add(Vector3.new(node.x, node.y, node.z), vehicle_offset_vector)

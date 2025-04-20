@@ -81,6 +81,8 @@ Commuting = {}
 ---@field getCost fun(option_data: CommuteBaseOptionData, route: Route): CommuteCost the cost of this commute type.
 ---@field checkCompletion fun(option_data: CommuteBaseOptionData, route: Route): boolean if this commute is completed.
 ---@field tick fun(option_data: CommuteBaseOptionData, route: Route, game_ticks: integer)? Ticks the commute, null if not required.
+---@field startActions fun(option_data: CommuteBaseOptionData, route: Route)? The actions to call when this commute type starts.
+---@field endActions fun(option_data: CommuteBaseOptionData)? The actions to call when this commute type ends.
 
 ---@class CommuteBuilder
 ---@field citizen_id CitizenID the citizen this commute is for.
@@ -107,7 +109,7 @@ Commuting = {}
 MAX_COMMUTES_PER_SEGMENT_CHECK = 3
 
 -- The absolute maximum number of segments before it just auto-fails, to prevent infinite recursion.
-MAX_SEGMENTS = 20
+MAX_SEGMENTS = 3
 
 --[[
 
@@ -151,7 +153,9 @@ interim_commute_types = {}
 ---@param getCost fun(option_data: CommuteBaseOptionData, route: Route): CommuteCost the cost of this commute type.
 ---@param checkCompletion fun(option_data: CommuteBaseOptionData, route: Route): boolean if this commute is completed.
 ---@param tick fun(option_data: CommuteBaseOptionData, route: Route, game_ticks: integer)? Ticks the commute, null if not required.
-function Commuting.registerCommuteType(name, interim, getOptions, isAvailable, calculateRoute, getCommuteTime, getCost, checkCompletion, tick)
+---@param startActions fun(option_data: CommuteBaseOptionData, route: Route)? The actions to call when this commute type starts.
+---@param endActions fun(option_data: CommuteBaseOptionData)? The actions to call when this commute type ends.
+function Commuting.registerCommuteType(name, interim, getOptions, isAvailable, calculateRoute, getCommuteTime, getCost, checkCompletion, tick, startActions, endActions)
 	
 	-- check if this commute type is already registered
 	for _, commute_type in ipairs(commute_types) do
@@ -172,7 +176,9 @@ function Commuting.registerCommuteType(name, interim, getOptions, isAvailable, c
 		getCommuteTime = getCommuteTime,
 		getCost = getCost,
 		checkCompletion = checkCompletion,
-		tick = tick
+		tick = tick,
+		startActions = startActions,
+		endActions = endActions
 	}
 
 	-- create it as a commute type
@@ -213,6 +219,22 @@ function Commuting.commute(builder)
 
 			-- If this commute type is available, add the options to the available options.
 			if commute_type_definition.isAvailable(options) then
+
+				-- Get the index to insert the segment at.
+				local insertion_index = connecting_to == COMMUTE_CONNECTING_TO.START and 1 or #commute_segment_manager.segments + 1
+
+				-- Check if we can even insert here.
+				if not commute_segment_manager:canInsert(insertion_index, commute_type_definition.name) then
+					d.print(("<line>: (Commuting.commute) Cannot insert segment of type %s at index %s."):format(commute_type_definition.name, insertion_index), true, 0)
+
+					-- Print the segments in the segment manager.
+					for segment_index, segment in pairs(commute_segment_manager.segments) do
+						d.print(("<line>: (Commuting.commute) Segment %s: %s"):format(segment_index, segment.commute_type), true, 0)
+					end
+
+					goto continue_commute_type
+				end
+
 				for option_index = 1, #options do
 
 					-- Get the option.
@@ -220,9 +242,6 @@ function Commuting.commute(builder)
 
 					-- Create a new commute segment manager commute for this option.
 					local option_commute_segment_manager = commute_segment_manager:duplicate()
-
-					-- Get the index to insert the segment at.
-					local insertion_index = connecting_to == COMMUTE_CONNECTING_TO.START and 1 or #option_commute_segment_manager.segments + 1
 
 					-- Insert the segment.
 					option_commute_segment_manager:insertSegment(
@@ -261,7 +280,16 @@ function Commuting.commute(builder)
 							)
 
 							-- If this commute type is available, add the options to the available options.
-							if commute_type_definition.isAvailable(interim_options) then
+							if interim_commute_type_definition.isAvailable(interim_options) then
+
+								-- Get the index to insert the segment at.
+								local interim_insertion_index = connecting_to == COMMUTE_CONNECTING_TO.START and 2 or #option_commute_segment_manager.segments
+
+								-- Check if we can even insert here.
+								if not option_commute_segment_manager:canInsert(insertion_index, interim_commute_type_definition.name) then
+									goto continue_interim_commute_type
+								end
+
 								for interim_option_index = 1, #interim_options do
 
 									-- Get the option.
@@ -269,9 +297,6 @@ function Commuting.commute(builder)
 
 									-- Create a new commute segment manager commute for this interim option.
 									local interim_option_commute_segment_manager = option_commute_segment_manager:duplicate()
-
-									-- Get the index to insert the segment at.
-									local interim_insertion_index = connecting_to == COMMUTE_CONNECTING_TO.START and 2 or #interim_option_commute_segment_manager.segments
 
 									-- Insert the segment.
 									interim_option_commute_segment_manager:insertSegment(
@@ -291,6 +316,8 @@ function Commuting.commute(builder)
 									-- Add this to the available commutes.
 									table.insert(available_commutes, interim_option_commute_segment_manager)
 								end
+
+								::continue_interim_commute_type::
 							end
 						end
 
@@ -299,10 +326,12 @@ function Commuting.commute(builder)
 						table.insert(available_commutes, option_commute_segment_manager)
 					end
 				end
+
+				::continue_commute_type::
 			end
 		end
 
-		-- Sort the available commutes by cost.
+		-- Sort the available commutes by cost, lowest tp highest
 		table.sort(
 			available_commutes,
 			function(a, b)
@@ -389,6 +418,8 @@ function Commuting.commute(builder)
 			if current_commute.end_connected and current_commute.start_connected then
 				if not best_commute or best_commute.cost > current_commute.cost then
 
+					current_commute:drawDebug()
+
 					d.print(("<line>: (Commuting.commute) Found a best direct route. Segment Count: %s"):format(#current_commute.segments), true, 0)
 
 					-- Set it as the best
@@ -411,6 +442,8 @@ function Commuting.commute(builder)
 				-- Get the next commute
 				local next_commute = next_commutes[next_commute_index]
 
+				next_commute:drawDebug()
+
 				-- If we've hit over our maximum number of segments, then we just skip this one.
 				if #next_commute.segments > MAX_SEGMENTS then
 					d.print("<line>: (Commuting.commute) Hit maximum number of segments, skipping.", true, 0)
@@ -427,7 +460,12 @@ function Commuting.commute(builder)
 				-- Otherwise, add it to the stored commutes for the next checks.
 				if next_commute.start_connected and next_commute.end_connected then
 					best_commute = next_commute
-					d.print(("<line>: (Commuting.commute) Found a best route. Segment Count: %s"):format(#current_commute.segments), true, 0)
+					d.print(("<line>: (Commuting.commute) Found a best route. Segment Count: %s"):format(#next_commute.segments), true, 0)
+
+					-- Print each of the segments in this route.
+					for segment_index = 1, #next_commute.segments do
+						d.print(("<line>: (Commuting.commute) Segment %s: %s"):format(segment_index, next_commute.segments[segment_index].commute_type), true, 0)
+					end
 				else
 					table.insert(stored_commutes, next_commute)
 				end
@@ -453,6 +491,16 @@ function Commuting.commute(builder)
 		current_segment_index = 1
 	}
 
+	-- Ensure there is no active commutes for this citizen already, if there is, remove it
+	-- Remember kids, don't walk and drive...
+	for existing_active_commute_index, existing_active_commute in pairs(g_savedata.libraries.commuting.active_commutes) do
+		-- Check if the citizen id is the same
+		if existing_active_commute.commute_builder.citizen_id == builder.citizen_id then
+			-- Remove this existing commute.
+			g_savedata.libraries.commuting.active_commutes[existing_active_commute_index] = nil
+		end
+	end
+
 	-- Increment the next active commute id.
 	g_savedata.libraries.commuting.next_active_commute_id = g_savedata.libraries.commuting.next_active_commute_id + 1
 
@@ -469,22 +517,26 @@ function Commuting.onTick(game_ticks)
 		-- Get the current segment.
 		local current_segment = active_commute.commute_segments[active_commute.current_segment_index]
 
+		-- Get the citizen.
+		local citizen = Citizens.getData(active_commute.commute_builder.citizen_id)
+
+		-- If the citizen is nil, then continue.
+		if not citizen then
+			d.print(("<line>: (Commuting.onTick) Citizen is nil for active commute %s. Index: %s"):format(active_commute.id, active_commute.current_segment_index), true, 1)
+			goto continue
+		end
+
+		-- If their schedule's oop is not setup, skip.
+		if type(citizen.schedule.tick) ~= "function" then
+			goto continue
+		end
+
 		-- If the current segment is nil, then continue.
 		if not current_segment then
-			--d.print(("<line>: (Commuting.onTick) Current segment is nil for active commute %s. Index: %s"):format(active_commute.id, active_commute.current_segment_index), true, 1)
-			
-			-- Get the citizen.
-			local citizen = Citizens.getData(active_commute.commute_builder.citizen_id)
-
-			-- If the citizen is nil, then continue.
-			if not citizen then
-				d.print(("<line>: (Commuting.onTick) Citizen is nil for active commute %s. Index: %s"):format(active_commute.id, active_commute.current_segment_index), true, 1)
-				goto continue
-			end
-
-			-- Tick their schedule.
+			-- Tick their schedule, to clear it.
 			citizen.schedule:tick()
 
+			-- Skip to the next active commute.
 			goto continue
 		end
 
@@ -500,9 +552,61 @@ function Commuting.onTick(game_ticks)
 			)
 		end
 
+		local debug_string = ""
+
+		debug_string = ("%sSegment Type: %s\n"):format(debug_string, current_segment.commute_type)
+
+		server.removeMapObject(-1, citizen.object_id + 14784)
+
+		server.addMapObject(
+			-1,
+			citizen.object_id + 14784,
+			0,
+			1,
+			citizen.transform[13],
+			citizen.transform[15],
+			0,
+			0,
+			0,
+			0,
+			citizen.name.full,
+			10,
+			debug_string,
+			255,
+			255,
+			255,
+			255
+		)
+
 		-- If the current segment is completed, then move to the next segment.
 		if commute_type_definition.checkCompletion(current_segment.option_data, current_segment.route) then
+
+			-- Call the end actions of the current segment, if it exists.
+			if commute_type_definition.endActions then
+				commute_type_definition.endActions(current_segment.option_data)
+			end
+
 			active_commute.current_segment_index = active_commute.current_segment_index + 1
+
+			-- Call the start actions of the new segment, if it exists.
+			local new_segment = active_commute.commute_segments[active_commute.current_segment_index]
+
+			-- Ensure we got the next segment.
+			if not new_segment then
+				goto continue
+			end
+
+			local new_commute_type_definition = commute_types[new_segment.commute_type]
+
+			-- Ensure we got the next commute type definition.
+			if not new_commute_type_definition then
+				d.print(("<line>: (Commuting.onTick) Commute type definition not found for %s"):format(new_segment.commute_type), true, 1)
+				goto continue
+			end
+
+			if new_commute_type_definition.startActions then
+				new_commute_type_definition.startActions(new_segment.option_data, new_segment.route)
+			end
 		end
 
 		::continue::

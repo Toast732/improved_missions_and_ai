@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.27)"
+ADDON_VERSION = "(0.0.1.28)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -651,11 +651,14 @@ function string.formatTime(format, time, as_game_time)
 			goto next_unit
 		end
 
+		-- Floor the time unit instances
+		floored_time_unit_instances = math.floor(time_unit_instances)
+
 		-- format this unit
-		local unit_string = ("%s%0.0f%s"):format(unit_data.prefix, time_unit_instances, unit_data.suffix)
+		local unit_string = ("%s%d%s"):format(unit_data.prefix, floored_time_unit_instances, unit_data.suffix)
 
 		-- if this unit is not 1, then add an s to where it wants the plurals to be.
-		unit_string = unit_string:setField("plural", math.floor(time_unit_instances) == 1 and "" or "s")
+		unit_string = unit_string:setField("plural", floored_time_unit_instances == 1 and "" or "s")
 
 		-- add the formatted unit to the formatted units table.
 		table.insert(formatted_units, {
@@ -664,7 +667,7 @@ function string.formatTime(format, time, as_game_time)
 		} --[[@as formattedUnit]])
 
 		-- subtract the amount of time this unit used up, from the leftover time.
-		leftover_time = leftover_time - math.floor(time_unit_instances)*seconds_in_unit
+		leftover_time = leftover_time - floored_time_unit_instances*seconds_in_unit
 
 		::next_unit::
 	end
@@ -784,9 +787,11 @@ end
 
 ---@alias defaultCommandPermissions "none"|"auth"|"admin"|"script"|"auth_script"|"admin_script"
 
+---@alias commandFunctionToExecute fun(full_message: string, peer_id: integer, ...)
+
 ---@class Command
 ---@field name string the name of the command
----@field function_to_execute function the function to execute when the command is called, given params are: full_message, peer_id, arg
+---@field function_to_execute commandFunctionToExecute the function to execute when the command is called, given params are: full_message, peer_id, arg
 ---@field required_permission defaultCommandPermissions|string the permission this command requires
 ---@field description string the description of the command
 ---@field short_description string the short description for this command
@@ -880,7 +885,7 @@ end
 
 ---# Registers a command
 ---@param name commandName the name of the command
----@param function_to_execute function the function to execute when the command is called, params are (full_message, peer_id, args)
+---@param function_to_execute commandFunctionToExecute the function to execute when the command is called, params are (full_message, peer_id, args)
 ---@param required_permission defaultCommandPermissions|string the permission required to execute this command.
 ---@param description string the description of the command
 ---@param short_description string the shortened description of the command
@@ -4104,6 +4109,131 @@ Command.registerCommand(
 	{"g_savedata", "Command", "g_savedata.tick_counter"}
 )
 
+
+-- Add the tick test command "tick_test"
+--[[
+	
+Copyright 2025 Liam Matthews
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+]]
+
+-- Library Version 0.0.1
+
+--[[
+
+
+	Library Setup
+
+
+]]
+
+TickTesterCommand = {}
+
+-- required libraries
+
+---@diagnostic disable:duplicate-doc-field
+---@diagnostic disable:duplicate-doc-alias
+---@diagnostic disable:duplicate-set-field
+
+--[[
+
+	Registers a command to test if the addon has errored or not, by checking if the tick function is getting called.
+
+]]
+
+--[[
+
+
+	Constants
+
+
+]]
+
+TICK_TEST_ADDON_COMMUNICATION_MESSAGE = "TICK_TEST_PING"
+
+--[[
+
+
+	Variables
+
+
+]]
+
+local is_tick_test_command_active = false
+local tick_testers = {}
+
+-- Tick Test command
+Command.registerCommand(
+	"tick_test",
+	---@param full_message string the full message
+	---@param peer_id integer the peer_id of the sender
+	---@param arg table the arguments of the command.
+	function(full_message, peer_id, arg)
+		-- Set the tick test variable to true
+		is_tick_test_command_active = true
+
+		-- Add this user to the tick testers.
+		table.insert(tick_testers, peer_id)
+
+		AddonCommunication.executeOnReply(
+			SHORT_ADDON_NAME,
+			TICK_TEST_ADDON_COMMUNICATION_MESSAGE,
+			0,
+			function()
+				-- If the tick test command is active, then print that the tick test has failed.
+				if is_tick_test_command_active then
+					for tick_tester_index = 1, #tick_testers do 
+						d.print("Tick test failed!", false, 0, tick_testers[tick_tester_index])
+					end
+					
+					-- Set the tick test variable to false.
+					is_tick_test_command_active = false
+
+					-- Clear the tick testers
+					tick_testers = {}
+				end
+			end,
+			1,
+			5
+		)
+
+		-- Send the communication
+		AddonCommunication.sendCommunication(TICK_TEST_ADDON_COMMUNICATION_MESSAGE, 0)
+	end,
+	"none",
+	"Tests if the tick function is being called. Which is able to check if an error occured in the addon, useful for if an error occured, but was pushed up by a bunch of debug.",
+	"Tests if the addon has errored.",
+	{""}
+)
+
+-- OnTick for the tick test command, will print that the tick test has passed.
+function TickTesterCommand.onTick()
+	if is_tick_test_command_active then
+		for tick_tester_index = 1, #tick_testers do 
+			d.print("Tick test passed!", false, 0, tick_testers[tick_tester_index])
+		end
+
+		-- Set the tick test variable to false.
+		is_tick_test_command_active = false
+
+		-- Clear the tick testers
+		tick_testers = {}
+	end
+end
+
+
 ---@diagnostic disable:duplicate-doc-field
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
@@ -4195,7 +4325,7 @@ function Object.addObject(object_id)
 
 	-- the object doesn't actually exist
 	if not object_data then
-		d.print(("4198: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
+		d.print(("4328: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
 		return false
 	end
 
@@ -4414,19 +4544,19 @@ function Effects.apply(name, object, duration, strength)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4417: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4547: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4423: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4553: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false
 	end
 
 	-- if the object cannot have this effect applied.
 	if not effect_applicable_objects[name] or not effect_applicable_objects[name][object.object_type] then
-		d.print(("4429: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
+		d.print(("4559: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4435,7 +4565,7 @@ function Effects.apply(name, object, duration, strength)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4438: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4568: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4478,7 +4608,7 @@ end
 function Effects.remove(object, name)
 	-- if the object was never given
 	if not object then
-		d.print(("4481: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
+		d.print(("4611: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
 		return false, false
 	end
 
@@ -4487,13 +4617,13 @@ function Effects.remove(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4490: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4620: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4496: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4626: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4502,7 +4632,7 @@ function Effects.remove(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4505: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4635: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4554,13 +4684,13 @@ end
 function Effects.removeAll(object)
 	-- if the object was never given
 	if not object then
-		d.print("4557: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
+		d.print("4687: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
 		return 0, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4563: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("4693: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return 0, false
 	end
 
@@ -4569,7 +4699,7 @@ function Effects.removeAll(object)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4572: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
+		d.print(("4702: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
 		return 0, false
 	end
 
@@ -4597,7 +4727,7 @@ function Effects.removeAll(object)
 		
 		-- if this effect does not exist.
 		if not effect_definition then
-			d.print(("4600: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
+			d.print(("4730: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4635,13 +4765,13 @@ function Effects.has(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4638: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4768: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4644: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4774: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4650,7 +4780,7 @@ function Effects.has(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4653: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4783: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4715,7 +4845,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4718: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4848: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -4731,7 +4861,7 @@ function Effects.onTick(game_ticks)
 
 		-- if this effect definition does not exist.
 		if not effect_definition then
-			d.print(("4734: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
+			d.print(("4864: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4742,7 +4872,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4745: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4875: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -5036,6 +5166,7 @@ HoldableAssetManager.AssetHolder = {}
 
 ---@class AssetHolder: DirtyAssetHolder
 ---@field getHeldAssetsOfType fun(self: AssetHolder, asset_type: ASSET_TYPE): table<integer, HeldAsset> function to get all held assets of a certain type.
+---@field addAsset fun(self: AssetHolder, asset_id: integer, relationship: AssetRelationship, grantor_holder_id: AssetHolderID?): HeldAssetID function to add an asset to the holder.
 
 ---@alias AssetHolders table<AssetHolderID, AssetHolder>
 
@@ -5111,16 +5242,36 @@ function HoldableAssetManager.AssetHolder.setup(asset_holder)
 		-- Loop through all held assets, and add them to the list if they match the type.
 		for _, held_asset in pairs(asset_holder.held_assets) do
 
-			-- If the asset type matches, add it to the list.
-			if held_asset.asset_type == asset_type then
+			-- Get the asset's definition.
+			local asset = HoldableAssetManager.HoldableAsset.getAsset(held_asset.asset_id)
 
-				-- Add the asset to the list.
+			-- If the asset type matches, add it to the list.
+			if asset.asset_type == asset_type then
+
+				-- Add the held asset entry to the list.
 				table.insert(assets, held_asset)
 			end
 		end
 
 		-- Return the assets.
 		return assets
+	end
+
+	--- Function to add an asset to the holder.
+	---@param self AssetHolder the asset holder to add the asset to.
+	---@param asset_id integer the ID of the asset to add.
+	---@param relationship AssetRelationship the relationship between the holder and the asset.
+	---@param grantor_holder_id AssetHolderID? the ID of the holder who granted access to this asset, if applicable.
+	---@return HeldAssetID held_asset_id the ID of the held asset.
+	asset_holder.addAsset = function(self, asset_id, relationship, grantor_holder_id)
+		-- Create the held asset.
+		local held_asset = HoldableAssetManager.HeldAssets.new(asset_id, relationship, grantor_holder_id)
+
+		-- Add the held asset to the holder.
+		table.insert(asset_holder.held_assets, held_asset)
+
+		-- Return the held asset ID.
+		return held_asset.held_asset_id
 	end
 
 	-- Return the asset holder. Cast to AssetHolder.
@@ -5262,7 +5413,7 @@ HoldableAssetManager.HeldAssets = {}
 ---@field relationship AssetRelationship The relationship between this holder and this asset
 ---@field grantor_holder_id AssetHolderID? Who granted this holder access to this asset, if applicable.
 
----@alias HeldAssets table<HeldAsset>
+---@alias HeldAssets table<integer, HeldAsset>
 
 --[[
 
@@ -5280,6 +5431,11 @@ HoldableAssetManager.HeldAssets = {}
 
 ]]
 
+g_savedata.libraries.asset_manager.held_assets = {
+	---@type HeldAssetID
+	next_id = 1
+}
+
 --[[
 
 
@@ -5288,7 +5444,25 @@ HoldableAssetManager.HeldAssets = {}
 
 ]]
 
+---@param asset_id AssetID
+---@param relationship AssetRelationship
+---@param grantor_holder_id AssetHolderID?
+function HoldableAssetManager.HeldAssets.new(asset_id, relationship, grantor_holder_id)
+	-- create the held asset
+	---@type HeldAsset
+	local held_asset = {
+		held_asset_id = g_savedata.libraries.asset_manager.held_assets.next_id,
+		asset_id = asset_id,
+		relationship = relationship,
+		grantor_holder_id = grantor_holder_id
+	}
 
+	-- increment the next id
+	g_savedata.libraries.asset_manager.held_assets.next_id = g_savedata.libraries.asset_manager.held_assets.next_id + 1
+
+	-- return the held asset
+	return held_asset
+end
 
 
 
@@ -5382,6 +5556,9 @@ Binder = {
 -- onVehicleUnload
 ---@alias CallbackOnVehicleUnload fun(vehicle_id: integer)
 
+-- onObjectLoad
+---@alias CallbackOnObjectLoad fun(object_id: integer)
+
 -- setupMain
 ---@alias CallbackSetupMain fun(is_world_create: boolean)
 
@@ -5389,6 +5566,7 @@ Binder = {
 ---| CallbackOnGroupSpawn
 ---| CallbackOnVehicleLoad
 ---| CallbackOnVehicleUnload
+---| CallbackOnObjectLoad
 ---| CallbackSetupMain
 
 ---@class BindedCallback
@@ -5408,6 +5586,7 @@ binded_callbacks = {
 	onGroupSpawn = {},
 	onVehicleLoad = {},
 	onVehicleUnload = {},
+	onObjectLoad = {},
 	setupMain = {}
 }
 
@@ -5609,11 +5788,59 @@ function Binder.bind.onVehicleUnload(callback, priority)
 	)
 end
 
+
 --[[
 
+	onObjectLoad
+
+]]
+
+--[[
+	Inject.
+]]
+
+old_onObjectLoad = onObjectLoad
+
+---@private
+function onObjectLoad(...)
+
+	-- get the list of binds for this callback.
+	local binds = binded_callbacks.onObjectLoad
+
+	-- check if the list exists
+	if not binds then
+		return
+	end
+
+	-- call each callback in order
+	for bind_index = 1, #binds do
+		binds[bind_index].callback(...)
+	end
+
+	-- call old callback, if it exists
+	if old_onObjectLoad then
+		old_onObjectLoad(...)
+	end
+end
+
+--[[
+	Create bind function
+]]
+
+--- Function for binding to a the onObjectLoad callback.
+---@param callback CallbackOnObjectLoad the callback to bind to the onObjectLoad callback.
+---@param priority integer? the priority of the callback, higher priority callbacks are called first. Defaults to 0.
+function Binder.bind.onObjectLoad(callback, priority)
+	bindCallback(
+		"onObjectLoad",
+		callback,
+		priority
+	)
+end
+
+--[[
 
 	setupMain
-
 
 ]]
 
@@ -7119,7 +7346,7 @@ function ZoneLinker.getZoneData(component_data, location_data)
 
 	-- If the tile's location was not found, return nil.
 	if not is_success then
-		d.print(("7122: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
+		d.print(("7349: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
 		return nil
 	end
 
@@ -7247,7 +7474,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If the value was not found, return nil.
 	if not type_value then
-		d.print(("7250: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
+		d.print(("7477: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
 			addon_component_data.tags_full
 		), true, 1)
 		return nil
@@ -7258,7 +7485,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If it was not found, return nil.
 	if not usable_prop_type then
-		d.print(("7261: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
+		d.print(("7488: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
 			type_value
 		), true, 1)
 		return nil
@@ -7478,7 +7705,7 @@ function UsableProps.setupMain(is_world_create)
 
 	-- If we failed to find any, abort.
 	if not got_spawning_data then
-		d.print(("7481: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
+		d.print(("7708: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
 		return
 	end
 
@@ -7507,7 +7734,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the component data was not found, skip.
 		if not is_success then
-			d.print(("7510: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("7737: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -7521,7 +7748,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the zone data was not found, skip.
 		if not zone_data then
-			d.print(("7524: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("7751: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -7620,13 +7847,13 @@ function UsableProps.selectRandomPropWithType(usablePropHashmap, type, amount, s
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("7623: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
+		d.print(("7850: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
 	-- If we have less props than the amount, return nil.
 	if #props_with_type < amount then
-		d.print(("7629: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
+		d.print(("7856: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
@@ -7672,7 +7899,7 @@ function UsableProps.getPropsWithType(prop_type)
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("7675: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
+		d.print(("7902: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
 		return nil
 	end
 
@@ -7862,7 +8089,7 @@ function AIJob.create(usable_prop, position_index)
 
 	-- If the building was not found, print an error and return.
 	if not job_building_id then
-		d.print(("7865: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
+		d.print(("8092: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
 			usable_prop.id
 		), true, 1)
 		return
@@ -8119,7 +8346,7 @@ function AIJobs.setupMain(is_world_create)
 
 	-- If it failed, print an error and return.
 	if not ai_job_props then
-		d.print(("8122 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
+		d.print(("8349 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
 		return
 	end
 
@@ -8369,7 +8596,7 @@ function AIJobPool.create()
 
 				-- Ensure the citizen exists.
 				if not citizen then
-					d.print(("8372 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
+					d.print(("8599 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
 					goto continue
 				end
 
@@ -8478,7 +8705,7 @@ function AIJobPool.create()
 
 					-- Ensure the citizen exists.
 					if not citizen then
-						d.print(("8481 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
+						d.print(("8708 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
 						goto continue
 					end
 
@@ -8548,7 +8775,7 @@ function AIJobPool.create()
 			end
 
 			-- Print the number of citizens hired, and not hired.
-			d.print(("8551 (AIJobPool.compute) Hiring cycle complete! %d citizens were hired, and %d citizens were not hired."):format(citizens_hired, #self.citizens), true, 0)
+			d.print(("8778 (AIJobPool.compute) Hiring cycle complete! %d citizens were hired, and %d citizens were not hired."):format(citizens_hired, #self.citizens), true, 0)
 		end
 	}
 
@@ -8612,7 +8839,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.3
+-- Library Version 0.0.4
 
 --[[
 
@@ -8907,21 +9134,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("8910: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("9137: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("8917: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("9144: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("8924: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("9151: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -8959,14 +9186,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("8962: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("9189: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("8969: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("9196: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -8976,7 +9203,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("8979: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("9206: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -9010,7 +9237,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("9013: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("9240: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -9021,7 +9248,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("9024: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("9251: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -9077,7 +9304,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("9080: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("9307: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -9229,7 +9456,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("9232: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("9459: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -9238,7 +9465,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("9241: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("9468: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -9259,7 +9486,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("9262: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("9489: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -9268,7 +9495,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("9271: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("9498: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -9651,19 +9878,19 @@ function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, ex
 
 			-- If the citizen is nil, then return.
 			if citizen == nil then
-				d.print(("9654 (CitizenScheduleTaskCommute.checkCompletion) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				d.print(("9881 (CitizenScheduleTaskCommute.checkCompletion) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 				return true
 			end
 
 			-- If the task expired, then return true.
 			if GameTimestamp.now() > self.expiry then
-				d.print(("9660 (CitizenScheduleTaskCommute.checkCompletion) Task expired, marked as completed. (%s > %s)"):format(GameTimestamp.now(), self.expiry), true, 0)
+				d.print(("9887 (CitizenScheduleTaskCommute.checkCompletion) Task expired, marked as completed. (%s > %s)"):format(GameTimestamp.now(), self.expiry), true, 0)
 				return true
 			end
 
 			-- If the citizen's active_commute_id is nil, then return true.
 			if citizen.active_commute_id == nil then
-				d.print(("9666 (CitizenScheduleTaskCommute.checkCompletion) Commute id is nil for citizen %d, commute completed."):format(self.citizen_id), true, 0)
+				d.print(("9893 (CitizenScheduleTaskCommute.checkCompletion) Commute id is nil for citizen %d, commute completed."):format(self.citizen_id), true, 0)
 				return true
 			end
 
@@ -9673,13 +9900,13 @@ function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, ex
 
 			-- If the commute is nil, then return true.
 			if commute == nil then
-				d.print(("9676 (CitizenScheduleTaskCommute.checkCompletion) Commute not found for citizen %d, commute completed."):format(self.citizen_id), true, 0)
+				d.print(("9903 (CitizenScheduleTaskCommute.checkCompletion) Commute not found for citizen %d, commute completed."):format(self.citizen_id), true, 0)
 				return true
 			end
 
 			-- If the current segment index is not a segment, then return true.
 			if commute.commute_segments[commute.current_segment_index] == nil then
-				d.print(("9682 (CitizenScheduleTaskCommute.checkCompletion) Current segment index does not have an associated segment, commute completed for citizen %d"):format(self.citizen_id), true, 0)
+				d.print(("9909 (CitizenScheduleTaskCommute.checkCompletion) Current segment index does not have an associated segment, commute completed for citizen %d"):format(self.citizen_id), true, 0)
 				return true
 			end
 
@@ -9693,7 +9920,7 @@ function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, ex
 
 			-- If the citizen is nil, then return.
 			if citizen == nil then
-				d.print(("9696 (CitizenScheduleTaskWalkToPosition.taskStartActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				d.print(("9923 (CitizenScheduleTaskWalkToPosition.taskStartActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 				return
 			end
 
@@ -9723,9 +9950,12 @@ function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, ex
 
 			-- If the citizen is nil, then return.
 			if citizen == nil then
-				d.print(("9726 (CitizenScheduleTaskWalkToPosition.taskEndActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				d.print(("9953 (CitizenScheduleTaskWalkToPosition.taskEndActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 				return
 			end
+
+			-- Remove the map object.
+			server.removeMapObject(-1, citizen.object_id + 14784)
 
 			-- Remove the active commute.
 			g_savedata.libraries.commuting.active_commutes[citizen.active_commute_id] = nil
@@ -9873,7 +10103,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If the citizen is nil, then return.
 		if citizen == nil then
-			d.print(("9876 (CitizenSchedule.generateSchedule) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+			d.print(("10106 (CitizenSchedule.generateSchedule) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -9962,7 +10192,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If the citizen is nil, then return.
 		if citizen == nil then
-			d.print(("9965 (CitizenSchedule.tick) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+			d.print(("10195 (CitizenSchedule.tick) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -9973,7 +10203,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If there are no tasks, then return.
 		if #self.tasks == 0 then
-			--d.print(("9976 (CitizenSchedule.tick) Error: Failed to generate the schedule for citizen with id %d."):format(self.citizen_id), true, 1)
+			--d.print(("10206 (CitizenSchedule.tick) Error: Failed to generate the schedule for citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -9982,7 +10212,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If the current task is nil, then return.
 		if current_task == nil then
-			d.print(("9985 (CitizenSchedule.tick) Error: Failed to get the current task for citizen with id %d."):format(self.citizen_id), true, 1)
+			d.print(("10215 (CitizenSchedule.tick) Error: Failed to get the current task for citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -9991,7 +10221,7 @@ function CitizenSchedule.clean(schedule)
 			-- We can start the task, so start it.
 			current_task.started = true
 
-			d.print(("9994 (CitizenSchedule.tick) Task \"%s\" started for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
+			d.print(("10224 (CitizenSchedule.tick) Task \"%s\" started for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
 
 			-- Call the task's start actions.
 			if current_task.taskStartActions then
@@ -10009,7 +10239,7 @@ function CitizenSchedule.clean(schedule)
 					current_task:taskEndActions()
 				end
 
-				d.print(("10012 (CitizenSchedule.tick) Task \"%s\" completed for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
+				d.print(("10242 (CitizenSchedule.tick) Task \"%s\" completed for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
 
 				-- The task is completed, so remove it from the schedule.
 				table.remove(self.tasks, 1)
@@ -10056,8 +10286,8 @@ Citizen = {}
 
 --! Remove this, thinking of abstracting to the item/inventory system, and rewriting the item/inventory system a bit to accomodate.
 ---@class CitizenVehicleData
----@field linked_vehicles table<integer, nil> the vehicles linked to this citizen.
 ---@field occupating_vehicle_id integer the vehicle_id the citizen is an occupant of. -1 for none.
+---@field seat_name string the name of the seat the citizen is in.
 
 ---@class DirtyCitizen
 ---@field id CitizenID the citizen's ID.
@@ -10138,8 +10368,8 @@ function Citizen.create(transform, outfit_type)
 		object_type = "citizen",
 		statuses = {},
 		vehicle_data = {
-			linked_vehicles = {},
-			occupating_vehicle_id = -1
+			occupating_vehicle_id = -1,
+			seat_name = ""
 		},
 		asset_holder_id = HoldableAssetManager.AssetHolder.new(),
 		home_building_id = -1,
@@ -10184,17 +10414,17 @@ function Citizen.setup(citizen)
 		local tooltip = "\n"
 
 		-- Get the highest priority status for this citizen.
-		local highest_status = Citizens.Status.getHighest(citizen)
+		local highest_status = Citizens.Status.getHighest(self)
 		if highest_status.tooltip ~= "" then
 			-- add the status at the top of the tooltip
 			tooltip = ("%s%s\n"):format(tooltip, highest_status.tooltip)
 		end
 
 		-- Add the citizen's name to the tooltip
-		tooltip = tooltip..citizen.name.full
+		tooltip = tooltip..self.name.full
 
 		-- Add their medical conditions to the tooltip
-		tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(citizen))
+		tooltip = ("%s\n\n%s"):format(tooltip, medicalCondition.getTooltip(self))
 
 		-- Always end the tooltip with a new line, if it doesn't
 		local tooltip_length = tooltip:len()
@@ -10203,7 +10433,7 @@ function Citizen.setup(citizen)
 		end
 
 		-- Set their tooltip.
-		server.setCharacterTooltip(citizen.object_id, tooltip)
+		server.setCharacterTooltip(self.object_id, tooltip)
 	end
 
 	--[[
@@ -10353,7 +10583,7 @@ function Citizen.tick(citizen, game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("10356: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("10586: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -10376,7 +10606,7 @@ function Citizen.tick(citizen, game_ticks)
 				citizen.suppress_next_health_change = true
 			elseif object_data.hp > 97 then
 
-				server.setCharacterData(citizen.object_id, 97, true, true)
+				server.setCharacterData(citizen.object_id, 97, true, false)
 
 				-- suppress the next health change to avoid it being mistooken for taking damage
 				citizen.suppress_next_health_change = true
@@ -10390,6 +10620,32 @@ function Citizen.tick(citizen, game_ticks)
 	-- Tick the citizen's schedule
 	citizen.schedule:tick()
 end
+
+Command.registerCommand(
+	"freeCar",
+	function(full_message, peer_id, ...)
+		-- Go through each citizen.
+		for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+			-- Create a drivable vehicle for the citizen.
+			local drivable_vehicle_id, is_success = DrivableVehicle.spawn("Test Land Vehicle", citizen.transform)
+
+			-- Get the drivable vehicle from the id.
+			local drivable_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[drivable_vehicle_id]
+
+			-- Set this citizen as the owner.
+			g_savedata.libraries.asset_manager.asset_holders.holders[citizen.asset_holder_id]:addAsset(
+				drivable_vehicle.asset_id,
+				ASSET_RELATIONSHIP.OWNED
+			)
+		end
+	end,
+	"admin",
+	"Gives each citizen a free car.",
+	"free car!",
+	{
+		"freeCar"
+	}
+)
 
 
 ---@diagnostic disable:duplicate-doc-field
@@ -10574,7 +10830,7 @@ local npc_job_list = {
 
 ]]
 
----@param last_name ?string the last name to override, used for if they have a family last name
+---@param last_name string? the last name to override, used for if they have a family last name
 ---@return CitizenName CitizenName the citizen's name data
 function Citizens.generateName(last_name)
 
@@ -11019,6 +11275,44 @@ function Citizens.onDefibrillator(citizen)
 	Treatments.onDefibrillator(citizen)
 end
 
+--- Bind to onVehicleLoad, used to set the citizens into the vehicle if they're occupating it.
+Binder.bind.onVehicleLoad(
+	
+	---@param vehicle_id integer the vehicle_id of the loaded vehicle.
+	function(vehicle_id)
+		-- Go through each citizen
+		for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+			-- If the citizen is occupating this vehicle
+			if citizen.vehicle_data.occupating_vehicle_id == vehicle_id then
+				-- Set the citizen to be seated in the vehicle
+				server.setSeated(citizen.object_id, vehicle_id, citizen.vehicle_data.seat_name)
+			end
+		end
+	end
+)
+
+--- Bind to onObjectLoad, used to set the citizens into the vehicle if they're occupating it.
+Binder.bind.onObjectLoad(
+	
+	---@param object_id integer the object_id of the loaded object.
+	function(object_id)
+		-- Go through each citizen
+		for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+			-- If the citizen matches this object_id
+			if citizen.object_id == object_id then
+				-- Check if this citizen is occupating a vehicle.
+				if citizen.vehicle_data.occupating_vehicle_id ~= -1 then
+					-- If they are, set them to the seat of the vehicle they're occupating.
+					server.setSeated(citizen.object_id, citizen.vehicle_data.occupating_vehicle_id, citizen.vehicle_data.seat_name)
+				end
+
+				-- Break, there cannot be two citizens with the same object_id.
+				break
+			end
+		end
+	end
+)
+
 --[[
 	definitions
 ]]
@@ -11214,7 +11508,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("11217: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("11511: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -11250,7 +11544,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("11253: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("11547: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -11261,7 +11555,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("11264: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("11558: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -11273,7 +11567,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("11276: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("11570: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -11423,7 +11717,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("11426: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("11720: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -11532,7 +11826,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("11535: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("11829: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -12246,6 +12540,27 @@ medicalCondition.create(
 		end
 	end
 )
+
+-- FREE CARdiac arrests for all!!!11!
+Command.registerCommand(
+	"free_cardiac_arrest",
+	function(full_message, peer_id, ...)
+
+		d.print("Your all winner!", false, 0)
+
+		-- Go through each citizen.
+		for _, citizen in pairs(g_savedata.libraries.citizens.citizen_list) do
+			-- Give them a FREE CARdiac arrest.
+			medicalCondition.assignCondition(citizen, "cardiac_arrest", true)
+		end
+	end,
+	"admin",
+	"Gives each citizen a FREE CARdiac arrest.",
+	"IF YOU CALL NOW, I'LL GIVE YOU A SECOND CARDIAC ARREST, ABSOLUTELY FREE",
+	{
+		"free_cardiac_arrest"
+	}
+) -- P.S. Blame GitHub co-pilot.
 --[[
 	
 Copyright 2025 Liam Matthews
@@ -12357,7 +12672,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("12360: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("12675: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -12377,7 +12692,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("12380: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("12695: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -12541,13 +12856,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("12544: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("12859: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("12550: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("12865: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -12568,17 +12883,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("12571: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("12886: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("12576: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("12891: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("12581: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("12896: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -12919,7 +13234,7 @@ Command.registerCommand(
 	---@param peer_id integer the peer_id of the sender
 	---@param arg table the arguments of the command.
 	function(full_message, peer_id, arg)
-		Citizens.spawn(Citizens.create(server.getPlayerPos(peer_id), 1))
+		Citizen.spawn(Citizen.create(server.getPlayerPos(peer_id), 1))
 	end,
 	"admin_script",
 	"Spawns a citizen at the player's position",
@@ -13063,7 +13378,7 @@ function GameMaster.spawnCitizens()
 
 					-- If there are no bed props, then skip this citizen.
 					if bed_props == nil then
-						d.print(("13066: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
+						d.print(("13381: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
 						goto continue
 					end
 
@@ -13216,6 +13531,8 @@ CommuteSegmentManager = {}
 ---@field insertSegment fun(self: CommuteSegmentManager, index: CommuteSegmentIndex, segment: CommuteSegment) the function to insert a segment into the commute.
 ---@field duplicate fun(self: CommuteSegmentManager): CommuteSegmentManager the function to duplicate the segment manager.
 ---@field getNextTargetPoints fun(self: CommuteSegmentManager): Vector3, Vector3, SEGMENT_CONNECTING_TO the function to get the next origin and destination points to connect.
+---@field canInsert fun(self: CommuteSegmentManager, index: CommuteSegmentIndex, commute_type: CommuteType): boolean the function to check if a segment of a specific type can be inserted at the index.
+---@field drawDebug fun(self: CommuteSegmentManager) draws map debug for each of the segments
 
 --[[
 
@@ -13286,7 +13603,7 @@ function CommuteSegmentManager.setup(commute_segment_manager)
 		-- Insert the segment.
 		table.insert(self.segments, index, segment)
 
-		d.print("13289: (CommuteSegmentManager.insertSegment) Segment commute_type: "..segment.commute_type, true, 0)
+		d.print("13606: (CommuteSegmentManager.insertSegment) Segment commute_type: "..segment.commute_type, true, 0)
 
 		-- Update the cost.
 		self.cost = self.cost + commute_types[segment.commute_type].getCost(segment.option_data, segment.route)
@@ -13308,7 +13625,7 @@ function CommuteSegmentManager.setup(commute_segment_manager)
 				self.builder.origin
 			) <= SEGMENT_COMPLETE_DISTANCE
 
-			d.print(("13311: (CommuteSegmentManager.insertSegment) Start connected: %s"):format(tostring(self.start_connected)), true, 0)
+			d.print(("13628: (CommuteSegmentManager.insertSegment) Start connected: %s"):format(tostring(self.start_connected)), true, 0)
 		end
 
 		-- If the index for this segment is the last one, check if the end is connected.
@@ -13323,7 +13640,7 @@ function CommuteSegmentManager.setup(commute_segment_manager)
 				self.builder.destination
 			) <= SEGMENT_COMPLETE_DISTANCE
 
-			d.print(("13326: (CommuteSegmentManager.insertSegment) End connected: %s"):format(tostring(self.end_connected)), true, 0)
+			d.print(("13643: (CommuteSegmentManager.insertSegment) End connected: %s"):format(tostring(self.end_connected)), true, 0)
 		end
 	end
 
@@ -13365,6 +13682,92 @@ function CommuteSegmentManager.setup(commute_segment_manager)
 				Vector3.fromMatrix(self.segments[#self.segments].route.end_matrix, true),
 				self.builder.destination,
 				COMMUTE_CONNECTING_TO.END
+		end
+	end
+
+	--- Function to check if we can insert a segment of a specific type at the index.
+	---@param self CommuteSegmentManager the segment manager to check if we can insert a segment of a specific type at the index.
+	---@param index CommuteSegmentIndex the index to check if we can insert the segment at.
+	---@param commute_type CommuteType the definition of the segment to check if we can insert.
+	---@return boolean can_insert if we can insert the segment at the index.
+	function commute_segment_manager.canInsert(self, index, commute_type)
+		-- Get the index before us.
+		local previous_index = index - 1
+
+		-- Get the index after us (which will be this index after we're inserted, so check that one.)
+		local next_index = index
+
+		-- Get the previous segment.
+		local previous_segment = self.segments[previous_index]
+
+		-- Get the next segment.
+		local next_segment = self.segments[next_index]
+
+		-- If the previous segment exists, and it's the same type, we cannot insert.
+		if previous_segment and previous_segment.commute_type == commute_type then
+			return false
+		end
+
+		-- If the next segment exists, and it's the same type, we cannot insert.
+		if next_segment and next_segment.commute_type == commute_type then
+			return false
+		end
+
+		-- Otherwise, we can insert.
+		return true
+	end
+
+	--- Draws debug on each of the segments.
+	---@param self CommuteSegmentManager the segment manager to draw debug for.
+	function commute_segment_manager.drawDebug(self)
+		for segment_index = 1, #self.segments do
+
+			-- Get the segment.
+			local segment = self.segments[segment_index]
+
+			-- Get the path for this route.
+			local path = Routing.getPathFromID(segment.route.stored_path_id)
+
+			-- If the path is nil, then skip.
+			if not path then
+				goto continue
+			end
+
+			-- Go through all of the nodes in this path.
+			for node_index = 2, #path.path_list do
+				-- Get this node.
+				local node = path.path_list[node_index]
+
+				-- Get the previous node.
+				local previous_node = path.path_list[node_index - 1]
+
+				-- Draw a line.
+				server.addMapLine(
+					0,
+					1258901724,
+					Vector3.toMatrix(
+						Vector3.new(
+							previous_node.x,
+							previous_node.y,
+							previous_node.z
+						)
+					),
+					Vector3.toMatrix(
+						Vector3.new(
+							node.x,
+							node.y,
+							node.z
+						)
+					),
+					1,
+					segment.commute_type == "Walking" and 0 or 255,
+					0,
+					segment.commute_type == "Walking" and 255 or 0,
+					125
+				)
+			end
+
+			::continue::
 		end
 	end
 		
@@ -13431,6 +13834,8 @@ Commuting = {}
 ---@field getCost fun(option_data: CommuteBaseOptionData, route: Route): CommuteCost the cost of this commute type.
 ---@field checkCompletion fun(option_data: CommuteBaseOptionData, route: Route): boolean if this commute is completed.
 ---@field tick fun(option_data: CommuteBaseOptionData, route: Route, game_ticks: integer)? Ticks the commute, null if not required.
+---@field startActions fun(option_data: CommuteBaseOptionData, route: Route)? The actions to call when this commute type starts.
+---@field endActions fun(option_data: CommuteBaseOptionData)? The actions to call when this commute type ends.
 
 ---@class CommuteBuilder
 ---@field citizen_id CitizenID the citizen this commute is for.
@@ -13457,7 +13862,7 @@ Commuting = {}
 MAX_COMMUTES_PER_SEGMENT_CHECK = 3
 
 -- The absolute maximum number of segments before it just auto-fails, to prevent infinite recursion.
-MAX_SEGMENTS = 20
+MAX_SEGMENTS = 3
 
 --[[
 
@@ -13501,7 +13906,9 @@ interim_commute_types = {}
 ---@param getCost fun(option_data: CommuteBaseOptionData, route: Route): CommuteCost the cost of this commute type.
 ---@param checkCompletion fun(option_data: CommuteBaseOptionData, route: Route): boolean if this commute is completed.
 ---@param tick fun(option_data: CommuteBaseOptionData, route: Route, game_ticks: integer)? Ticks the commute, null if not required.
-function Commuting.registerCommuteType(name, interim, getOptions, isAvailable, calculateRoute, getCommuteTime, getCost, checkCompletion, tick)
+---@param startActions fun(option_data: CommuteBaseOptionData, route: Route)? The actions to call when this commute type starts.
+---@param endActions fun(option_data: CommuteBaseOptionData)? The actions to call when this commute type ends.
+function Commuting.registerCommuteType(name, interim, getOptions, isAvailable, calculateRoute, getCommuteTime, getCost, checkCompletion, tick, startActions, endActions)
 	
 	-- check if this commute type is already registered
 	for _, commute_type in ipairs(commute_types) do
@@ -13522,7 +13929,9 @@ function Commuting.registerCommuteType(name, interim, getOptions, isAvailable, c
 		getCommuteTime = getCommuteTime,
 		getCost = getCost,
 		checkCompletion = checkCompletion,
-		tick = tick
+		tick = tick,
+		startActions = startActions,
+		endActions = endActions
 	}
 
 	-- create it as a commute type
@@ -13563,6 +13972,22 @@ function Commuting.commute(builder)
 
 			-- If this commute type is available, add the options to the available options.
 			if commute_type_definition.isAvailable(options) then
+
+				-- Get the index to insert the segment at.
+				local insertion_index = connecting_to == COMMUTE_CONNECTING_TO.START and 1 or #commute_segment_manager.segments + 1
+
+				-- Check if we can even insert here.
+				if not commute_segment_manager:canInsert(insertion_index, commute_type_definition.name) then
+					d.print(("13981: (Commuting.commute) Cannot insert segment of type %s at index %s."):format(commute_type_definition.name, insertion_index), true, 0)
+
+					-- Print the segments in the segment manager.
+					for segment_index, segment in pairs(commute_segment_manager.segments) do
+						d.print(("13985: (Commuting.commute) Segment %s: %s"):format(segment_index, segment.commute_type), true, 0)
+					end
+
+					goto continue_commute_type
+				end
+
 				for option_index = 1, #options do
 
 					-- Get the option.
@@ -13570,9 +13995,6 @@ function Commuting.commute(builder)
 
 					-- Create a new commute segment manager commute for this option.
 					local option_commute_segment_manager = commute_segment_manager:duplicate()
-
-					-- Get the index to insert the segment at.
-					local insertion_index = connecting_to == COMMUTE_CONNECTING_TO.START and 1 or #option_commute_segment_manager.segments + 1
 
 					-- Insert the segment.
 					option_commute_segment_manager:insertSegment(
@@ -13611,7 +14033,16 @@ function Commuting.commute(builder)
 							)
 
 							-- If this commute type is available, add the options to the available options.
-							if commute_type_definition.isAvailable(interim_options) then
+							if interim_commute_type_definition.isAvailable(interim_options) then
+
+								-- Get the index to insert the segment at.
+								local interim_insertion_index = connecting_to == COMMUTE_CONNECTING_TO.START and 2 or #option_commute_segment_manager.segments
+
+								-- Check if we can even insert here.
+								if not option_commute_segment_manager:canInsert(insertion_index, interim_commute_type_definition.name) then
+									goto continue_interim_commute_type
+								end
+
 								for interim_option_index = 1, #interim_options do
 
 									-- Get the option.
@@ -13619,9 +14050,6 @@ function Commuting.commute(builder)
 
 									-- Create a new commute segment manager commute for this interim option.
 									local interim_option_commute_segment_manager = option_commute_segment_manager:duplicate()
-
-									-- Get the index to insert the segment at.
-									local interim_insertion_index = connecting_to == COMMUTE_CONNECTING_TO.START and 2 or #interim_option_commute_segment_manager.segments
 
 									-- Insert the segment.
 									interim_option_commute_segment_manager:insertSegment(
@@ -13641,6 +14069,8 @@ function Commuting.commute(builder)
 									-- Add this to the available commutes.
 									table.insert(available_commutes, interim_option_commute_segment_manager)
 								end
+
+								::continue_interim_commute_type::
 							end
 						end
 
@@ -13649,10 +14079,12 @@ function Commuting.commute(builder)
 						table.insert(available_commutes, option_commute_segment_manager)
 					end
 				end
+
+				::continue_commute_type::
 			end
 		end
 
-		-- Sort the available commutes by cost.
+		-- Sort the available commutes by cost, lowest tp highest
 		table.sort(
 			available_commutes,
 			function(a, b)
@@ -13739,7 +14171,9 @@ function Commuting.commute(builder)
 			if current_commute.end_connected and current_commute.start_connected then
 				if not best_commute or best_commute.cost > current_commute.cost then
 
-					d.print(("13742: (Commuting.commute) Found a best direct route. Segment Count: %s"):format(#current_commute.segments), true, 0)
+					current_commute:drawDebug()
+
+					d.print(("14176: (Commuting.commute) Found a best direct route. Segment Count: %s"):format(#current_commute.segments), true, 0)
 
 					-- Set it as the best
 					best_commute = current_commute
@@ -13761,15 +14195,17 @@ function Commuting.commute(builder)
 				-- Get the next commute
 				local next_commute = next_commutes[next_commute_index]
 
+				next_commute:drawDebug()
+
 				-- If we've hit over our maximum number of segments, then we just skip this one.
 				if #next_commute.segments > MAX_SEGMENTS then
-					d.print("13766: (Commuting.commute) Hit maximum number of segments, skipping.", true, 0)
+					d.print("14202: (Commuting.commute) Hit maximum number of segments, skipping.", true, 0)
 					goto continue_next_best_commute
 				end
 
 				-- If we have a best segment, check if this one is worse (if it's worse, then it can never be better)
 				if best_commute and best_commute.cost <= next_commute.cost then
-					d.print("13772: (Commuting.commute) Commute costs more than the current best, skipping.", true, 0)
+					d.print("14208: (Commuting.commute) Commute costs more than the current best, skipping.", true, 0)
 					goto continue_next_best_commute
 				end
 
@@ -13777,7 +14213,12 @@ function Commuting.commute(builder)
 				-- Otherwise, add it to the stored commutes for the next checks.
 				if next_commute.start_connected and next_commute.end_connected then
 					best_commute = next_commute
-					d.print(("13780: (Commuting.commute) Found a best route. Segment Count: %s"):format(#current_commute.segments), true, 0)
+					d.print(("14216: (Commuting.commute) Found a best route. Segment Count: %s"):format(#next_commute.segments), true, 0)
+
+					-- Print each of the segments in this route.
+					for segment_index = 1, #next_commute.segments do
+						d.print(("14220: (Commuting.commute) Segment %s: %s"):format(segment_index, next_commute.segments[segment_index].commute_type), true, 0)
+					end
 				else
 					table.insert(stored_commutes, next_commute)
 				end
@@ -13791,7 +14232,7 @@ function Commuting.commute(builder)
 
 	-- If the best commute is nil, then return nil.
 	if not best_commute then
-		d.print(("13794: (Commuting.commute) No best commute found. Citizen: %s"):format(builder.citizen_id), true, 1)
+		d.print(("14235: (Commuting.commute) No best commute found. Citizen: %s"):format(builder.citizen_id), true, 1)
 		return
 	end
 
@@ -13802,6 +14243,16 @@ function Commuting.commute(builder)
 		commute_segments = best_commute.segments,
 		current_segment_index = 1
 	}
+
+	-- Ensure there is no active commutes for this citizen already, if there is, remove it
+	-- Remember kids, don't walk and drive...
+	for existing_active_commute_index, existing_active_commute in pairs(g_savedata.libraries.commuting.active_commutes) do
+		-- Check if the citizen id is the same
+		if existing_active_commute.commute_builder.citizen_id == builder.citizen_id then
+			-- Remove this existing commute.
+			g_savedata.libraries.commuting.active_commutes[existing_active_commute_index] = nil
+		end
+	end
 
 	-- Increment the next active commute id.
 	g_savedata.libraries.commuting.next_active_commute_id = g_savedata.libraries.commuting.next_active_commute_id + 1
@@ -13819,22 +14270,26 @@ function Commuting.onTick(game_ticks)
 		-- Get the current segment.
 		local current_segment = active_commute.commute_segments[active_commute.current_segment_index]
 
+		-- Get the citizen.
+		local citizen = Citizens.getData(active_commute.commute_builder.citizen_id)
+
+		-- If the citizen is nil, then continue.
+		if not citizen then
+			d.print(("14278: (Commuting.onTick) Citizen is nil for active commute %s. Index: %s"):format(active_commute.id, active_commute.current_segment_index), true, 1)
+			goto continue
+		end
+
+		-- If their schedule's oop is not setup, skip.
+		if type(citizen.schedule.tick) ~= "function" then
+			goto continue
+		end
+
 		-- If the current segment is nil, then continue.
 		if not current_segment then
-			--d.print(("13824: (Commuting.onTick) Current segment is nil for active commute %s. Index: %s"):format(active_commute.id, active_commute.current_segment_index), true, 1)
-			
-			-- Get the citizen.
-			local citizen = Citizens.getData(active_commute.commute_builder.citizen_id)
-
-			-- If the citizen is nil, then continue.
-			if not citizen then
-				d.print(("13831: (Commuting.onTick) Citizen is nil for active commute %s. Index: %s"):format(active_commute.id, active_commute.current_segment_index), true, 1)
-				goto continue
-			end
-
-			-- Tick their schedule.
+			-- Tick their schedule, to clear it.
 			citizen.schedule:tick()
 
+			-- Skip to the next active commute.
 			goto continue
 		end
 
@@ -13850,9 +14305,61 @@ function Commuting.onTick(game_ticks)
 			)
 		end
 
+		local debug_string = ""
+
+		debug_string = ("%sSegment Type: %s\n"):format(debug_string, current_segment.commute_type)
+
+		server.removeMapObject(-1, citizen.object_id + 14784)
+
+		server.addMapObject(
+			-1,
+			citizen.object_id + 14784,
+			0,
+			1,
+			citizen.transform[13],
+			citizen.transform[15],
+			0,
+			0,
+			0,
+			0,
+			citizen.name.full,
+			10,
+			debug_string,
+			255,
+			255,
+			255,
+			255
+		)
+
 		-- If the current segment is completed, then move to the next segment.
 		if commute_type_definition.checkCompletion(current_segment.option_data, current_segment.route) then
+
+			-- Call the end actions of the current segment, if it exists.
+			if commute_type_definition.endActions then
+				commute_type_definition.endActions(current_segment.option_data)
+			end
+
 			active_commute.current_segment_index = active_commute.current_segment_index + 1
+
+			-- Call the start actions of the new segment, if it exists.
+			local new_segment = active_commute.commute_segments[active_commute.current_segment_index]
+
+			-- Ensure we got the next segment.
+			if not new_segment then
+				goto continue
+			end
+
+			local new_commute_type_definition = commute_types[new_segment.commute_type]
+
+			-- Ensure we got the next commute type definition.
+			if not new_commute_type_definition then
+				d.print(("14356: (Commuting.onTick) Commute type definition not found for %s"):format(new_segment.commute_type), true, 1)
+				goto continue
+			end
+
+			if new_commute_type_definition.startActions then
+				new_commute_type_definition.startActions(new_segment.option_data, new_segment.route)
+			end
 		end
 
 		::continue::
@@ -13939,7 +14446,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("13942 Walking Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("14449 Walking Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -13968,7 +14475,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("13971 Walking Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("14478 Walking Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -13992,7 +14499,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the citizen is not nil
 		if not citizen then
-			d.print(("13995: Walking Commute (checkCompletion): Citizen %s not found"):format(option_data.citizen_id), true, 1)
+			d.print(("14502: Walking Commute (checkCompletion): Citizen %s not found"):format(option_data.citizen_id), true, 1)
 			return true
 		end
 
@@ -14009,7 +14516,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the citizen is not nil
 		if not citizen then
-			d.print(("14012: Walking Commute (getCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
+			d.print(("14519: Walking Commute (getCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
 			return
 		end
 
@@ -14021,7 +14528,7 @@ Commuting.registerCommuteType(
 
 		-- Check if we got the path.
 		if not path then
-			d.print(("14024: Failed to get the path for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("14531: Failed to get the path for citizen \"%s\""):format(citizen.name.full), false, 1)
 			return
 		end
 
@@ -14074,13 +14581,11 @@ Commuting.registerCommuteType(
 
 		--d.print(("Citizen %s is now at %s"):format(citizen.name.full, string.fromTable(last_position)), false, 0)
 
-		server.removeMapObject(-1, citizen.object_id + 14784)
-
-		server.addMapObject(-1, citizen.object_id + 14784, 0, 1, citizen.transform[13], citizen.transform[15], 0, 0, 0, 0, citizen.name.full, 10, citizen.name.full, 255, 255, 255, 255)
-
 		-- Set the citizen's object's position to the new position.
 		is_success = server.setObjectPos(citizen.object_id, citizen.transform)
-	end
+	end,
+	nil,
+	nil
 )
 --[[
 	
@@ -14139,7 +14644,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the citizen is not nil
 		if not citizen then
-			d.print(("14142: Driving Commute (GetOptions): Citizen %s not found"):format(citizen_id), true, 1)
+			d.print(("14647: Driving Commute (GetOptions): Citizen %s not found"):format(citizen_id), true, 1)
 			return {}
 		end
 
@@ -14166,8 +14671,9 @@ Commuting.registerCommuteType(
 			local drivable_vehicle_asset = g_savedata.libraries.asset_manager.holdable_assets.assets[held_asset.asset_id] --[[@as DrivableVehicleAsset]]
 
 			-- Create the option data
+			---@type CommuteDrivingOptionData
 			local option_data = {
-				citizen = citizen,
+				citizen_id = citizen_id,
 				drivable_vehicle_id = drivable_vehicle_asset.drivable_vehicle_id
 			}
 
@@ -14184,9 +14690,19 @@ Commuting.registerCommuteType(
 	end,
 	---@param option_data CommuteDrivingOptionData
 	function(option_data, origin, destination)
+
+		-- Get the drivable vehicle associated with the given id.
+		local drivable_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[option_data.drivable_vehicle_id]
+
+		-- Ensure the drivable vehicle is not nil
+		if not drivable_vehicle then
+			d.print(("14699: Driving Commute (GetRoute): Drivable Vehicle %s not found"):format(option_data.drivable_vehicle_id), true, 1)
+			return {}
+		end
+
 		-- Do a land pathfind between the two points.
 		local route = LandRoute.new(
-			Vector3.toMatrix(origin),
+			Vector3.toMatrix(Vector3.fromMatrix(drivable_vehicle.transform, true)),
 			Vector3.toMatrix(destination)
 		)
 
@@ -14200,7 +14716,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("14203 Driving Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("14719 Driving Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -14232,7 +14748,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("14235 Driving Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("14751 Driving Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -14240,7 +14756,7 @@ Commuting.registerCommuteType(
 		local distance = Pathfinding.getTotalPathDistance(path)
 
 		-- Get the driving cost for the citizen (per metre)
-		local driving_cost = 0.5
+		local driving_cost = 0.05
 
 		-- Get the cost of this commute
 		option_data.cost = distance * driving_cost
@@ -14256,7 +14772,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the citizen is not nil
 		if not citizen then
-			d.print(("14259: Driving Commute (GetCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
+			d.print(("14775: Driving Commute (GetCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
 			return true
 		end
 
@@ -14264,6 +14780,28 @@ Commuting.registerCommuteType(
 			Vector3.fromMatrix(citizen.transform, true),
 			Vector3.fromMatrix(route.end_matrix, true)
 		) < 20
+	end,
+	nil,
+	---@param option_data CommuteDrivingOptionData
+	function(option_data, route)
+		-- Get the drivable vehicle from it's id.
+		local drivable_vehicle = g_savedata.libraries.drivable_vehicles.vehicles[option_data.drivable_vehicle_id]
+
+		-- Ensure the drivable vehicle is not nil
+		if not drivable_vehicle then
+			d.print(("14792: Driving Commute (startActions): Drivable Vehicle %s not found"):format(option_data.drivable_vehicle_id), true, 1)
+			return
+		end
+
+		-- Set the drivable vehicle's route
+		drivable_vehicle.route = route
+
+		-- Set the driver to be seated.
+		DrivableVehicle.setSeated(
+			drivable_vehicle,
+			option_data.citizen_id,
+			DRIVABLE_VEHICLE_SEAT_TYPE.DRIVER
+		)
 	end,
 	nil
 )
@@ -14814,7 +15352,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("14817: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("15355: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -14827,7 +15365,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("14830: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("15368: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -16148,8 +16686,6 @@ Animator.define(
 Binder.bind.onVehicleLoad(
 	---@param vehicle_id integer the vehicle_id of the spawned vehicle.
 	function(vehicle_id)
-
-		d.print(("(objectConsumer) on group spawn called for vehicle_id %d."):format(vehicle_id), true, 0)
 
 		d.print(string.fromTable(g_savedata.included_animations.effects.objectConsumer.awaiting_animator_vehicle_ids), true, 0)
 		-- get the object_id we are waiting for.
@@ -18694,6 +19230,12 @@ PATHFINDING_START_NUDGING_DISTANCE = 30
 ---@field ui_id SWUI_ID the ui id of the path node for debug
 ---@field consumption_distance number the consumption distance for the path node.
 
+---@class DirtyPathNode
+---@field x integer the x coordinate of the path node
+---@field y integer the y coordinate of the path node
+---@field z integer the z coordinate of the path node
+---@field cdm number the consumption distance multiplier for the node. Short formed, to try to keep the save file size a bit lower.
+
 --- The path to follow, starting from the end and to the beginning,<br>the last node [#path] is always the destination, [1] is the node we're currently going to, and [0] is the previous one.
 ---@alias PathList table<integer, PathNode>
 
@@ -18790,7 +19332,7 @@ function pathNodeFromSWNode(sw_node, base_consume_distance)
 	-- If the node is missing the y and/or cdm fields, then print an error.
 	---@diagnostic disable-next-line: undefined-field
 	if not sw_node.y or not sw_node.cdm then
-		d.print(("18793: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+		d.print(("19335: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
 	end
 
 	return {
@@ -18912,7 +19454,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 
 		--- Return false if we're over the 5000 node limit
 		if node_count + previous_path_count >= PATHFINDING_MAX_NODES then
-			d.print("18915: Pathfinding has reached the maximum node limit, stopping pathfinding.", true, 1)
+			d.print("19457: Pathfinding has reached the maximum node limit, stopping pathfinding.", true, 1)
 			return false
 		end
 
@@ -19335,34 +19877,195 @@ function Pathfinding.updatePathfinding()
 	function server.pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --permanantly do this new function using the old name.
 		local path = old_pathfind(matrix_start, matrix_end, required_tags, avoided_tags) --do the normal old function
 		--d.print("(updatePathfinding) getting path y", true, 0)
-		return Pathfinding.getPathY(path) --add y to all of the paths.
+		return Pathfinding.getPathY(path --[[@as table<integer, SWPathFindPoint>]]) --add y to all of the paths.
 	end
 	function server.pathfindOcean(matrix_start, matrix_end)
 		local path = old_pathfindOcean(matrix_start, matrix_end)
-		return Pathfinding.getPathY(path)
+		return Pathfinding.getPathY(path --[[@as table<integer, SWPathFindPoint>]])
 	end
 end
 
 local node_decimal_places = 0
 
+--TODO: The order of modifications to make, this is a bit of a workaround, and the code should be cleaned up in the future once the issue is further nailed down.
+local pathfinding_coordinate_modification_order = {
+	Vector2.new(0, 0),
+	Vector2.new(-1, 0),
+	Vector2.new(0, -1),
+	Vector2.new(-1, -1),
+	Vector2.new(1, 0),
+	Vector2.new(0, 1),
+	Vector2.new(-1, 1),
+	Vector2.new(1, -1),
+	Vector2.new(1, 1),
+}
+
 -- Credit to woe
+---@param path table<integer, SWPathFindPoint> the path to convert.
+---@return table<integer, DirtyPathNode> the path with y values.
 function Pathfinding.getPathY(path)
+
+	---@cast path +table<integer, DirtyPathNode>, -table<integer, SWPathFindPoint>
+
+	--- Function that turns the x and y in the path into an x and y to use in the graph_nodes table.
+	---@param node SWPathFindPoint|DirtyPathNode the path point to convert the x and y in.
+	---@return Vector2 vector the vector2 with the x and y converted.
+	local function convertNodeToVector(node)
+		return Vector2.new(
+			math.round(
+				node.x,
+				node_decimal_places
+			),
+			math.round(
+				node.z,
+				node_decimal_places
+			)
+		)
+	end
+
+	---@param node SWPathFindPoint|DirtyPathNode the path point to get the savedata node of.
+	---@return YPathfinderNodeData? g_savedata_node the savedata node of the path point.
+	---@return Vector2? vector the vector2 of the g_savedata_node with the x and y converted.
+	---@return Vector2 converted_coordinates the vector2 of the node with the x and y converted.
+	local function getSavedataNode(node)
+
+		---@param vector Vector2
+		---@return YPathfinderNodeData? the savedata node of the path point.
+		local function attemptGetNode(vector)
+			-- If the node exists in the savedata, then return it.
+			if g_savedata.graph_nodes.nodes[vector.x] and g_savedata.graph_nodes.nodes[vector.x][vector.y] then
+				return g_savedata.graph_nodes.nodes[vector.x][vector.y]
+			end
+
+			-- Otherwise, return nil.
+			return nil
+		end
+
+		-- Convert the coordinates for the node.
+		local converted_coordinates = convertNodeToVector(node)
+
+		-- Go through each modification, and attempt to get the node.
+		for modification_index = 1, #pathfinding_coordinate_modification_order do
+
+			-- Get the modified coordinates.
+			local modified_coordinates = Vector2.add(
+				converted_coordinates,
+				pathfinding_coordinate_modification_order[modification_index]
+			)
+
+			-- Try getting the node.
+			local g_savedata_node = attemptGetNode(modified_coordinates)
+
+			-- If the node exists, then return it.
+			if g_savedata_node then
+				return g_savedata_node, modified_coordinates, converted_coordinates
+			end
+		end
+
+		-- Otherwise, return nil.
+		return nil, nil, converted_coordinates
+	end
+
 	if not g_savedata.graph_nodes.init then --if it has never built the node's table
 		Pathfinding.createPathY() --build the table this one time
 		g_savedata.graph_nodes.init = true --never build the table again unless you run traverse() manually
 	end
-	for each in pairs(path) do
+	for node_index = 1, #path do
 
-		local x = math.round(path[each].x, node_decimal_places)
-		local z = math.round(path[each].z, node_decimal_places)
+		local g_savedata_node, _, converted_coordinates = getSavedataNode(path[node_index])
 
-		if g_savedata.graph_nodes.nodes[x] and g_savedata.graph_nodes.nodes[x][z] then --if y exists
-			path[each].y = g_savedata.graph_nodes.nodes[x][z].y --add it to the table that already contains x and z
+		if g_savedata_node then --if y exists
+			path[node_index].y = g_savedata_node.y --add it to the table that already contains x and z
 			--d.print("path.path_list["..each.."].y: "..tostring(path.path_list[each].y), true, 0)
-			path[each].cdm = g_savedata.graph_nodes.nodes[x][z].cdm
+			path[node_index].cdm = g_savedata_node.cdm
+
+		--TODO: Not the greatest code, could be cleaned up, however, this shouldn't be occuring in the first place, and instances where this occurs should be fixed at the source.
+		else
+			-- Otherwise, we cannot find a saved node for this, print an warning, and set it's values.
+			d.print(("19985: (Pathfinding.getPathY) Could not find a saved node For node index %s.\nBefore Rounding:\n\tx: %s\n\tz: %s\nAfter Rounding:\n\tx: %s\n\tz: %s"):format(
+				node_index,
+				path[node_index].x,
+				path[node_index].z,
+				converted_coordinates.x,
+				converted_coordinates.y
+			), true, 0)
+
+			-- Get the previous node.
+			local previous_node = path[node_index - 1]
+
+			-- Get the next node
+			local next_node = path[node_index + 1]
+
+			-- Store if the previous node is valid.
+			local previous_node_valid = previous_node and previous_node.y and previous_node.cdm
+
+			-- Store if the next node exists
+			local next_node_exists = next_node
+
+			-- Store if the next node has a g_savedata entry.
+			local next_node_savedata_valid = false
+
+			-- Store the next node savedata.
+			---@type YPathfinderNodeData
+			local next_node_savedata = nil
+
+			-- If the next node exists, then get the savedata for it.
+			if next_node_exists then
+
+				-- Attempt to get the next node.
+				next_node_savedata, _, _ = getSavedataNode(next_node)  --[[@as YPathfinderNodeData]]
+
+				next_node_savedata_valid = next_node_savedata and next_node_savedata.y and next_node_savedata.cdm --[[@as boolean]]
+			end
+
+			-- If the previous and next node savedata is valid, then set the y and cdm to the average of the two nodes.
+			if previous_node_valid and next_node_savedata_valid then
+				path[node_index].y = (previous_node.y + next_node_savedata.y) / 2
+				path[node_index].cdm = (previous_node.cdm + next_node_savedata.cdm) / 2
+
+				d.print(("20026: (Pathfinding.getPathY) Previous and Next node are complete - Set the y and cdm to the average of the previous and next nodes for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+					node_index,
+					path[node_index].y,
+					path[node_index].cdm
+				), true, 0)
+
+			-- If the previous node is valid, but the next's savedata is not, then set the y and cdm to the previous node's values.
+			elseif previous_node_valid then
+
+				path[node_index].y = previous_node.y
+				path[node_index].cdm = previous_node.cdm
+
+				d.print(("20038: (Pathfinding.getPathY) Previous node is complete, next is invalid - Set the y and cdm to the previous node's values for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+					node_index,
+					path[node_index].y,
+					path[node_index].cdm
+				), true, 0)
+
+			-- If only the next is valid, then set the y and cdm to the next node's values.
+			elseif next_node_savedata_valid then
+				path[node_index].y = next_node_savedata.y
+				path[node_index].cdm = next_node_savedata.cdm
+
+				d.print(("20049: (Pathfinding.getPathY) Next node is complete, previous is invalid - Set the y and cdm to the next node's values for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+					node_index,
+					path[node_index].y,
+					path[node_index].cdm
+				), true, 0)
+
+			-- Otherwise, they're both also invalid, set the y to 0, and cdm to 1.
+			else
+				path[node_index].y = 0
+				path[node_index].cdm = 1
+
+				d.print(("20060: (Pathfinding.getPathY) Both previous and next nodes are invalid - Set the y and cdm to 0 and 1 for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+					node_index,
+					path[node_index].y,
+					path[node_index].cdm
+				), true, 0)
+			end
 		end
 	end
-	return path --return the path with the added, or not, y values.
+	return path --[[@as table<integer, DirtyPathNode>]] --return the path with the added, or not, y values.
 end
 
 -- Credit to woe
@@ -19906,8 +20609,8 @@ Command.registerCommand(
 		end
 
 		-- Display the path on the map.
-		for path_index = 1, #path do
-			local path_node = path[path_index]
+		for path_index = 1, #path.path_list do
+			local path_node = path.path_list[path_index]
 
 			-- Display the path node
 			Map.addMapCircle(
@@ -19925,7 +20628,7 @@ Command.registerCommand(
 
 			-- if the path_index is greater than 1, then display the line between the two nodes
 			if path_index > 1 then
-				local previous_path_node = path[path_index - 1]
+				local previous_path_node = path.path_list[path_index - 1]
 
 				-- Display the line
 				server.addMapLine(
@@ -19964,8 +20667,8 @@ Command.registerCommand(
 			end
 
 			-- Display the path on the map.
-			for path_index = 1, #path do
-				local path_node = path[path_index]
+			for path_index = 1, #path.path_list do
+				local path_node = path.path_list[path_index]
 
 				-- Display the path node
 				server.removeMapID(-1, path_node.ui_id)
@@ -20120,6 +20823,12 @@ DRIVABLE_VEHICLE_TYPE = {
 	LAND = 1,
 	SEA = 2,
 	UNKNOWN = 3
+}
+
+---@enum DRIVABLE_VEHICLE_SEAT_TYPE
+DRIVABLE_VEHICLE_SEAT_TYPE = {
+	DRIVER = 0,
+	PASSENGER = 1
 }
 
 --- The number of ticks to split the loaded drivable vehicles by.
@@ -20340,6 +21049,52 @@ function DrivableVehicle.setSeatInput(drivable_vehicle, seat_input)
 		seat_input.button6,
 		seat_input.trigger
 	)
+
+	if generic_vehicle.vehicle_ids[1] == 1123 then
+		d.print(("(DrivableVehicle.setSeatInput) Set the seat input for vehicle %d\naxis_w: %s\naxis_d: %s\naxis_up: %s\naxis_left: %s\nbutton1: %s\nbutton2: %s\nbutton3: %s\nbutton4: %s\nbutton5: %s\nbutton6: %s\ntrigger: %s"):format(generic_vehicle.vehicle_ids[1], seat_input.axis_w, seat_input.axis_d, seat_input.axis_up, seat_input.axis_left, seat_input.button1, seat_input.button2, seat_input.button3, seat_input.button4, seat_input.button5, seat_input.button6, seat_input.trigger), true, 0)
+	end
+end
+
+---@param drivable_vehicle DrivableVehicle
+---@param citizen_id CitizenID
+---@param seat_type DRIVABLE_VEHICLE_SEAT_TYPE
+---@return boolean is_success if it successfully set the citizen to the seat.
+function DrivableVehicle.setSeated(drivable_vehicle, citizen_id, seat_type)
+	-- Get the generic vehicle for this vehicle
+	local generic_vehicle = Vehicle.getGenericVehicle(drivable_vehicle.generic_vin)
+
+	-- If we failed to get the generic vehicle, return early.
+	if not generic_vehicle then
+		d.print(("21068: (Drivable.setSeated) Failed to get the generic vehicle for the vin %s"):format(drivable_vehicle.generic_vin), true, 1)
+		return false
+	end
+
+	-- Get the citizen from the id.
+	local citizen = Citizens.getData(citizen_id)
+
+	-- If the citizen is nil, return early.
+	if not citizen then
+		d.print(("21077: (Drivable.setSeated) Failed to get the citizen with id %s"):format(citizen_id), true, 1)
+		return false
+	end
+
+	-- If the type is driver, then set them to the driver seat.
+	if seat_type == DRIVABLE_VEHICLE_SEAT_TYPE.DRIVER then
+
+		-- Set them to the seat.
+		server.setSeated(citizen.object_id, generic_vehicle.vehicle_ids[1], "Driver")
+
+		-- Set them to be occupating this vehicle.
+		citizen.vehicle_data = {
+			occupating_vehicle_id = generic_vehicle.vehicle_ids[1],
+			seat_name = "Driver"
+		}
+
+		-- Return true.
+		return true
+	end
+
+	return false
 end
 
 --- Function for getting the vehicle's speed, uses the speed tracker system.
@@ -20413,9 +21168,9 @@ function DrivableVehicle.getUpcomingTurnData(drivable_vehicle, distance)
 	local total_distance_travelled = 0
 
 	-- Iterate through the nodes
-	for node_index = drivable_vehicle.route.path_index + 1, #path do
+	for node_index = drivable_vehicle.route.path_index + 1, #path.path_list do
 		-- Get the node
-		local node = path[node_index]
+		local node = path.path_list[node_index]
 
 		-- Create a vector for the position of this node
 		local node_vec2 = Vector2.new(node.x, node.z)
@@ -20438,7 +21193,7 @@ function DrivableVehicle.getUpcomingTurnData(drivable_vehicle, distance)
 		---@type BendNodeData
 		local bend_node_data = {
 			position = previous_vec3,
-			angle = turn_angle - previous_yaw, -- Subtract the previous yaw from it, to get the difference.
+			angle = math.wrap(turn_angle - previous_yaw, -math.pi, math.pi), -- Subtract the previous yaw from it, to get the difference.
 			distance = total_distance_travelled
 		}
 
@@ -20477,7 +21232,7 @@ function DrivableVehicle.hasNextNode(drivable_vehicle)
 	end
 
 	-- Return true if the node we've reached is less than the number of nodes in the path.
-	return #path > drivable_vehicle.route.path_index
+	return #path.path_list > drivable_vehicle.route.path_index
 end
 
 --- Function for removing a vehicle from the loaded list.
@@ -20572,6 +21327,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- Check if the path recieved is not nil.
 		if not path then
+			d.print(("21330: (DrivableVehicle.onTick) Failed to get the path from the route with stored path id %d, aborting."):format(unloaded_vehicle.route.stored_path_id), true, 1)
 			goto continue
 		end
 
@@ -20586,6 +21342,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- If the generic vehicle is nil, then skip this vehicle.
 		if not generic_vehicle then
+			d.print(("21345: (DrivableVehicle.onTick) Failed to get the generic vehicle for vehicle %d, aborting."):format(unloaded_vehicle.generic_vin), true, 1)
 			goto continue
 		end
 
@@ -20594,6 +21351,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- If we failed to get it's position, skip.
 		if not is_success then
+			d.print(("21354: (DrivableVehicle.onTick) Failed to get the position of vehicle %d, aborting."):format(unloaded_vehicle.generic_vin), true, 1)
 			goto continue
 		end
 
@@ -20604,7 +21362,7 @@ function DrivableVehicle.onTick(game_ticks)
 		--server.addMapObject(-1, ui_id, 1, 12, 0, 0, 0, 0, generic_vehicle.vehicle_ids[1], 0, generic_vehicle.prefab_name, 0, generic_vehicle.prefab_name)
 		server.addMapObject(-1, ui_id, 0, 12, unloaded_vehicle.transform[13], unloaded_vehicle.transform[15], 0, 0, 0, 0, generic_vehicle.prefab_name, 0, generic_vehicle.prefab_name)
 
-		--d.print(("Vehicle %d is at\nx: %s\nz: %s"):format(unloaded_vehicle.generic_vin, unloaded_vehicle.transform[13], unloaded_vehicle.transform[15]), true, 0)
+		-- d.print(("Vehicle %d is at\nx: %s\nz: %s\ndistance_can_travel: %s"):format(unloaded_vehicle.generic_vin, unloaded_vehicle.transform[13], unloaded_vehicle.transform[15], distance_can_travel), true, 0)
 		--goto continue
 
 		--[[
@@ -20616,6 +21374,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- If the prefab is nil, skip this vehicle.
 		if not prefab then
+			d.print(("21377: (DrivableVehicle.onTick) Failed to get the prefab for vehicle %s, aborting."):format(unloaded_vehicle.prefab_name), true, 1)
 			goto continue
 		end
 
@@ -20626,9 +21385,9 @@ function DrivableVehicle.onTick(game_ticks)
 		local last_position = Vector3.fromMatrix(unloaded_vehicle.transform, true)
 
 		-- Iterate through the path.
-		for path_index = unloaded_vehicle.route.path_index, #path do
+		for path_index = unloaded_vehicle.route.path_index, #path.path_list do
 			-- Get the node
-			local node = path[path_index]
+			local node = path.path_list[path_index]
 
 			-- Create a vector for the position of this node
 			local node_position = Vector3.add(Vector3.new(node.x, node.y, node.z), vehicle_offset_vector)
@@ -20965,8 +21724,27 @@ function DrivingVehicles.tick(drivable_vehicle)
 
 		-- Check if the condition is met
 		if condition.condition_function == true or condition.condition_function(drivable_vehicle) then
+
+			-- Get the debug tooltip
+			local debug_tooltip = ""
+
+			-- Add the generic vin to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Generic VIN: %s\n"):format(drivable_vehicle.generic_vin)
+
+			-- Add the vehicle id to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Vehicle ID: %s\n\n"):format(generic_vehicle.vehicle_ids[1])
+
+			-- Add the driving style to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Driving Style: %s\n"):format(drivable_vehicle.driving_style)
+
+			-- Add the driving state to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Driving State: %s\n"):format(drivable_vehicle.driving_state)
+
+			-- Add the driving condition to the debug tooltip
+			debug_tooltip = debug_tooltip .. ("Driving Condition: %s\n"):format(condition.driving_condition)
+
 			-- Set the tooltip
-			server.setVehicleTooltip(generic_vehicle.vehicle_ids[1], condition.driving_condition)
+			server.setVehicleTooltip(generic_vehicle.vehicle_ids[1], debug_tooltip)
 			
 			-- If it is, return the behaviour
 			return condition.behaviour(drivable_vehicle)
@@ -21102,9 +21880,9 @@ land_normal_driving_state:defineCondition(
 		---@cast path -nil
 
 		-- Alias variables creating previous_node and target_node
-		local previous_node = path[drivable_vehicle.route.path_index]
+		local previous_node = path.path_list[drivable_vehicle.route.path_index]
 
-		local target_node = path[drivable_vehicle.route.path_index + 1]
+		local target_node = path.path_list[drivable_vehicle.route.path_index + 1]
 
 		-- Create vectors of the nodes.
 		local previous_node_vec2 = Vector2.new(previous_node.x, previous_node.z)
@@ -21122,8 +21900,8 @@ land_normal_driving_state:defineCondition(
 			CAR_PATH_MAX_PROJECTION_DISTANCE
 		)
 
-		server.removeMapLine(-1, 10000512)
-		server.addMapLine(-1, 10000512, drivable_vehicle.transform, matrix.translation(projected_position.x, 0, projected_position.y), 1, 0, 0, 255, 255)
+		server.removeMapLine(-1, 10000512 + drivable_vehicle.drivable_vehicle_id)
+		server.addMapLine(-1, 10000512 + drivable_vehicle.drivable_vehicle_id, drivable_vehicle.transform, matrix.translation(projected_position.x, 0, projected_position.y), 1, 0, 0, 255, 255)
 
 		-- If our projection distance is less than the consumption distance, go to the next node, for the next tick.
 		if projection_distance < CAR_PATH_MAX_PROJECTION_DISTANCE / 2 then
@@ -21155,7 +21933,7 @@ land_normal_driving_state:defineCondition(
 		local bent_target_speed = base_target_speed
 
 		for i = 1, 20 do
-			server.removeMapLabel(-1, 10000512)
+			server.removeMapLabel(-1, 10000512 + drivable_vehicle.drivable_vehicle_id)
 		end
 
 		--server.addMapLabel(-1, 10000512, 2, ("Angle: %0.2f\nx: %0.1f\nz: %0.1f"):format(yaw, vehicle_position_vec2.x, vehicle_position_vec2.y), vehicle_position_vec2.x, vehicle_position_vec2.y)
@@ -21167,7 +21945,7 @@ land_normal_driving_state:defineCondition(
 			local bend_node_data = upcoming_turn_data[bend_index]
 
 			-- Add to the map.
-			server.addMapLabel(-1, 10000512, 2, ("Angle: %0.2f\nx: %0.1f\nz: %0.1f"):format(bend_node_data.angle, bend_node_data.position.x, bend_node_data.position.z), bend_node_data.position.x, bend_node_data.position.z)
+			server.addMapLabel(-1, 10000512 + drivable_vehicle.drivable_vehicle_id, 2, ("Angle: %0.2f\nx: %0.1f\nz: %0.1f"):format(bend_node_data.angle, bend_node_data.position.x, bend_node_data.position.z), bend_node_data.position.x, bend_node_data.position.z)
 
 			-- Get the distance ratio
 			local bend_distance_ratio = 1 - math.clamp(bend_node_data.distance / CAR_PATH_LOOK_AHEAD_DISTANCE, 0, 1)
@@ -23089,6 +23867,8 @@ function onCreate(is_world_create)
 	)
 
 	ac.sendCommunication("onCreate()", 0)
+
+	server.removeMapLine(0, 1258901724)
 end
 
 --- Called 1 tick after the world has been created, to prevent issues with the addon indexes getting mixed up
@@ -23186,6 +23966,8 @@ function onTick(game_ticks)
 	end
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
+
+	TickTesterCommand.onTick()
 
 	VehiclePrefab.onTick(game_ticks)
 

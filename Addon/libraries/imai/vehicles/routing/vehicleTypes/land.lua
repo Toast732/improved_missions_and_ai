@@ -159,8 +159,8 @@ Command.registerCommand(
 		end
 
 		-- Display the path on the map.
-		for path_index = 1, #path do
-			local path_node = path[path_index]
+		for path_index = 1, #path.path_list do
+			local path_node = path.path_list[path_index]
 
 			-- Display the path node
 			Map.addMapCircle(
@@ -178,7 +178,7 @@ Command.registerCommand(
 
 			-- if the path_index is greater than 1, then display the line between the two nodes
 			if path_index > 1 then
-				local previous_path_node = path[path_index - 1]
+				local previous_path_node = path.path_list[path_index - 1]
 
 				-- Display the line
 				server.addMapLine(
@@ -217,8 +217,8 @@ Command.registerCommand(
 			end
 
 			-- Display the path on the map.
-			for path_index = 1, #path do
-				local path_node = path[path_index]
+			for path_index = 1, #path.path_list do
+				local path_node = path.path_list[path_index]
 
 				-- Display the path node
 				server.removeMapID(-1, path_node.ui_id)

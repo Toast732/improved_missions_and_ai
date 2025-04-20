@@ -225,6 +225,9 @@ function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, ex
 				return
 			end
 
+			-- Remove the map object.
+			server.removeMapObject(-1, citizen.object_id + 14784)
+
 			-- Remove the active commute.
 			g_savedata.libraries.commuting.active_commutes[citizen.active_commute_id] = nil
 

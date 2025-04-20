@@ -281,8 +281,6 @@ Binder.bind.onVehicleLoad(
 	---@param vehicle_id integer the vehicle_id of the spawned vehicle.
 	function(vehicle_id)
 
-		d.print(("(objectConsumer) on group spawn called for vehicle_id %d."):format(vehicle_id), true, 0)
-
 		d.print(string.fromTable(g_savedata.included_animations.effects.objectConsumer.awaiting_animator_vehicle_ids), true, 0)
 		-- get the object_id we are waiting for.
 		local object_id = g_savedata.included_animations.effects.objectConsumer.awaiting_animator_vehicle_ids[vehicle_id]

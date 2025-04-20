@@ -88,6 +88,7 @@ function onBuild(script_path)
 		matrix = {}
 		
 		-- load the _ENV from the script
+
 		dofile(script_path)
 		-- Run the test
 		success, result = pcall(stored_tests[test_index].execute_function)
@@ -113,4 +114,20 @@ function registerTest(test_name, test_function)
 	)
 end
 
+--- Checks if the two values are the same, if not, prints the error, and returns false for if the test passed.
+---@param value1 any the first value to compare
+---@param value2 any the second value to compare
+---@param error_message string? the message to print if the values are not the same.
+---@return boolean passed returns true if the values are the same, false if not.
+function isEqual(value1, value2, error_message)
+	if value1 == value2 then
+		print(("> PASS: \"%s\" Is equal to \"%s\""):format(value1, value2))
+		return true
+	else
+		print(("> FAIL: \"%s\" Is not equal to \"%s\"%s"):format(value1, value2, error_message and "\n"..error_message or ""))
+		return false
+	end
+end
+
 require("workspace.postBuild.testing.vehicles.drivable.landTesting")
+require("workspace.postBuild.testing.string.timeFormattingTesting")

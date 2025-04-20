@@ -56,7 +56,7 @@ HoldableAssetManager.HeldAssets = {}
 ---@field relationship AssetRelationship The relationship between this holder and this asset
 ---@field grantor_holder_id AssetHolderID? Who granted this holder access to this asset, if applicable.
 
----@alias HeldAssets table<HeldAsset>
+---@alias HeldAssets table<integer, HeldAsset>
 
 --[[
 
@@ -74,6 +74,11 @@ HoldableAssetManager.HeldAssets = {}
 
 ]]
 
+g_savedata.libraries.asset_manager.held_assets = {
+	---@type HeldAssetID
+	next_id = 1
+}
+
 --[[
 
 
@@ -82,3 +87,22 @@ HoldableAssetManager.HeldAssets = {}
 
 ]]
 
+---@param asset_id AssetID
+---@param relationship AssetRelationship
+---@param grantor_holder_id AssetHolderID?
+function HoldableAssetManager.HeldAssets.new(asset_id, relationship, grantor_holder_id)
+	-- create the held asset
+	---@type HeldAsset
+	local held_asset = {
+		held_asset_id = g_savedata.libraries.asset_manager.held_assets.next_id,
+		asset_id = asset_id,
+		relationship = relationship,
+		grantor_holder_id = grantor_holder_id
+	}
+
+	-- increment the next id
+	g_savedata.libraries.asset_manager.held_assets.next_id = g_savedata.libraries.asset_manager.held_assets.next_id + 1
+
+	-- return the held asset
+	return held_asset
+end

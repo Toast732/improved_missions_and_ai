@@ -26,7 +26,7 @@
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.27)"
+ADDON_VERSION = "(0.0.1.28)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -250,6 +250,8 @@ function onCreate(is_world_create)
 	)
 
 	ac.sendCommunication("onCreate()", 0)
+
+	server.removeMapLine(0, 1258901724)
 end
 
 --- Called 1 tick after the world has been created, to prevent issues with the addon indexes getting mixed up
@@ -347,6 +349,8 @@ function onTick(game_ticks)
 	end
 	--server.setGameSetting("npc_damage", true)
 	--d.print("onTick", false, 0)
+
+	TickTesterCommand.onTick()
 
 	VehiclePrefab.onTick(game_ticks)
 
