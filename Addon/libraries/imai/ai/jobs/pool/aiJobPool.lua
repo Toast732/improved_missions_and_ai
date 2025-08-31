@@ -16,7 +16,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -112,14 +112,6 @@ function AIJobPool.create()
 			-- Set the number of citizens hired.
 			local citizens_hired = 0
 
-			-- Store the jobs that the citizens want to apply to.
-			---@type table<JobID, table<integer, CitizenID>>
-			local jobs = {}
-
-			-- Store the citizen's statuses
-			---@type table<CitizenID, boolean> true if the citizen was assigned to a job, false otherwise.
-			local citizen_assigned_statuses = {}
-
 			---@param job_id JobID the job id.
 			local function removeJob(job_id)
 				for i = #self.jobs, 1, -1 do
@@ -138,74 +130,19 @@ function AIJobPool.create()
 				end
 			end
 
-			--- Initialize the jobs table.
-			for _, job_id in ipairs(self.jobs) do
-				jobs[job_id] = {}
-			end
-
-			-- For each citizen, set the citizen's status to false.
-			for _, citizen_id in ipairs(self.citizens) do
-				citizen_assigned_statuses[citizen_id] = false
-			end
-
-			-- For each citizen, get the jobs they want to apply to.
-			--[[for _, citizen_id in ipairs(self.citizens) do
-
-				---@class table<integer, AIJobOption>
-				local citizen_job_options = {}
-
-				-- Get the citizen.
-				local citizen = Citizens.getData(citizen_id)
-
-				-- Ensure the citizen exists.
-				if not citizen then
-					d.print(("<line> (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
-					goto continue
-				end
-
-				-- For each job, add the citizen to the job's list of applicants.
-				for job_id, _ in ipairs(jobs) do
-					local job = g_savedata.libraries.ai_jobs.jobs[job_id]
-					
-					-- Get the citizen's want for the job.
-					local want = citizen:getJobDesire(job)
-
-					-- Add the job to the citizen's job options.
-					table.insert(citizen_job_options, {
-						job_id = job_id,
-						want = want
-					})
-				end
-
-				-- Sort the citizen's job options by want.
-				table.sort(citizen_job_options, function(a, b)
-					return a.want > b.want
-				end)
-
-				-- Add the citizen to the jobs they want to apply to.
-				for i = 1, #citizen_job_options do
-					local job_option = citizen_job_options[i]
-
-					-- Add the citizen to the job's list of applicants.
-					table.insert(jobs[job_option.job_id], citizen_id)
-				end
-
-				::continue::
-			end]]
-
 			-- Create a list that stores the job's top picks for each cycle.
 			---@type table<JobID, table<integer, AIJobOptionForJob>>
 			local job_top_picks = {}
 
 			-- For each job, assign the job to the best citizen.
-			for job_id, _ in pairs(self.jobs) do
+			for _, job_id in pairs(self.jobs) do
 
 				-- Get the job
 				---@type AIJob
 				local job = g_savedata.libraries.ai_jobs.jobs[job_id]
 
 				-- Create a list of applicants and how the job weighs the citizen.
-				---@class table<integer, AIJobOption>
+				---@type table<integer, AIJobOptionForJob>
 				local job_applicants = {}
 
 				-- For each citizen, add the citizen to the job's list of applicants.
@@ -243,7 +180,7 @@ function AIJobPool.create()
 			for _ = 1, #self.citizens do
 
 				-- Store the citizen's options
-				---@type table<CitizenID, table<JobID>>
+				---@type table<CitizenID, table<integer, JobID>>
 				local citizen_options = {}
 
 				for job_id, job_top_picks in pairs(job_top_picks) do

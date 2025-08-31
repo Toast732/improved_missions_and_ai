@@ -177,32 +177,6 @@ local last_names = {
 
 --g_savedata.libraries.citizens = g_savedata.libraries.citizens
 
--- if the distance from this task to the next task is less or equal to this distance (m), then they can just walk.
-local walking_distance = 500
-
--- jobs
-local npc_job_list = {
-	fisher = {
-		vehicle = {
-			required_vehicle_tags = {
-				"fishing_boat"
-			}
-		},
-		no_vehicle = {
-			required_zone_tags = {
-				"fishing_dock"
-			},
-			prefers_local = true, -- if it prefers zones within their town
-			prefers_closer = true -- if it prefers zones closer to their home
-		},
-		use_vehicle_chance = 75, -- chance in % for using a vehicle, 0 for never, 100 for always
-		min_distance = 50, -- metres
-		max_distance = 3000, -- metres
-		--min_duration = time.hour*3, -- duration starts once they get to destination
-		--max_duration = time.hour*8
-	}
-}
-
 --[[
 
 

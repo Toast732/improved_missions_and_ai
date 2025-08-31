@@ -51,7 +51,7 @@ end
 function Zones.isReserved(zone_index)
 	if not g_savedata.zones.reservable[zone_index] then
 		d.print("(Zones.isReserved) zone_index is invalid, this zone is not stored!", true, 1)
-		return
+		return false
 	end
 
 	return g_savedata.zones.reservable[zone_index].reserved

@@ -44,7 +44,7 @@ limitations under the License.
 ---@diagnostic disable:duplicate-doc-alias
 ---@diagnostic disable:duplicate-set-field
 
-ADDON_VERSION = "(0.0.1.28)"
+ADDON_VERSION = "(0.0.1.29)"
 IS_DEVELOPMENT_VERSION = string.match(ADDON_VERSION, "(%d%.%d%.%d%.%d)")
 
 SHORT_ADDON_NAME = "IMAI"
@@ -274,12 +274,12 @@ end
 --- @param str string the string the make friendly
 --- @param remove_spaces boolean? true for if you want to remove spaces, will also remove all underscores instead of replacing them with spaces
 --- @param keep_caps boolean? if you want to keep the caps of the name, false will make all letters lowercase
---- @return string|nil friendly_string friendly string, nil if input_string was not a string
+--- @return string friendly_string friendly string, empty string if input_string was not a string
 function string.friendly(str, remove_spaces, keep_caps) -- function that replaced underscores with spaces and makes it all lower case, useful for player commands so its not extremely picky
 
 	if not str or type(str) ~= "string" then
 		d.print("(string.friendly) str is not a string! type: "..tostring(type(str)).." provided str: "..tostring(str), true, 1)
-		return nil
+		return ""
 	end
 
 	-- make all lowercase
@@ -2598,12 +2598,13 @@ Command.registerCommand(
 				return
 			end
 
+			---@type string|nil|boolean|number
 			local set_value = table.concat(arg, " ", 2, #arg)
 			local original_set_value = set_value
 
 			if flag.flag_type ~= "string" then
 				if set_value == "nil" then
-					set_value = nil ---@cast +nil
+					set_value = nil
 				end
 
 				-- number and integer flags
@@ -4325,7 +4326,7 @@ function Object.addObject(object_id)
 
 	-- the object doesn't actually exist
 	if not object_data then
-		d.print(("4328: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
+		d.print(("4329: attempt to add non-existing object %s to object list"):format(object_id), true, 1)
 		return false
 	end
 
@@ -4544,19 +4545,19 @@ function Effects.apply(name, object, duration, strength)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4547: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4548: Attempted to apply effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4553: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4554: Attempted to apply effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false
 	end
 
 	-- if the object cannot have this effect applied.
 	if not effect_applicable_objects[name] or not effect_applicable_objects[name][object.object_type] then
-		d.print(("4559: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
+		d.print(("4560: Attempted to apply effect \"%s\" to an object with type: \"%s\", however that object type cannot have that effect applied!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4565,7 +4566,7 @@ function Effects.apply(name, object, duration, strength)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4568: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4569: Attempted to apply effect \"%s\" to an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false
 	end
 
@@ -4608,7 +4609,7 @@ end
 function Effects.remove(object, name)
 	-- if the object was never given
 	if not object then
-		d.print(("4611: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
+		d.print(("4612: Attempted to remove effect \"%s\", yet the object given is nil!"):format(name), true, 1)
 		return false, false
 	end
 
@@ -4617,13 +4618,13 @@ function Effects.remove(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4620: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4621: Attempted to remove effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4626: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4627: Attempted to remove effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4632,7 +4633,7 @@ function Effects.remove(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4635: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4636: Attempted to remove effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4684,13 +4685,13 @@ end
 function Effects.removeAll(object)
 	-- if the object was never given
 	if not object then
-		d.print("4687: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
+		d.print("4688: Attempted to remove all effects from an object, yet the object given is nil!", true, 1)
 		return 0, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4693: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("4694: Attempted to remove all effects from an object, But the given object does not contain the object_type field! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return 0, false
 	end
 
@@ -4699,7 +4700,7 @@ function Effects.removeAll(object)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4702: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
+		d.print(("4703: Attempted to remove all effects from an object from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(object.object_type), true, 1)
 		return 0, false
 	end
 
@@ -4727,7 +4728,7 @@ function Effects.removeAll(object)
 		
 		-- if this effect does not exist.
 		if not effect_definition then
-			d.print(("4730: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
+			d.print(("4731: When iterating through all effects for object_type \"%s\", An effect with the name \"%s\" was found in g_savedata, but it doesn't have a definition!"):format(object.object_type, effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4765,13 +4766,13 @@ function Effects.has(object, name)
 	
 	-- if this effect does not exist.
 	if not effect_definition then
-		d.print(("4768: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
+		d.print(("4769: Attempted to find effect \"%s\", yet the effect is not defined!"):format(name), true, 1)
 		return false, false
 	end
 
 	-- if the object does not contain the object_type param
 	if not object.object_type then
-		d.print(("4774: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
+		d.print(("4775: Attempted to find effect \"%s\", But the given object does not contain the object_type field! object_data:\n\"%s\""):format(name, string.fromTable(object)), true, 1)
 		return false, false
 	end
 
@@ -4780,7 +4781,7 @@ function Effects.has(object, name)
 
 	-- if getting the indexing data failed
 	if not is_success then
-		d.print(("4783: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
+		d.print(("4784: Attempted to find effect \"%s\" from an object with type: \"%s\", however getting the indexing data via References.getIndexingData Failed!"):format(name, object.object_type), true, 1)
 		return false, false
 	end
 
@@ -4845,7 +4846,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4848: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4849: Attempted to expire effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -4861,7 +4862,7 @@ function Effects.onTick(game_ticks)
 
 		-- if this effect definition does not exist.
 		if not effect_definition then
-			d.print(("4864: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
+			d.print(("4865: Attempted to tick effect \"%s\", yet the effect is not defined!"):format(effect.name), true, 1)
 			goto next_effect
 		end
 
@@ -4872,7 +4873,7 @@ function Effects.onTick(game_ticks)
 			
 			-- if getting the object's data failed.
 			if not is_success then
-				d.print(("4875: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
+				d.print(("4876: Attempted to tick effect \"%s\", yet the object this effect is linked to was not found! indexing_data:\n\"%s\""):format(effect.name, string.fromTable(effect.indexing_data)), true, 1)
 				goto next_effect
 			end
 
@@ -7346,7 +7347,7 @@ function ZoneLinker.getZoneData(component_data, location_data)
 
 	-- If the tile's location was not found, return nil.
 	if not is_success then
-		d.print(("7349: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
+		d.print(("7350: (ZoneLinker.getZoneData) Failed to find an instance of the tile \"%s\""):format(location_data.tile), true, 1)
 		return nil
 	end
 
@@ -7474,7 +7475,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If the value was not found, return nil.
 	if not type_value then
-		d.print(("7477: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
+		d.print(("7478: (UsableProp.getUsablePropType) Failed to get the value of the tag \"prop\" for the given addon_component_data with the tags of \"%s\""):format(
 			addon_component_data.tags_full
 		), true, 1)
 		return nil
@@ -7485,7 +7486,7 @@ function UsableProp.getUsablePropType(addon_component_data)
 
 	-- If it was not found, return nil.
 	if not usable_prop_type then
-		d.print(("7488: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
+		d.print(("7489: (UsableProp.getUsablePropType) Failed to find the usable prop type for the value \"%s\""):format(
 			type_value
 		), true, 1)
 		return nil
@@ -7705,7 +7706,7 @@ function UsableProps.setupMain(is_world_create)
 
 	-- If we failed to find any, abort.
 	if not got_spawning_data then
-		d.print(("7708: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
+		d.print(("7709: (UsableProps.setupMain) Failed to get any usable prop's spawning data!"), true, 1)
 		return
 	end
 
@@ -7734,7 +7735,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the component data was not found, skip.
 		if not is_success then
-			d.print(("7737: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("7738: (UsableProps.setupMain) Failed to get the SWAddonComponentData for the spawning data at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -7748,7 +7749,7 @@ function UsableProps.setupMain(is_world_create)
 
 		-- If the zone data was not found, skip.
 		if not zone_data then
-			d.print(("7751: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
+			d.print(("7752: (UsableProps.setupMain) Failed to get the zone data for the SWAddonComponentData at addon_index: %d, location_index: %d, component_index: %d!"):format(
 				spawning_data.addon_index,
 				spawning_data.location_index,
 				spawning_data.component_index
@@ -7847,13 +7848,13 @@ function UsableProps.selectRandomPropWithType(usablePropHashmap, type, amount, s
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("7850: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
+		d.print(("7851: (UsableProps.selectRandomPropWithType) Failed to find any props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
 	-- If we have less props than the amount, return nil.
 	if #props_with_type < amount then
-		d.print(("7856: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
+		d.print(("7857: (UsableProps.selectRandomPropWithType) Failed to find enough props with the type %d!"):format(type), true, 1)
 		return nil
 	end
 
@@ -7899,7 +7900,7 @@ function UsableProps.getPropsWithType(prop_type)
 
 	-- If we didn't find any, return nil.
 	if #props_with_type == 0 then
-		d.print(("7902: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
+		d.print(("7903: (UsableProps.getPropsWithType) Failed to find any props with the type %d!"):format(prop_type), true, 1)
 		return nil
 	end
 
@@ -8089,7 +8090,7 @@ function AIJob.create(usable_prop, position_index)
 
 	-- If the building was not found, print an error and return.
 	if not job_building_id then
-		d.print(("8092: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
+		d.print(("8093: (AIJob.create) Error: Failed to find the building for the job prop with the ID of."):format(
 			usable_prop.id
 		), true, 1)
 		return
@@ -8346,7 +8347,7 @@ function AIJobs.setupMain(is_world_create)
 
 	-- If it failed, print an error and return.
 	if not ai_job_props then
-		d.print(("8349 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
+		d.print(("8350 (AIJobs.setupMain) Error: Failed to get any ai job props."), true, 1)
 		return
 	end
 
@@ -8454,7 +8455,7 @@ limitations under the License.
 
 ]]
 
--- Library Version 0.0.1
+-- Library Version 0.0.2
 
 --[[
 
@@ -8549,14 +8550,6 @@ function AIJobPool.create()
 			-- Set the number of citizens hired.
 			local citizens_hired = 0
 
-			-- Store the jobs that the citizens want to apply to.
-			---@type table<JobID, table<integer, CitizenID>>
-			local jobs = {}
-
-			-- Store the citizen's statuses
-			---@type table<CitizenID, boolean> true if the citizen was assigned to a job, false otherwise.
-			local citizen_assigned_statuses = {}
-
 			---@param job_id JobID the job id.
 			local function removeJob(job_id)
 				for i = #self.jobs, 1, -1 do
@@ -8575,74 +8568,19 @@ function AIJobPool.create()
 				end
 			end
 
-			--- Initialize the jobs table.
-			for _, job_id in ipairs(self.jobs) do
-				jobs[job_id] = {}
-			end
-
-			-- For each citizen, set the citizen's status to false.
-			for _, citizen_id in ipairs(self.citizens) do
-				citizen_assigned_statuses[citizen_id] = false
-			end
-
-			-- For each citizen, get the jobs they want to apply to.
-			--[[for _, citizen_id in ipairs(self.citizens) do
-
-				---@class table<integer, AIJobOption>
-				local citizen_job_options = {}
-
-				-- Get the citizen.
-				local citizen = Citizens.getData(citizen_id)
-
-				-- Ensure the citizen exists.
-				if not citizen then
-					d.print(("8599 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
-					goto continue
-				end
-
-				-- For each job, add the citizen to the job's list of applicants.
-				for job_id, _ in ipairs(jobs) do
-					local job = g_savedata.libraries.ai_jobs.jobs[job_id]
-					
-					-- Get the citizen's want for the job.
-					local want = citizen:getJobDesire(job)
-
-					-- Add the job to the citizen's job options.
-					table.insert(citizen_job_options, {
-						job_id = job_id,
-						want = want
-					})
-				end
-
-				-- Sort the citizen's job options by want.
-				table.sort(citizen_job_options, function(a, b)
-					return a.want > b.want
-				end)
-
-				-- Add the citizen to the jobs they want to apply to.
-				for i = 1, #citizen_job_options do
-					local job_option = citizen_job_options[i]
-
-					-- Add the citizen to the job's list of applicants.
-					table.insert(jobs[job_option.job_id], citizen_id)
-				end
-
-				::continue::
-			end]]
-
 			-- Create a list that stores the job's top picks for each cycle.
 			---@type table<JobID, table<integer, AIJobOptionForJob>>
 			local job_top_picks = {}
 
 			-- For each job, assign the job to the best citizen.
-			for job_id, _ in pairs(self.jobs) do
+			for _, job_id in pairs(self.jobs) do
 
 				-- Get the job
 				---@type AIJob
 				local job = g_savedata.libraries.ai_jobs.jobs[job_id]
 
 				-- Create a list of applicants and how the job weighs the citizen.
-				---@class table<integer, AIJobOption>
+				---@type table<integer, AIJobOptionForJob>
 				local job_applicants = {}
 
 				-- For each citizen, add the citizen to the job's list of applicants.
@@ -8680,7 +8618,7 @@ function AIJobPool.create()
 			for _ = 1, #self.citizens do
 
 				-- Store the citizen's options
-				---@type table<CitizenID, table<JobID>>
+				---@type table<CitizenID, table<integer, JobID>>
 				local citizen_options = {}
 
 				for job_id, job_top_picks in pairs(job_top_picks) do
@@ -8705,7 +8643,7 @@ function AIJobPool.create()
 
 					-- Ensure the citizen exists.
 					if not citizen then
-						d.print(("8708 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
+						d.print(("8646 (AIJobPool.compute) Error: Citizen with id %d does not exist."):format(citizen_id), true, 1)
 						goto continue
 					end
 
@@ -8775,7 +8713,7 @@ function AIJobPool.create()
 			end
 
 			-- Print the number of citizens hired, and not hired.
-			d.print(("8778 (AIJobPool.compute) Hiring cycle complete! %d citizens were hired, and %d citizens were not hired."):format(citizens_hired, #self.citizens), true, 0)
+			d.print(("8716 (AIJobPool.compute) Hiring cycle complete! %d citizens were hired, and %d citizens were not hired."):format(citizens_hired, #self.citizens), true, 0)
 		end
 	}
 
@@ -8902,7 +8840,7 @@ end
 function Zones.isReserved(zone_index)
 	if not g_savedata.zones.reservable[zone_index] then
 		d.print("(Zones.isReserved) zone_index is invalid, this zone is not stored!", true, 1)
-		return
+		return false
 	end
 
 	return g_savedata.zones.reservable[zone_index].reserved
@@ -9134,21 +9072,21 @@ function Item.createPrefab(item_name, equipment_id, data)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("9137: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("9075: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return false
 	end
 
 	local equipment_id_type = type(equipment_id)
 
 	if math.type(equipment_id) ~= "integer" and equipment_id_type ~= "nil" then
-		d.print(("9144: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
+		d.print(("9082: Expected equipment_id to be an integer or nil, instead got %s"):format(equipment_id_type), true, 1)
 		return false
 	end
 
 	local data_type = type(data)
 
 	if data_type ~= "table" then
-		d.print(("9151: Expected data to be a table, instead got %s"):format(data_type), true, 1)
+		d.print(("9089: Expected data to be a table, instead got %s"):format(data_type), true, 1)
 		return false
 	end
 
@@ -9186,14 +9124,14 @@ function Item.create(item_name, hidden)
 	local item_name_type = type(item_name)
 
 	if item_name_type ~= "string" then
-		d.print(("9189: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
+		d.print(("9127: Expected item_name to be a string, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
 	local hidden_type = type(hidden)
 
 	if hidden_type ~= "boolean" and hidden_type ~= "nil" then
-		d.print(("9196: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
+		d.print(("9134: Expected hidden to be a boolean or nil, instead got %s"):format(item_name_type), true, 1)
 		return nil, false
 	end
 
@@ -9203,7 +9141,7 @@ function Item.create(item_name, hidden)
 	local item_prefab = g_savedata.libraries.items.item_prefabs[item_name]
 
 	if not item_prefab then
-		d.print(("9206: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
+		d.print(("9144: attempted to spawn item %s, which does not exist as a prefab."):format(item_name), true, 1)
 		return nil, false
 	end
 
@@ -9237,7 +9175,7 @@ function Item.get(item_id)
 	local item_id_type = math.type(item_id)
 
 	if item_id_type ~= "integer" then
-		d.print(("9240: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
+		d.print(("9178: Expected item_id to be an integer, instead got %s"):format(item_id_type), true, 1)
 		return nil, false
 	end
 
@@ -9248,7 +9186,7 @@ function Item.get(item_id)
 		end
 	end
 
-	d.print(("9251: Failed to find item with id %s"):format(item_id), true, 1)
+	d.print(("9189: Failed to find item with id %s"):format(item_id), true, 1)
 	return nil, false
 end
 
@@ -9304,7 +9242,7 @@ function Inventory.get(inventory_id)
 
 	-- if it does not exist
 	if not inventory then
-		d.print(("9307: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
+		d.print(("9245: Attempted to get non existing inventory with id: %s"):format(inventory_id), true, 1)
 	end
 
 	-- return inventory.
@@ -9456,7 +9394,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not store the object type. (error 1)
 	if not object.object_type then
-		d.print(("9459: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
+		d.print(("9397: attempted to get the indexing data of an object, however it does not have the object_type stored within it! object_data:\n\"%s\""):format(string.fromTable(object)), true, 1)
 		return {}, false
 	end
 
@@ -9465,7 +9403,7 @@ function References.getIndexingData(object)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("9468: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
+		d.print(("9406: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(object.object_type), true, 1)
 		return {}, false
 	end
 
@@ -9486,7 +9424,7 @@ end
 function References.getData(indexing_data)
 	-- if the object does not store the object type. (error 1)
 	if not indexing_data.object_type then
-		d.print(("9489: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
+		d.print(("9427: attempted to get the getData function for an object, however the given indexing_data table does not have the object_type stored within it! indexing_data:\n\"%s\""):format(string.fromTable(indexing_data)), true, 1)
 		return {}, false
 	end
 
@@ -9495,7 +9433,7 @@ function References.getData(indexing_data)
 
 	-- if the object does not have an associated definition. (error 2)
 	if not reference_definition then
-		d.print(("9498: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
+		d.print(("9436: Attempted to get the reference definition of the object type \"%s\", however it does not have a proper definition, could be possibly due to the code being executed before the reference could be defined, or was never defined in the first place."):format(indexing_data.object_type), true, 1)
 		return {}, false
 	end
 
@@ -9878,19 +9816,19 @@ function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, ex
 
 			-- If the citizen is nil, then return.
 			if citizen == nil then
-				d.print(("9881 (CitizenScheduleTaskCommute.checkCompletion) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				d.print(("9819 (CitizenScheduleTaskCommute.checkCompletion) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 				return true
 			end
 
 			-- If the task expired, then return true.
 			if GameTimestamp.now() > self.expiry then
-				d.print(("9887 (CitizenScheduleTaskCommute.checkCompletion) Task expired, marked as completed. (%s > %s)"):format(GameTimestamp.now(), self.expiry), true, 0)
+				d.print(("9825 (CitizenScheduleTaskCommute.checkCompletion) Task expired, marked as completed. (%s > %s)"):format(GameTimestamp.now(), self.expiry), true, 0)
 				return true
 			end
 
 			-- If the citizen's active_commute_id is nil, then return true.
 			if citizen.active_commute_id == nil then
-				d.print(("9893 (CitizenScheduleTaskCommute.checkCompletion) Commute id is nil for citizen %d, commute completed."):format(self.citizen_id), true, 0)
+				d.print(("9831 (CitizenScheduleTaskCommute.checkCompletion) Commute id is nil for citizen %d, commute completed."):format(self.citizen_id), true, 0)
 				return true
 			end
 
@@ -9900,13 +9838,13 @@ function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, ex
 
 			-- If the commute is nil, then return true.
 			if commute == nil then
-				d.print(("9903 (CitizenScheduleTaskCommute.checkCompletion) Commute not found for citizen %d, commute completed."):format(self.citizen_id), true, 0)
+				d.print(("9841 (CitizenScheduleTaskCommute.checkCompletion) Commute not found for citizen %d, commute completed."):format(self.citizen_id), true, 0)
 				return true
 			end
 
 			-- If the current segment index is not a segment, then return true.
 			if commute.commute_segments[commute.current_segment_index] == nil then
-				d.print(("9909 (CitizenScheduleTaskCommute.checkCompletion) Current segment index does not have an associated segment, commute completed for citizen %d"):format(self.citizen_id), true, 0)
+				d.print(("9847 (CitizenScheduleTaskCommute.checkCompletion) Current segment index does not have an associated segment, commute completed for citizen %d"):format(self.citizen_id), true, 0)
 				return true
 			end
 
@@ -9920,7 +9858,7 @@ function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, ex
 
 			-- If the citizen is nil, then return.
 			if citizen == nil then
-				d.print(("9923 (CitizenScheduleTaskWalkToPosition.taskStartActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				d.print(("9861 (CitizenScheduleTaskWalkToPosition.taskStartActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 				return
 			end
 
@@ -9950,7 +9888,7 @@ function CitizenScheduleTasks.createCommuteTask(citizen_id, name, start_time, ex
 
 			-- If the citizen is nil, then return.
 			if citizen == nil then
-				d.print(("9953 (CitizenScheduleTaskWalkToPosition.taskEndActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+				d.print(("9891 (CitizenScheduleTaskWalkToPosition.taskEndActions) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 				return
 			end
 
@@ -10103,7 +10041,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If the citizen is nil, then return.
 		if citizen == nil then
-			d.print(("10106 (CitizenSchedule.generateSchedule) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+			d.print(("10044 (CitizenSchedule.generateSchedule) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -10192,7 +10130,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If the citizen is nil, then return.
 		if citizen == nil then
-			d.print(("10195 (CitizenSchedule.tick) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
+			d.print(("10133 (CitizenSchedule.tick) Error: Failed to get the citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -10203,7 +10141,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If there are no tasks, then return.
 		if #self.tasks == 0 then
-			--d.print(("10206 (CitizenSchedule.tick) Error: Failed to generate the schedule for citizen with id %d."):format(self.citizen_id), true, 1)
+			--d.print(("10144 (CitizenSchedule.tick) Error: Failed to generate the schedule for citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -10212,7 +10150,7 @@ function CitizenSchedule.clean(schedule)
 
 		-- If the current task is nil, then return.
 		if current_task == nil then
-			d.print(("10215 (CitizenSchedule.tick) Error: Failed to get the current task for citizen with id %d."):format(self.citizen_id), true, 1)
+			d.print(("10153 (CitizenSchedule.tick) Error: Failed to get the current task for citizen with id %d."):format(self.citizen_id), true, 1)
 			return
 		end
 
@@ -10221,7 +10159,7 @@ function CitizenSchedule.clean(schedule)
 			-- We can start the task, so start it.
 			current_task.started = true
 
-			d.print(("10224 (CitizenSchedule.tick) Task \"%s\" started for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
+			d.print(("10162 (CitizenSchedule.tick) Task \"%s\" started for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
 
 			-- Call the task's start actions.
 			if current_task.taskStartActions then
@@ -10239,7 +10177,7 @@ function CitizenSchedule.clean(schedule)
 					current_task:taskEndActions()
 				end
 
-				d.print(("10242 (CitizenSchedule.tick) Task \"%s\" completed for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
+				d.print(("10180 (CitizenSchedule.tick) Task \"%s\" completed for citizen with id %d."):format(current_task.name, self.citizen_id), true, 0)
 
 				-- The task is completed, so remove it from the schedule.
 				table.remove(self.tasks, 1)
@@ -10583,7 +10521,7 @@ function Citizen.tick(citizen, game_ticks)
 				citizen.health = object_data.hp
 			end
 		else
-			d.print(("10586: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("10524: Failed to get object_data for citizen \"%s\""):format(citizen.name.full), false, 1)
 		end
 
 		-- tick their medical conditions
@@ -10787,32 +10725,6 @@ local last_names = {
 }
 
 --g_savedata.libraries.citizens = g_savedata.libraries.citizens
-
--- if the distance from this task to the next task is less or equal to this distance (m), then they can just walk.
-local walking_distance = 500
-
--- jobs
-local npc_job_list = {
-	fisher = {
-		vehicle = {
-			required_vehicle_tags = {
-				"fishing_boat"
-			}
-		},
-		no_vehicle = {
-			required_zone_tags = {
-				"fishing_dock"
-			},
-			prefers_local = true, -- if it prefers zones within their town
-			prefers_closer = true -- if it prefers zones closer to their home
-		},
-		use_vehicle_chance = 75, -- chance in % for using a vehicle, 0 for never, 100 for always
-		min_distance = 50, -- metres
-		max_distance = 3000, -- metres
-		--min_duration = time.hour*3, -- duration starts once they get to destination
-		--max_duration = time.hour*8
-	}
-}
 
 --[[
 
@@ -11508,7 +11420,7 @@ end
 function Treatments.apply(citizen, treatment_name, time_override)
 	-- if treatment is already applied
 	if citizen.medical_data.required_treatments[treatment_name] then
-		Treatments.print(("11511: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
+		Treatments.print(("11423: Treatment %s is already applied to %s"):format(treatment_name, citizen.name.full), false, 0)
 		return false
 	end
 
@@ -11544,7 +11456,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment type is not defined
 	if not defined_treatments[treatment.name] then
-		d.print(("11547: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("11459: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -11555,7 +11467,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 
 	-- if this treatment doesn't actaully exist
 	if not defined_treatment_conditions[treatment_type] then
-		d.print(("11558: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
+		d.print(("11470: Removing Required Treatment %s from %s as it does not exist."):format(treatment.name, citizen.name.full), true, 1)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
@@ -11567,7 +11479,7 @@ function Treatments.checkCallback(citizen, treatment, callback, ...)
 		-- remove it from this character
 		citizen.medical_data.required_treatments[treatment.name] = nil
 
-		Treatments.print(("11570: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
+		Treatments.print(("11482: %s Was not treated in time for citizen %s"):format(treatment.name, citizen.name.full), false, 0)
 
 		return
 	end
@@ -11717,7 +11629,7 @@ function medicalCondition.create(name, hidden, custom_data, call_onTick, call_on
 	
 	-- check if this medical condition is already registered
 	if medical_conditions_callbacks[name] then
-		d.print(("11720: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
+		d.print(("11632: attempt to register medical condition \"%s\" that is already registered."):format(name), true, 1)
 		return
 	end
 
@@ -11826,7 +11738,7 @@ function medicalCondition.assignCondition(citizen, condition, ...)
 	local medical_condition_callbacks = medical_conditions_callbacks[condition]
 
 	if not medical_condition_callbacks then
-		d.print(("11829: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
+		d.print(("11741: attemped to assign the medical condition \"%s\" to citizen \"%s\", but that medical condition does not exist."):format(condition, citizen.name.full), true, 1)
 		return
 	end
 
@@ -12672,7 +12584,7 @@ function Bleed.getRequiredTreatment(citizen)
 
 	-- failed to get their inventory
 	if not got_inventory then
-		d.print(("12675: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
+		d.print(("12587: Failed to get inventory for citizen: %s"):format(citizen.name.full), true, 1)
 		return "tourniquet"
 	end
 
@@ -12692,7 +12604,7 @@ function Bleed.getRequiredTreatment(citizen)
 		return "tourniquet"
 	end
 
-	d.print(("12695: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
+	d.print(("12607: Failed to get tourniquet data for citizen %s when they should have a tourniquet"):format(citizen.name.full), true, 1)
 	return "tourniquet"
 end
 
@@ -12856,13 +12768,13 @@ Treatments.defineTreatmentCondition(
 
 		-- this patient no longer requires treatment, so return true to remove this condition. (shouldn't get here, but in case it does, this should mitigate some bugs)
 		if required_treatment == "none" then
-			Treatments.print(("12859: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("12771: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- apply the bandage
 		if required_treatment == "bandage" then
-			Treatments.print(("12865: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("12777: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
@@ -12883,17 +12795,17 @@ Treatments.defineTreatmentCondition(
 			-- make sure we actually got the tourniquet item to avoid an error.
 			if tourniquet then
 				-- tighten the tourniquet
-				Treatments.print(("12886: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+				Treatments.print(("12798: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 				tourniquet.data.tightened = true
 			end
 
 			-- say that the bleeding has been treated.
-			Treatments.print(("12891: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
+			Treatments.print(("12803: Citizen %s has been treated, they had a required treatment of: %s"):format(citizen.name.full, required_treatment), false, 0)
 			return true
 		end
 
 		-- shouldn't normally be able to get here...
-		d.print(("12896: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
+		d.print(("12808: Reached an area in the code that shouldn't normally be reached, required_treatment: %s, citizen: %s"):format(required_treatment, citizen.name.full), true, 1)
 
 		return false
 	end,
@@ -13290,7 +13202,7 @@ GameMaster = {}
 GAMEMASTER_SETUP_MAIN_PRIORITY = AI_JOBS_SETUP_MAIN_PRIORITY + 1
 
 -- The minimum ratio of citizens to spawn in a house.
-CITIZEN_SPAWN_RATIO_MIN = 0.45
+CITIZEN_SPAWN_RATIO_MIN = 0.8
 
 -- The maximum ratio of citizens to spawn in a house.
 CITIZEN_SPAWN_RATIO_MAX = 1.00
@@ -13378,7 +13290,7 @@ function GameMaster.spawnCitizens()
 
 					-- If there are no bed props, then skip this citizen.
 					if bed_props == nil then
-						d.print(("13381: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
+						d.print(("13293: (GameMaster.spawnCitizens) Failed to find a bed prop in building %s!"):format(building.name), true, 1)
 						goto continue
 					end
 
@@ -13603,7 +13515,7 @@ function CommuteSegmentManager.setup(commute_segment_manager)
 		-- Insert the segment.
 		table.insert(self.segments, index, segment)
 
-		d.print("13606: (CommuteSegmentManager.insertSegment) Segment commute_type: "..segment.commute_type, true, 0)
+		d.print("13518: (CommuteSegmentManager.insertSegment) Segment commute_type: "..segment.commute_type, true, 0)
 
 		-- Update the cost.
 		self.cost = self.cost + commute_types[segment.commute_type].getCost(segment.option_data, segment.route)
@@ -13625,7 +13537,7 @@ function CommuteSegmentManager.setup(commute_segment_manager)
 				self.builder.origin
 			) <= SEGMENT_COMPLETE_DISTANCE
 
-			d.print(("13628: (CommuteSegmentManager.insertSegment) Start connected: %s"):format(tostring(self.start_connected)), true, 0)
+			d.print(("13540: (CommuteSegmentManager.insertSegment) Start connected: %s"):format(tostring(self.start_connected)), true, 0)
 		end
 
 		-- If the index for this segment is the last one, check if the end is connected.
@@ -13640,7 +13552,7 @@ function CommuteSegmentManager.setup(commute_segment_manager)
 				self.builder.destination
 			) <= SEGMENT_COMPLETE_DISTANCE
 
-			d.print(("13643: (CommuteSegmentManager.insertSegment) End connected: %s"):format(tostring(self.end_connected)), true, 0)
+			d.print(("13555: (CommuteSegmentManager.insertSegment) End connected: %s"):format(tostring(self.end_connected)), true, 0)
 		end
 	end
 
@@ -13978,11 +13890,11 @@ function Commuting.commute(builder)
 
 				-- Check if we can even insert here.
 				if not commute_segment_manager:canInsert(insertion_index, commute_type_definition.name) then
-					d.print(("13981: (Commuting.commute) Cannot insert segment of type %s at index %s."):format(commute_type_definition.name, insertion_index), true, 0)
+					d.print(("13893: (Commuting.commute) Cannot insert segment of type %s at index %s."):format(commute_type_definition.name, insertion_index), true, 0)
 
 					-- Print the segments in the segment manager.
 					for segment_index, segment in pairs(commute_segment_manager.segments) do
-						d.print(("13985: (Commuting.commute) Segment %s: %s"):format(segment_index, segment.commute_type), true, 0)
+						d.print(("13897: (Commuting.commute) Segment %s: %s"):format(segment_index, segment.commute_type), true, 0)
 					end
 
 					goto continue_commute_type
@@ -14173,7 +14085,7 @@ function Commuting.commute(builder)
 
 					current_commute:drawDebug()
 
-					d.print(("14176: (Commuting.commute) Found a best direct route. Segment Count: %s"):format(#current_commute.segments), true, 0)
+					d.print(("14088: (Commuting.commute) Found a best direct route. Segment Count: %s"):format(#current_commute.segments), true, 0)
 
 					-- Set it as the best
 					best_commute = current_commute
@@ -14199,13 +14111,13 @@ function Commuting.commute(builder)
 
 				-- If we've hit over our maximum number of segments, then we just skip this one.
 				if #next_commute.segments > MAX_SEGMENTS then
-					d.print("14202: (Commuting.commute) Hit maximum number of segments, skipping.", true, 0)
+					d.print("14114: (Commuting.commute) Hit maximum number of segments, skipping.", true, 0)
 					goto continue_next_best_commute
 				end
 
 				-- If we have a best segment, check if this one is worse (if it's worse, then it can never be better)
 				if best_commute and best_commute.cost <= next_commute.cost then
-					d.print("14208: (Commuting.commute) Commute costs more than the current best, skipping.", true, 0)
+					d.print("14120: (Commuting.commute) Commute costs more than the current best, skipping.", true, 0)
 					goto continue_next_best_commute
 				end
 
@@ -14213,11 +14125,11 @@ function Commuting.commute(builder)
 				-- Otherwise, add it to the stored commutes for the next checks.
 				if next_commute.start_connected and next_commute.end_connected then
 					best_commute = next_commute
-					d.print(("14216: (Commuting.commute) Found a best route. Segment Count: %s"):format(#next_commute.segments), true, 0)
+					d.print(("14128: (Commuting.commute) Found a best route. Segment Count: %s"):format(#next_commute.segments), true, 0)
 
 					-- Print each of the segments in this route.
 					for segment_index = 1, #next_commute.segments do
-						d.print(("14220: (Commuting.commute) Segment %s: %s"):format(segment_index, next_commute.segments[segment_index].commute_type), true, 0)
+						d.print(("14132: (Commuting.commute) Segment %s: %s"):format(segment_index, next_commute.segments[segment_index].commute_type), true, 0)
 					end
 				else
 					table.insert(stored_commutes, next_commute)
@@ -14232,7 +14144,7 @@ function Commuting.commute(builder)
 
 	-- If the best commute is nil, then return nil.
 	if not best_commute then
-		d.print(("14235: (Commuting.commute) No best commute found. Citizen: %s"):format(builder.citizen_id), true, 1)
+		d.print(("14147: (Commuting.commute) No best commute found. Citizen: %s"):format(builder.citizen_id), true, 1)
 		return
 	end
 
@@ -14275,7 +14187,7 @@ function Commuting.onTick(game_ticks)
 
 		-- If the citizen is nil, then continue.
 		if not citizen then
-			d.print(("14278: (Commuting.onTick) Citizen is nil for active commute %s. Index: %s"):format(active_commute.id, active_commute.current_segment_index), true, 1)
+			d.print(("14190: (Commuting.onTick) Citizen is nil for active commute %s. Index: %s"):format(active_commute.id, active_commute.current_segment_index), true, 1)
 			goto continue
 		end
 
@@ -14353,7 +14265,7 @@ function Commuting.onTick(game_ticks)
 
 			-- Ensure we got the next commute type definition.
 			if not new_commute_type_definition then
-				d.print(("14356: (Commuting.onTick) Commute type definition not found for %s"):format(new_segment.commute_type), true, 1)
+				d.print(("14268: (Commuting.onTick) Commute type definition not found for %s"):format(new_segment.commute_type), true, 1)
 				goto continue
 			end
 
@@ -14446,7 +14358,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("14449 Walking Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("14361 Walking Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -14475,7 +14387,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("14478 Walking Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("14390 Walking Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -14499,7 +14411,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the citizen is not nil
 		if not citizen then
-			d.print(("14502: Walking Commute (checkCompletion): Citizen %s not found"):format(option_data.citizen_id), true, 1)
+			d.print(("14414: Walking Commute (checkCompletion): Citizen %s not found"):format(option_data.citizen_id), true, 1)
 			return true
 		end
 
@@ -14516,7 +14428,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the citizen is not nil
 		if not citizen then
-			d.print(("14519: Walking Commute (getCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
+			d.print(("14431: Walking Commute (getCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
 			return
 		end
 
@@ -14528,7 +14440,7 @@ Commuting.registerCommuteType(
 
 		-- Check if we got the path.
 		if not path then
-			d.print(("14531: Failed to get the path for citizen \"%s\""):format(citizen.name.full), false, 1)
+			d.print(("14443: Failed to get the path for citizen \"%s\""):format(citizen.name.full), false, 1)
 			return
 		end
 
@@ -14644,7 +14556,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the citizen is not nil
 		if not citizen then
-			d.print(("14647: Driving Commute (GetOptions): Citizen %s not found"):format(citizen_id), true, 1)
+			d.print(("14559: Driving Commute (GetOptions): Citizen %s not found"):format(citizen_id), true, 1)
 			return {}
 		end
 
@@ -14696,7 +14608,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the drivable vehicle is not nil
 		if not drivable_vehicle then
-			d.print(("14699: Driving Commute (GetRoute): Drivable Vehicle %s not found"):format(option_data.drivable_vehicle_id), true, 1)
+			d.print(("14611: Driving Commute (GetRoute): Drivable Vehicle %s not found"):format(option_data.drivable_vehicle_id), true, 1)
 			return {}
 		end
 
@@ -14716,7 +14628,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("14719 Driving Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("14631 Driving Commute (GetCommuteTime): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -14748,7 +14660,7 @@ Commuting.registerCommuteType(
 
 		-- Make sure we got the path.
 		if not path then
-			d.print(("14751 Driving Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
+			d.print(("14663 Driving Commute (GetCost): No path found for route %s"):format(route.stored_path_id), true, 1)
 			return math.maxinteger
 		end
 
@@ -14772,7 +14684,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the citizen is not nil
 		if not citizen then
-			d.print(("14775: Driving Commute (GetCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
+			d.print(("14687: Driving Commute (GetCost): Citizen %s not found"):format(option_data.citizen_id), true, 1)
 			return true
 		end
 
@@ -14789,7 +14701,7 @@ Commuting.registerCommuteType(
 
 		-- Ensure the drivable vehicle is not nil
 		if not drivable_vehicle then
-			d.print(("14792: Driving Commute (startActions): Drivable Vehicle %s not found"):format(option_data.drivable_vehicle_id), true, 1)
+			d.print(("14704: Driving Commute (startActions): Drivable Vehicle %s not found"):format(option_data.drivable_vehicle_id), true, 1)
 			return
 		end
 
@@ -15352,7 +15264,7 @@ end
 function Objective.checkCompletion(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("15355: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("15267: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return OBJECTIVE_COMPLETION_STATUS.FAILED
 	end
 
@@ -15365,7 +15277,7 @@ end
 function Objective.remove(objective)
 	-- check if the objective type is defined
 	if not defined_objectives[objective.type] then
-		d.print(("15368: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
+		d.print(("15280: Objective type \"%s\" is not defined."):format(objective.type), true, 1)
 		return
 	end
 
@@ -19332,7 +19244,7 @@ function pathNodeFromSWNode(sw_node, base_consume_distance)
 	-- If the node is missing the y and/or cdm fields, then print an error.
 	---@diagnostic disable-next-line: undefined-field
 	if not sw_node.y or not sw_node.cdm then
-		d.print(("19335: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
+		d.print(("19247: the given sw_node is missing the y and/or cdm fields!\nx: %s\nz: %s"):format(sw_node.x, sw_node.z), true, 1)
 	end
 
 	return {
@@ -19454,7 +19366,7 @@ function nudgePathfind(matrix_start, matrix_end, required_tags, avoided_tags, ba
 
 		--- Return false if we're over the 5000 node limit
 		if node_count + previous_path_count >= PATHFINDING_MAX_NODES then
-			d.print("19457: Pathfinding has reached the maximum node limit, stopping pathfinding.", true, 1)
+			d.print("19369: Pathfinding has reached the maximum node limit, stopping pathfinding.", true, 1)
 			return false
 		end
 
@@ -19982,7 +19894,7 @@ function Pathfinding.getPathY(path)
 		--TODO: Not the greatest code, could be cleaned up, however, this shouldn't be occuring in the first place, and instances where this occurs should be fixed at the source.
 		else
 			-- Otherwise, we cannot find a saved node for this, print an warning, and set it's values.
-			d.print(("19985: (Pathfinding.getPathY) Could not find a saved node For node index %s.\nBefore Rounding:\n\tx: %s\n\tz: %s\nAfter Rounding:\n\tx: %s\n\tz: %s"):format(
+			d.print(("19897: (Pathfinding.getPathY) Could not find a saved node For node index %s.\nBefore Rounding:\n\tx: %s\n\tz: %s\nAfter Rounding:\n\tx: %s\n\tz: %s"):format(
 				node_index,
 				path[node_index].x,
 				path[node_index].z,
@@ -20023,7 +19935,7 @@ function Pathfinding.getPathY(path)
 				path[node_index].y = (previous_node.y + next_node_savedata.y) / 2
 				path[node_index].cdm = (previous_node.cdm + next_node_savedata.cdm) / 2
 
-				d.print(("20026: (Pathfinding.getPathY) Previous and Next node are complete - Set the y and cdm to the average of the previous and next nodes for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+				d.print(("19938: (Pathfinding.getPathY) Previous and Next node are complete - Set the y and cdm to the average of the previous and next nodes for node index %s.\n\ty: %s\n\tcdm: %s"):format(
 					node_index,
 					path[node_index].y,
 					path[node_index].cdm
@@ -20035,7 +19947,7 @@ function Pathfinding.getPathY(path)
 				path[node_index].y = previous_node.y
 				path[node_index].cdm = previous_node.cdm
 
-				d.print(("20038: (Pathfinding.getPathY) Previous node is complete, next is invalid - Set the y and cdm to the previous node's values for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+				d.print(("19950: (Pathfinding.getPathY) Previous node is complete, next is invalid - Set the y and cdm to the previous node's values for node index %s.\n\ty: %s\n\tcdm: %s"):format(
 					node_index,
 					path[node_index].y,
 					path[node_index].cdm
@@ -20046,7 +19958,7 @@ function Pathfinding.getPathY(path)
 				path[node_index].y = next_node_savedata.y
 				path[node_index].cdm = next_node_savedata.cdm
 
-				d.print(("20049: (Pathfinding.getPathY) Next node is complete, previous is invalid - Set the y and cdm to the next node's values for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+				d.print(("19961: (Pathfinding.getPathY) Next node is complete, previous is invalid - Set the y and cdm to the next node's values for node index %s.\n\ty: %s\n\tcdm: %s"):format(
 					node_index,
 					path[node_index].y,
 					path[node_index].cdm
@@ -20057,7 +19969,7 @@ function Pathfinding.getPathY(path)
 				path[node_index].y = 0
 				path[node_index].cdm = 1
 
-				d.print(("20060: (Pathfinding.getPathY) Both previous and next nodes are invalid - Set the y and cdm to 0 and 1 for node index %s.\n\ty: %s\n\tcdm: %s"):format(
+				d.print(("19972: (Pathfinding.getPathY) Both previous and next nodes are invalid - Set the y and cdm to 0 and 1 for node index %s.\n\ty: %s\n\tcdm: %s"):format(
 					node_index,
 					path[node_index].y,
 					path[node_index].cdm
@@ -21065,7 +20977,7 @@ function DrivableVehicle.setSeated(drivable_vehicle, citizen_id, seat_type)
 
 	-- If we failed to get the generic vehicle, return early.
 	if not generic_vehicle then
-		d.print(("21068: (Drivable.setSeated) Failed to get the generic vehicle for the vin %s"):format(drivable_vehicle.generic_vin), true, 1)
+		d.print(("20980: (Drivable.setSeated) Failed to get the generic vehicle for the vin %s"):format(drivable_vehicle.generic_vin), true, 1)
 		return false
 	end
 
@@ -21074,7 +20986,7 @@ function DrivableVehicle.setSeated(drivable_vehicle, citizen_id, seat_type)
 
 	-- If the citizen is nil, return early.
 	if not citizen then
-		d.print(("21077: (Drivable.setSeated) Failed to get the citizen with id %s"):format(citizen_id), true, 1)
+		d.print(("20989: (Drivable.setSeated) Failed to get the citizen with id %s"):format(citizen_id), true, 1)
 		return false
 	end
 
@@ -21327,7 +21239,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- Check if the path recieved is not nil.
 		if not path then
-			d.print(("21330: (DrivableVehicle.onTick) Failed to get the path from the route with stored path id %d, aborting."):format(unloaded_vehicle.route.stored_path_id), true, 1)
+			d.print(("21242: (DrivableVehicle.onTick) Failed to get the path from the route with stored path id %d, aborting."):format(unloaded_vehicle.route.stored_path_id), true, 1)
 			goto continue
 		end
 
@@ -21342,7 +21254,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- If the generic vehicle is nil, then skip this vehicle.
 		if not generic_vehicle then
-			d.print(("21345: (DrivableVehicle.onTick) Failed to get the generic vehicle for vehicle %d, aborting."):format(unloaded_vehicle.generic_vin), true, 1)
+			d.print(("21257: (DrivableVehicle.onTick) Failed to get the generic vehicle for vehicle %d, aborting."):format(unloaded_vehicle.generic_vin), true, 1)
 			goto continue
 		end
 
@@ -21351,7 +21263,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- If we failed to get it's position, skip.
 		if not is_success then
-			d.print(("21354: (DrivableVehicle.onTick) Failed to get the position of vehicle %d, aborting."):format(unloaded_vehicle.generic_vin), true, 1)
+			d.print(("21266: (DrivableVehicle.onTick) Failed to get the position of vehicle %d, aborting."):format(unloaded_vehicle.generic_vin), true, 1)
 			goto continue
 		end
 
@@ -21374,7 +21286,7 @@ function DrivableVehicle.onTick(game_ticks)
 
 		-- If the prefab is nil, skip this vehicle.
 		if not prefab then
-			d.print(("21377: (DrivableVehicle.onTick) Failed to get the prefab for vehicle %s, aborting."):format(unloaded_vehicle.prefab_name), true, 1)
+			d.print(("21289: (DrivableVehicle.onTick) Failed to get the prefab for vehicle %s, aborting."):format(unloaded_vehicle.prefab_name), true, 1)
 			goto continue
 		end
 

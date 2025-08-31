@@ -65,7 +65,7 @@ GameMaster = {}
 GAMEMASTER_SETUP_MAIN_PRIORITY = AI_JOBS_SETUP_MAIN_PRIORITY + 1
 
 -- The minimum ratio of citizens to spawn in a house.
-CITIZEN_SPAWN_RATIO_MIN = 0.45
+CITIZEN_SPAWN_RATIO_MIN = 0.8
 
 -- The maximum ratio of citizens to spawn in a house.
 CITIZEN_SPAWN_RATIO_MAX = 1.00

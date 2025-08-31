@@ -10,12 +10,12 @@ end
 --- @param str string the string the make friendly
 --- @param remove_spaces boolean? true for if you want to remove spaces, will also remove all underscores instead of replacing them with spaces
 --- @param keep_caps boolean? if you want to keep the caps of the name, false will make all letters lowercase
---- @return string|nil friendly_string friendly string, nil if input_string was not a string
+--- @return string friendly_string friendly string, empty string if input_string was not a string
 function string.friendly(str, remove_spaces, keep_caps) -- function that replaced underscores with spaces and makes it all lower case, useful for player commands so its not extremely picky
 
 	if not str or type(str) ~= "string" then
 		d.print("(string.friendly) str is not a string! type: "..tostring(type(str)).." provided str: "..tostring(str), true, 1)
-		return nil
+		return ""
 	end
 
 	-- make all lowercase

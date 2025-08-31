@@ -15,7 +15,7 @@
 		"editor.wordWrap": "off",
 		"Lua.workspace.ignoreDir": [
 			".vscode",
-			"Addon/_build/out"
+			"_build"
 		],
 		"lifeboatapi.stormworks.user.authorName": "",
 		"discord.detailsEditing": "{file_name} ({file_size})",
@@ -34,6 +34,7 @@
 		"Lua.completion.callSnippet": "Disable",
 		"editor.autoClosingComments": "always",
 		"editor.autoClosingBrackets": "always",
-		"editor.autoClosingQuotes": "always"
+		"editor.autoClosingQuotes": "always",
+		"Lua.diagnostics.ignoredFiles": "Disable"
 	}
 }

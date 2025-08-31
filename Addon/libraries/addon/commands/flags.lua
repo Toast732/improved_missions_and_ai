@@ -363,12 +363,13 @@ Command.registerCommand(
 				return
 			end
 
+			---@type string|nil|boolean|number
 			local set_value = table.concat(arg, " ", 2, #arg)
 			local original_set_value = set_value
 
 			if flag.flag_type ~= "string" then
 				if set_value == "nil" then
-					set_value = nil ---@cast +nil
+					set_value = nil
 				end
 
 				-- number and integer flags
